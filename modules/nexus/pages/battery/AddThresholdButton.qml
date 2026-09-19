@@ -16,7 +16,7 @@ ConnectedRect {
     property bool first: false
     property bool last: false
 
-    signal clicked()
+    signal clicked
 
     Layout.fillWidth: true
     implicitHeight: row.implicitHeight + Tokens.padding.medium * 2

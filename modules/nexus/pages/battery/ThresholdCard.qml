@@ -18,14 +18,30 @@ ConnectedRect {
     required property int index
 
     readonly property var thresholdData: root.modelData
-
-    signal thresholdChanged(var newData)
-    signal removeRequested()
-
     readonly property bool expanded: menuLoader.active
-
     property bool first: false
     property bool last: false
+    readonly property list<MenuItem> profileItems: [
+        MenuItem {
+            text: Tr.tr("Unchanged")
+            value: ""
+        },
+        MenuItem {
+            text: Tr.tr("Power Saver")
+            value: "power-saver"
+        },
+        MenuItem {
+            text: Tr.tr("Balanced")
+            value: "balanced"
+        },
+        MenuItem {
+            text: Tr.tr("Performance")
+            value: "performance"
+        }
+    ]
+
+    signal thresholdChanged(var newData)
+    signal removeRequested
 
     Layout.fillWidth: true
     implicitHeight: expanded ? layout.implicitHeight + Tokens.padding.medium * 2 : row.implicitHeight + Tokens.padding.medium * 2
@@ -147,8 +163,8 @@ ConnectedRect {
                 to: 95
                 stepSize: 5
                 onMoved: v => root.thresholdChanged(Object.assign({}, root.thresholdData, {
-                    "level": Math.round(v)
-                }))
+                        "level": Math.round(v)
+                    }))
             }
 
             SelectRow {
@@ -156,8 +172,8 @@ ConnectedRect {
                 menuItems: root.profileItems
                 active: root.profileItems.find(item => item.value === root.thresholdData.setPowerProfile) ?? root.profileItems[0]
                 onSelected: item => root.thresholdChanged(Object.assign({}, root.thresholdData, {
-                    "setPowerProfile": item.value
-                }))
+                        "setPowerProfile": item.value
+                    }))
             }
 
             RefreshRateSelector {
@@ -165,8 +181,8 @@ ConnectedRect {
                 showUnchanged: true
                 value: root.thresholdData.setRefreshRate
                 onRateChanged: newValue => root.thresholdChanged(Object.assign({}, root.thresholdData, {
-                    "setRefreshRate": newValue
-                }))
+                        "setRefreshRate": newValue
+                    }))
             }
 
             TriStateRow {
@@ -174,24 +190,24 @@ ConnectedRect {
                 label: Tr.tr("Animations")
                 value: root.thresholdData.disableAnimations
                 onTriStateValueChanged: newValue => root.thresholdChanged(Object.assign({}, root.thresholdData, {
-                    "disableAnimations": newValue
-                }))
+                        "disableAnimations": newValue
+                    }))
             }
 
             TriStateRow {
                 label: Tr.tr("Blur")
                 value: root.thresholdData.disableBlur
                 onTriStateValueChanged: newValue => root.thresholdChanged(Object.assign({}, root.thresholdData, {
-                    "disableBlur": newValue
-                }))
+                        "disableBlur": newValue
+                    }))
             }
 
             TriStateRow {
                 label: Tr.tr("Rounding")
                 value: root.thresholdData.disableRounding
                 onTriStateValueChanged: newValue => root.thresholdChanged(Object.assign({}, root.thresholdData, {
-                    "disableRounding": newValue
-                }))
+                        "disableRounding": newValue
+                    }))
             }
 
             TriStateRow {
@@ -199,28 +215,9 @@ ConnectedRect {
                 label: Tr.tr("Shadows")
                 value: root.thresholdData.disableShadows
                 onTriStateValueChanged: newValue => root.thresholdChanged(Object.assign({}, root.thresholdData, {
-                    "disableShadows": newValue
-                }))
+                        "disableShadows": newValue
+                    }))
             }
         }
     }
-
-    readonly property list<MenuItem> profileItems: [
-        MenuItem {
-            text: Tr.tr("Unchanged")
-            value: ""
-        },
-        MenuItem {
-            text: Tr.tr("Power Saver")
-            value: "power-saver"
-        },
-        MenuItem {
-            text: Tr.tr("Balanced")
-            value: "balanced"
-        },
-        MenuItem {
-            text: Tr.tr("Performance")
-            value: "performance"
-        }
-    ]
 }

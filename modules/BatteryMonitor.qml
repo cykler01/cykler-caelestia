@@ -16,7 +16,9 @@ Scope {
     readonly property bool powerManagementEnabled: GlobalConfig.general.battery.powerManagement.enabled
 
     property real lastPercentage: 100
-    property var originalSettings: ({ refreshRates: {} })
+    property var originalSettings: ({
+            refreshRates: {}
+        })
     property int currentThresholdIndex: -1
     property bool settingsModified: false
 
