@@ -19,8 +19,6 @@ ConnectedRect {
 
     readonly property var thresholdData: root.modelData
     readonly property bool expanded: menuLoader.active
-    property bool first: false
-    property bool last: false
     readonly property list<MenuItem> profileItems: [
         MenuItem {
             text: Tr.tr("Unchanged")
@@ -44,7 +42,7 @@ ConnectedRect {
     signal removeRequested
 
     Layout.fillWidth: true
-    implicitHeight: expanded ? layout.implicitHeight + Tokens.padding.medium * 2 : row.implicitHeight + Tokens.padding.medium * 2
+    implicitHeight: expanded ? (menuLoader.item?.implicitHeight ?? 0) + Tokens.padding.medium * 2 : row.implicitHeight + Tokens.padding.medium * 2
 
     topLeftRadius: root.first ? Tokens.rounding.extraLarge : Tokens.rounding.extraSmall
     topRightRadius: root.first ? Tokens.rounding.extraLarge : Tokens.rounding.extraSmall

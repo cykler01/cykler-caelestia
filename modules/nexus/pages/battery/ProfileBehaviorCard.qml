@@ -5,8 +5,6 @@ import QtQuick.Layouts
 import Caelestia.Config
 import Caelestia.I18n
 import qs.components
-import qs.components.controls
-import qs.services
 import qs.modules.nexus.common
 
 // An editable card for the actions applied while a power profile is active (fork feature)
@@ -15,9 +13,6 @@ ConnectedRect {
 
     required property string profileName
     required property var behavior
-
-    property bool first: false
-    property bool last: false
 
     Layout.fillWidth: true
     implicitHeight: layout.implicitHeight + Tokens.padding.medium * 2
