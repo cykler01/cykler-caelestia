@@ -5,7 +5,6 @@ import QtQuick.Layouts
 import Caelestia.Config
 import Caelestia.I18n
 import qs.components
-import qs.components.controls
 import qs.services
 import qs.modules.nexus.common
 
@@ -13,10 +12,7 @@ import qs.modules.nexus.common
 ConnectedRect {
     id: root
 
-    property bool first: false
-    property bool last: false
-
-    signal clicked()
+    signal clicked
 
     Layout.fillWidth: true
     implicitHeight: row.implicitHeight + Tokens.padding.medium * 2

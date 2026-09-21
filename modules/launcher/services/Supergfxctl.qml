@@ -1,6 +1,5 @@
 pragma Singleton
 
-import ".."
 import QtQuick
 import Quickshell
 import Quickshell.Io
@@ -11,7 +10,7 @@ import qs.utils
 Searcher {
     id: root
 
-    property list<var> modeData: []
+    property var modeData: []
     property int modeRevision
     property string requestedMode
     property int lastExitCode
@@ -118,7 +117,7 @@ Searcher {
         stdout: StdioCollector {
             onStreamFinished: root.updateModes(text)
         }
-        onExited: (exitCode, exitStatus) => {
+        onExited: exitCode => {
             if (exitCode !== 0)
                 console.warn(`supergfxctl exited with code ${exitCode}`);
         }
@@ -130,7 +129,7 @@ Searcher {
         stderr: StdioCollector {
             id: setModeError
         }
-        onExited: (exitCode, exitStatus) => {
+        onExited: exitCode => {
             root.lastExitCode = exitCode;
             root.lastError = setModeError.text;
             pendingAction.running = true;
@@ -144,6 +143,6 @@ Searcher {
         stdout: StdioCollector {
             id: pendingActionOutput
         }
-        onExited: (exitCode, exitStatus) => root.reportModeChange(root.lastExitCode, root.lastError, exitCode === 0 ? pendingActionOutput.text.trim() : "unknown")
+        onExited: exitCode => root.reportModeChange(root.lastExitCode, root.lastError, exitCode === 0 ? pendingActionOutput.text.trim() : "unknown")
     }
 }

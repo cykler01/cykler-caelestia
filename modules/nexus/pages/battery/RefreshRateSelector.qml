@@ -14,17 +14,23 @@ SelectRow {
     property bool showRestore: false
     property bool showUnchanged: false
 
-    signal rateChanged(string newValue)
-
     // NOTE(fork): label is set by the caller via the `label` alias
     readonly property list<MenuItem> rateItems: {
         const items = [];
 
         if (root.showRestore)
-            items.push(rateComp.createObject(root, { text: Tr.tr("Restore"), icon: "refresh", value: "restore" }));
+            items.push(rateComp.createObject(root, {
+                text: Tr.tr("Restore"),
+                icon: "refresh",
+                value: "restore"
+            }));
 
         if (root.showUnchanged)
-            items.push(rateComp.createObject(root, { text: Tr.tr("Unchanged"), icon: "block", value: "" }));
+            items.push(rateComp.createObject(root, {
+                text: Tr.tr("Unchanged"),
+                icon: "block",
+                value: ""
+            }));
 
         const uniqueRates = new Set();
 
@@ -42,12 +48,26 @@ SelectRow {
 
         const sortedRates = [...uniqueRates].sort((a, b) => a - b);
         for (const rate of sortedRates)
-            items.push(rateComp.createObject(root, { text: `${rate} Hz`, icon: "speed", value: rate.toString() }));
+            items.push(rateComp.createObject(root, {
+                text: `${rate} Hz`,
+                icon: "speed",
+                value: rate.toString()
+            }));
 
-        items.push(rateComp.createObject(root, { text: Tr.tr("Auto (lowest)"), icon: "battery_saver", value: "auto" }));
+        items.push(rateComp.createObject(root, {
+            text: Tr.tr("Auto (lowest)"),
+            icon: "battery_saver",
+            value: "auto"
+        }));
 
         return items;
     }
+
+    readonly property Component rateComp: Component {
+        RateMenuItem {}
+    }
+
+    signal rateChanged(string newValue)
 
     menuItems: root.rateItems
     active: root.rateItems.find(item => item.value === root.value) ?? null
@@ -59,9 +79,5 @@ SelectRow {
 
     component RateMenuItem: MenuItem {
         text: ""
-    }
-
-    readonly property Component rateComp: Component {
-        RateMenuItem {}
     }
 }

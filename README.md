@@ -6,7 +6,7 @@ A personal fork of [`caelestia-dots/shell`](https://github.com/caelestia-dots/sh
 
 </div>
 
-This is my take on the Caelestia shell — upstream's desktop shell with my own features layered on top. It's built for my machine and my workflow first.
+This is my take on the Caelestia shell - upstream's desktop shell with my own features layered on top. It's built for my machine and my workflow first.
 
 > [!WARNING]
 > These features are **not guaranteed to work everywhere or reliably**. This fork tracks my
@@ -17,7 +17,7 @@ This is my take on the Caelestia shell — upstream's desktop shell with my own 
  
 | Area | Upstream | This fork |
 |---|---|---|
-| Battery management | — | `BatteryMonitor` service, auto power-saving on profile change, battery pane in control center |
+| Battery management | --- | `BatteryMonitor` service, auto power-saving on profile change, battery pane in control center |
 | Game mode | Derived from animation state | Fixed false-trigger; also sets flat mouse accel |
 | Launcher | Standard actions | Adds OCR (`>ocr`) and Google Lens (`>lens`) region-capture actions |
 
@@ -26,16 +26,16 @@ This is my take on the Caelestia shell — upstream's desktop shell with my own 
 
 ### Battery optimization suite
 
--   **`BatteryMonitor` service** — manages power profiles and per-profile effects
--   **Automatic Hyprland power saving** — when the power profile changes (e.g. switching to
+-   **`BatteryMonitor` service** - manages power profiles and per-profile effects
+-   **Automatic Hyprland power saving** - when the power profile changes (e.g. switching to
     battery saver), the shell automatically disables animations, blur, gaps and shadows, and
     can adjust the screen refresh rate to save power. Changes are announced via toasts.
--   **Control center battery pane** — a new battery pane in the control center with:
+-   **Control center battery pane** - a new battery pane in the control center with:
     -   Power profile selector (with configurable behaviors per profile)
     -   Charging behavior settings
     -   Battery charge threshold configuration (for laptops that expose charge limits)
     -   Refresh rate selector
--   **Game mode false-trigger fix** — game mode state is no longer derived from whether
+-   **Game mode false-trigger fix** - game mode state is no longer derived from whether
     animations are disabled, so the battery monitor disabling animations for power saving no
     longer makes the shell think game mode is on
 
@@ -46,9 +46,9 @@ This is my take on the Caelestia shell — upstream's desktop shell with my own 
 
 ### Launcher image tools
 
--   **OCR action** — select a screen region with `slurp`, recognize it with `tesseract`,
+-   **OCR action** - select a screen region with `slurp`, recognize it with `tesseract`,
     and copy the detected text to the clipboard with `wl-copy`.
--   **Google Lens action** — select a screen region with `slurp`, upload the capture to
+-   **Google Lens action** - select a screen region with `slurp`, upload the capture to
     Uguu, and open the result in Google Lens.
 -   Launch either tool from the command panel by selecting its action or searching for
     `>ocr` / `>lens`.
@@ -85,15 +85,14 @@ This is my take on the Caelestia shell — upstream's desktop shell with my own 
 
 ## Feature requests
 
-Any feature requests are welcome — open an [issue](https://github.com/CYKLER01/cykler-caelestia/issues)
-and I will try to get onto them quickly.
+Any feature requests are welcome - open an [issue](https://github.com/CYKLER01/cykler-caelestia/issues) and I will try to get onto them quickly.
 
 ## Keeping up to date
  
 I try to keep this fork merged with upstream `caelestia-dots/shell` regularly, so you should
 get upstream fixes and features here too (best effort, no promises).
  
-Run the included script from inside your clone — by default it just pulls any new commits
+Run the included script from inside your clone - by default it just pulls any new commits
 on this fork and rebuilds/reinstalls:
  
 ```sh
@@ -102,13 +101,14 @@ on this fork and rebuilds/reinstalls:
  
 Flags:
  
--   `--upstream` — also merge in `caelestia-dots/shell` (adding the `upstream` remote if
+-   `--upstream` - also merge in `caelestia-dots/shell` (adding the `upstream` remote if
     needed, and showing you what changed before merging)
--   `--yes` / `-y` — skip the confirmation prompts (useful for scripting)
+-   `--yes` / `-y` - skip the confirmation prompts
 It refuses to run if you have uncommitted local changes, so commit or stash first.
  
 <details>
 <summary>Doing it manually instead</summary>
+
 ```sh
 cd cykler-caelestia
 git pull
@@ -126,21 +126,26 @@ git merge upstream/main
  
 </details>
 
-```
-
 ## Installation
-
+ 
 > [!NOTE]
 > This installs the shell only. For the full Caelestia dotfiles (themes, Hyprland config,
 > keybinds, etc.), see [the main dotfiles repo](https://github.com/caelestia-dots/caelestia).
-
+ 
 > [!IMPORTANT]
 > If you previously installed `caelestia-shell` or `caelestia-shell-git` from the AUR, remove
-> it first — this fork conflicts with and provides the same package.
-
+> it first - this fork conflicts with and provides the same package.
+ 
 ### Arch Linux
  
-#### 1. Install dependencies
+#### 1. Clone the repo
+ 
+```sh
+git clone https://github.com/CYKLER01/cykler-caelestia.git
+cd cykler-caelestia
+```
+ 
+#### 2. Install dependencies
  
 Run the included script, which installs official-repo packages via `pacman` and AUR packages
 via `yay`/`paru` (installing `yay` for you if you don't have an AUR helper). It prints each
@@ -152,11 +157,12 @@ package list and asks for confirmation before installing anything:
  
 Flags:
  
--   `--repo-only` — skip AUR packages entirely, if you'd rather install those yourself or use a different helper
--   `--yes` / `-y` — skip the confirmation prompts (useful for scripting)
+-   `--repo-only` - skip AUR packages entirely, if you'd rather install those yourself or use a different helper
+-   `--yes` / `-y` - skip the confirmation prompts (useful for scripting)
 <details>
 <summary>Manual dependency list (if you'd rather not run the script)</summary>
-Official repos:
+
+##### Official repos:
  
 -   `glibc`, `gcc-libs` (base, usually already installed)
 -   `ddcutil`, `brightnessctl`
@@ -164,7 +170,7 @@ Official repos:
 -   `qt6-base`, `qt6-declarative`, `qt6-imageformats`
 -   `swappy`, `fish`, `bash`, `grim`, `slurp`, `tesseract`, `wl-clipboard`, `libnotify`, `curl`, `jq`, `xdg-utils`
 -   Build deps: `git`, `cmake`, `ninja`, `qt6-shadertools`
-AUR:
+##### AUR:
  
 -   [`caelestia-cli`](https://github.com/caelestia-dots/cli)
 -   [`quickshell-git`](https://git.outfoxxed.me/quickshell/quickshell) — must be the git version
@@ -172,11 +178,10 @@ AUR:
 -   `libcava`
 -   Fonts: `ttf-material-symbols-variable`, `ttf-rubik-vf`, `ttf-cascadia-code-nerd`
 </details>
-#### 2. Build and install
+
+#### 3. Build and install
  
 ```sh
-git clone https://github.com/CYKLER01/cykler-caelestia.git
-cd cykler-caelestia
 cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/
 cmake --build build
 sudo cmake --install build
@@ -203,15 +208,22 @@ The upstream flake is kept in this fork, so you can try it with:
 nix run github:CYKLER01/cykler-caelestia#with-cli
 ```
  
-This is best-effort — I don't run Nix daily, so I can't guarantee it stays working.
+If you've cloned the repo and use [direnv](https://direnv.net/), it comes with an `.envrc`
+that loads the flake's dev shell automatically - just approve it once after cloning:
+ 
+```sh
+direnv allow
+```
+ 
+This is best-effort - I don't run Nix daily, so I can't guarantee it stays working.
+
 
 
 ## Configuration
 
 Configuration is unchanged from upstream: everything lives in `~/.config/caelestia/shell.json`
 and per-monitor overrides in `~/.config/caelestia/monitors/<monitor>/shell.json`. See the
-[upstream configuring section](https://github.com/caelestia-dots/shell#configuring) for the
-full list of options and an example config.
+[upstream configuring section](https://github.com/caelestia-dots/shell#configuring) for the full list of options and an example config.
 
 ## Troubleshooting
  
@@ -230,7 +242,4 @@ full list of options and an example config.
 
 ## Credits
 
-All credit for the shell itself goes to [Caelestia](https://github.com/caelestia-dots/shell) —
-this fork is just my additions on top of their excellent work. The battery power-management
-work also builds on the `feat/battery-power-management` branch contributed by
-[@PixelKhaos](https://github.com/PixelKhaos).
+All credit for the shell itself goes to [Caelestia](https://github.com/caelestia-dots/shell) - this fork is just my additions on top of their excellent work. The battery power-management work also builds on the `feat/battery-power-management` branch contributed by [@PixelKhaos](https://github.com/PixelKhaos).

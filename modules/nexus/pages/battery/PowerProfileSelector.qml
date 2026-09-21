@@ -13,24 +13,48 @@ SelectRow {
     property bool showRestore: false
     property bool showUnchanged: false
 
-    signal profileChanged(string newValue)
-
     // NOTE(fork): label is set by the caller via the `label` alias
     readonly property list<MenuItem> profileItems: {
         const items = [];
 
         if (root.showRestore)
-            items.push(profileComp.createObject(root, { text: Tr.tr("Restore"), icon: "refresh", value: "restore" }));
+            items.push(profileComp.createObject(root, {
+                text: Tr.tr("Restore"),
+                icon: "refresh",
+                value: "restore"
+            }));
 
         if (root.showUnchanged)
-            items.push(profileComp.createObject(root, { text: Tr.tr("Unchanged"), icon: "block", value: "" }));
+            items.push(profileComp.createObject(root, {
+                text: Tr.tr("Unchanged"),
+                icon: "block",
+                value: ""
+            }));
 
-        items.push(profileComp.createObject(root, { text: Tr.tr("Power Saver"), icon: "battery_saver", value: "power-saver" }));
-        items.push(profileComp.createObject(root, { text: Tr.tr("Balanced"), icon: "balance", value: "balanced" }));
-        items.push(profileComp.createObject(root, { text: Tr.tr("Performance"), icon: "speed", value: "performance" }));
+        items.push(profileComp.createObject(root, {
+            text: Tr.tr("Power Saver"),
+            icon: "battery_saver",
+            value: "power-saver"
+        }));
+        items.push(profileComp.createObject(root, {
+            text: Tr.tr("Balanced"),
+            icon: "balance",
+            value: "balanced"
+        }));
+        items.push(profileComp.createObject(root, {
+            text: Tr.tr("Performance"),
+            icon: "speed",
+            value: "performance"
+        }));
 
         return items;
     }
+
+    readonly property Component profileComp: Component {
+        ProfileMenuItem {}
+    }
+
+    signal profileChanged(string newValue)
 
     menuItems: root.profileItems
     active: root.profileItems.find(item => item.value === root.value) ?? null
@@ -42,9 +66,5 @@ SelectRow {
 
     component ProfileMenuItem: MenuItem {
         text: ""
-    }
-
-    readonly property Component profileComp: Component {
-        ProfileMenuItem {}
     }
 }
