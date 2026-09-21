@@ -1,5 +1,6 @@
 pragma Singleton
 
+import ".."
 import QtQuick
 import Quickshell
 import Quickshell.Io
@@ -47,11 +48,6 @@ Searcher {
         root.hostRevision++;
     }
 
-    list: root.hostData
-    useFuzzy: false
-    keys: ["name", "description"]
-    weights: [0.8, 0.2]
-
     function parseHosts(config: string): var {
         const result = [];
         const seen = new Set();
@@ -81,6 +77,11 @@ Searcher {
         return result.sort((a, b) => a.name.localeCompare(b.name));
     }
 
+    list: root.hostData
+    useFuzzy: false
+    keys: ["name", "description"]
+    weights: [0.8, 0.2]
+
     Process {
         id: readConfig
 
@@ -89,7 +90,7 @@ Searcher {
         stdout: StdioCollector {
             onStreamFinished: root.updateHosts(text)
         }
-        onExited: (exitCode, exitStatus) => {
+        onExited: exitCode => {
             if (exitCode !== 0) {
                 root.hostData = [];
                 root.hostRevision++;

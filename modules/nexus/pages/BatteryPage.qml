@@ -2,7 +2,6 @@ pragma ComponentBehavior: Bound
 
 import QtQuick
 import QtQuick.Layouts
-import Quickshell
 import Caelestia.Config
 import Caelestia.I18n
 import qs.components
@@ -14,16 +13,9 @@ import qs.modules.nexus.pages.battery
 PageBase {
     id: root
 
-    title: Tr.tr("Power & battery")
-
     // NOTE(fork): thresholds are a QVariantList in config, mirrored into a local
     // JS model for editing and written back on every change
     property list<var> thresholds: [...GlobalConfig.general.battery.powerManagement.thresholds]
-
-    function saveThresholds(): void {
-        GlobalConfig.general.battery.powerManagement.thresholds = root.thresholds;
-    }
-
     readonly property list<MenuItem> profileItems: [
         MenuItem {
             text: Tr.trCtx("Auto", "default power profile")
@@ -42,6 +34,12 @@ PageBase {
             value: "performance"
         }
     ]
+
+    function saveThresholds(): void {
+        GlobalConfig.general.battery.powerManagement.thresholds = root.thresholds;
+    }
+
+    title: Tr.tr("Power & battery")
 
     ColumnLayout {
         anchors.horizontalCenter: parent.horizontalCenter
@@ -208,7 +206,8 @@ PageBase {
 
         AddThresholdButton {
             onClicked: {
-                const thresholds = [...root.thresholds, {
+                const thresholds = [...root.thresholds,
+                    {
                         level: 50,
                         setPowerProfile: "",
                         setRefreshRate: "auto",
@@ -216,7 +215,8 @@ PageBase {
                         disableBlur: "",
                         disableRounding: "",
                         disableShadows: ""
-                    }];
+                    }
+                ];
                 root.thresholds = thresholds;
                 root.saveThresholds();
             }

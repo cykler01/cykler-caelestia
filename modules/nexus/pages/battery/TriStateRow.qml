@@ -15,12 +15,11 @@ ConnectedRect {
     required property string label
     property string subtext: ""
     property string value: ""
-
-    signal triStateValueChanged(string newValue)
-
     readonly property bool isEnable: root.value === "enable"
     readonly property bool isDisable: root.value === "disable"
     readonly property bool isUnchanged: !root.isEnable && !root.isDisable
+
+    signal triStateValueChanged(string newValue)
 
     Layout.fillWidth: true
     implicitHeight: row.implicitHeight + Tokens.padding.medium * 2
