@@ -63,9 +63,10 @@ This is my take on the Caelestia shell — upstream's desktop shell with my own 
 ### Shell assets
 
 -   **Settings page** — a new "Shell assets" page under *Settings → Appearance* that
-    changes the images the shell ships with: the system logo, the session screen and
-    dashboard media gifs, and the sidebar and lock screen placeholder images. Previously
-    these could only be changed by editing the files (or the config) by hand.
+    changes the images the shell uses: the system logo, the session screen and
+    dashboard media gifs, the sidebar and lock screen placeholder images, and the profile
+    picture (`~/.face`) shown on the dashboard and lock screen. Previously these could only
+    be changed by editing the files (or the config) by hand.
 -   **Upload like the profile picture** — choosing a file copies it to
     `~/.local/share/caelestia/assets/` and points the option at the copy, so the shell's
     own assets (which can be read only, e.g. under `/etc/xdg`) are left alone. Each row

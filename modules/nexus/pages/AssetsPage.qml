@@ -21,9 +21,24 @@ PageBase {
         width: root.cappedWidth
         spacing: Tokens.spacing.extraSmall / 2
 
-        // Logo
+        // Profile picture
         SectionHeader {
             first: true
+            text: Tr.tr("Profile")
+        }
+
+        // The one asset that lives in the home directory rather than the shell's assets
+        AssetRow {
+            first: true
+            last: true
+            label: Tr.tr("Profile picture")
+            subtext: Tr.tr("Shown on the dashboard and the lock screen")
+            targetPath: `${Paths.home}/.face`
+            fallbackIcon: "person"
+        }
+
+        // Logo
+        SectionHeader {
             text: Tr.tr("Logo")
         }
 
