@@ -2,6 +2,8 @@ pragma Singleton
 
 import QtQuick
 import Quickshell
+import Quickshell.Io
+import Caelestia
 import qs.services
 
 Singleton {
@@ -16,6 +18,7 @@ Singleton {
     property var pendingRevert: []
     property bool confirming: false
     property int confirmSecondsLeft: 0
+    property var savedSpecs: []
 
     function identify(): void {
         identifying = true;
@@ -659,6 +662,7 @@ Singleton {
 
     function keepChanges(): void {
         confirmTimer.stop();
+        root.saveCurrent();
         root.confirming = false;
         root.pendingRevert = [];
         root.confirmSecondsLeft = 0;
@@ -670,6 +674,33 @@ Singleton {
         root.confirming = false;
         root.pendingRevert = [];
         root.confirmSecondsLeft = 0;
+        root.sendSpecs(specs);
+    }
+
+    function saveCurrent(): void {
+        const specs = root.snapshotSpecs();
+        if (specs.length === 0)
+            return;
+        root.savedSpecs = specs;
+        storage.setText(JSON.stringify(specs, null, 2));
+    }
+
+    function rememberForReload(): void {
+        if (root.savedSpecs.length === 0 && !root.confirming)
+            root.savedSpecs = root.snapshotSpecs();
+    }
+
+    function restoreSaved(): void {
+        if (root.confirming || root.savedSpecs.length === 0)
+            return;
+
+        const specs = root.savedSpecs.filter(spec => {
+            const mon = root.findMonitorByName(spec.name);
+            if (!mon)
+                return false;
+            const current = root.specFor(mon, ({}));
+            return JSON.stringify(current) !== JSON.stringify(spec);
+        });
         root.sendSpecs(specs);
     }
 
@@ -978,5 +1009,37 @@ Singleton {
 
         interval: 5000
         onTriggered: root.identifying = false
+    }
+
+    FileView {
+        id: storage
+
+        printErrors: false
+        path: `${Paths.state}/monitors.json`
+        onLoaded: {
+            try {
+                const data = JSON.parse(text());
+                if (Array.isArray(data))
+                    root.savedSpecs = data;
+            } catch (e) {
+                console.error("Monitors: failed to parse saved layout", e);
+            }
+            restoreTimer.restart();
+        }
+    }
+
+    Timer {
+        id: restoreTimer
+
+        interval: 1500
+        onTriggered: root.restoreSaved()
+    }
+
+    Connections {
+        function onConfigReloaded(): void {
+            restoreTimer.restart();
+        }
+
+        target: Hypr
     }
 }

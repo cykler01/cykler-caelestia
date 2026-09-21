@@ -239,6 +239,10 @@ PageBase {
         width: root.cappedWidth
         spacing: Tokens.spacing.extraSmall / 2
 
+        ConfirmBar {
+            Layout.fillWidth: true
+        }
+
         // ── Hero Section ──────────────────────────────────────
         ConnectedRect {
             Layout.fillWidth: true

@@ -35,6 +35,49 @@ PageBase {
         }
     ]
 
+    function idleKind(entry: var): string {
+        const action = entry.idleAction;
+        if (action === "lock")
+            return "lock";
+        if (action === "dpms off")
+            return "display";
+        if (String(action).toLowerCase().includes("suspend") || String(action).toLowerCase().includes("hibernate"))
+            return "sleep";
+        return "";
+    }
+
+    function idleTimeout(kind: string): int {
+        const entry = GlobalConfig.general.idle.timeouts.find(e => root.idleKind(e) === kind);
+        return !entry || entry.enabled === false ? 0 : entry.timeout;
+    }
+
+    function setIdleTimeout(kind: string, seconds: int): void {
+        const list = GlobalConfig.general.idle.timeouts.map(e => Object.assign({}, e));
+        const entry = list.find(e => root.idleKind(e) === kind);
+        if (entry) {
+            entry.enabled = seconds > 0;
+            if (seconds > 0)
+                entry.timeout = seconds;
+        } else if (seconds > 0) {
+            const defaults = {
+                lock: {
+                    idleAction: "lock"
+                },
+                display: {
+                    idleAction: "dpms off",
+                    returnAction: "dpms on"
+                },
+                sleep: {
+                    idleAction: ["suspendThenHibernate"]
+                }
+            };
+            list.push(Object.assign({
+                timeout: seconds
+            }, defaults[kind]));
+        }
+        GlobalConfig.general.idle.timeouts = list;
+    }
+
     function saveThresholds(): void {
         GlobalConfig.general.battery.powerManagement.thresholds = root.thresholds;
     }
@@ -47,9 +90,37 @@ PageBase {
         width: root.cappedWidth
         spacing: Tokens.spacing.extraSmall / 2
 
-        // General
+        // Screen & lock
         SectionHeader {
             first: true
+            text: Tr.tr("Screen & lock")
+        }
+
+        TimeoutRow {
+            first: true
+            label: Tr.tr("Lock after")
+            subtext: Tr.tr("Idle time before the device locks")
+            value: root.idleTimeout("lock")
+            onTimeoutChanged: seconds => root.setIdleTimeout("lock", seconds)
+        }
+
+        TimeoutRow {
+            label: Tr.tr("Turn off display after")
+            subtext: Tr.tr("Idle time before the display turns off")
+            value: root.idleTimeout("display")
+            onTimeoutChanged: seconds => root.setIdleTimeout("display", seconds)
+        }
+
+        TimeoutRow {
+            last: true
+            label: Tr.tr("Sleep after")
+            subtext: Tr.tr("Idle time before the device suspends")
+            value: root.idleTimeout("sleep")
+            onTimeoutChanged: seconds => root.setIdleTimeout("sleep", seconds)
+        }
+
+        // General
+        SectionHeader {
             text: Tr.tr("Power management")
         }
 
