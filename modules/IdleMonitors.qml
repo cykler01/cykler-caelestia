@@ -27,8 +27,10 @@ Scope {
         if (!action)
             return;
 
-        if (action === "lock")
-            lock.lock.locked = true;
+        if (action === "lock") {
+            if (!IdleInhibitor.preventLock)
+                lock.lock.locked = true;
+        }
         else if (action === "unlock")
             lock.lock.locked = false;
         else if (typeof action === "string")
