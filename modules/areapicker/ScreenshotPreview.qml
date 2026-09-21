@@ -26,6 +26,9 @@ StyledWindow {
     readonly property int timeout: 3000
     // The bar owns the left edge, so the preview sits to the right of it.
     readonly property int barWidth: ShellState.componentsFor(root.screen)?.bar?.implicitWidth ?? 0
+    // Match the outline Hyprland draws around client windows, using the theme's
+    // primary colour so the preview reads as another window rather than a panel.
+    readonly property int borderWidth: Hypr.options["general:border_size"] ?? 2
     // Local path of the capture being previewed, empty while the preview is idle.
     property string capturePath
     // Where the save button writes its copy of the capture to.
@@ -134,9 +137,16 @@ StyledWindow {
 
         color: Colours.tPalette.m3surfaceContainer
         radius: Tokens.rounding.extraLarge
-        implicitWidth: Math.max(img.width, saveButton.implicitWidth) + framePadding * 2
-        implicitHeight: img.height + saveButton.implicitHeight + framePadding * 3
+
+        border.width: root.borderWidth
+        border.color: Colours.palette.m3primary
+        implicitWidth: Math.max(img.width, buttons.implicitWidth) + framePadding * 2
+        implicitHeight: img.height + buttons.implicitHeight + framePadding * 3
         anchors.fill: parent
+
+        Behavior on border.color {
+            CAnim {}
+        }
 
         Image {
             id: img
@@ -166,18 +176,35 @@ StyledWindow {
             }
         }
 
-        IconButton {
-            id: saveButton
+        Row {
+            id: buttons
 
-            icon: "save"
-            type: IconButton.Filled
-            radius: Tokens.rounding.full
-            radiusMorph: false
+            spacing: Tokens.spacing.small
             anchors.right: parent.right
             anchors.rightMargin: card.framePadding
             anchors.bottom: parent.bottom
             anchors.bottomMargin: card.framePadding
-            onClicked: root.saveToDesktop()
+
+            // Opens the capture in the editor, leaving the temporary file to it.
+            IconButton {
+                id: editButton
+
+                icon: "edit"
+                type: IconButton.Tonal
+                radius: Tokens.rounding.full
+                radiusMorph: false
+                onClicked: root.edit()
+            }
+
+            IconButton {
+                id: saveButton
+
+                icon: "save"
+                type: IconButton.Filled
+                radius: Tokens.rounding.full
+                radiusMorph: false
+                onClicked: root.saveToDesktop()
+            }
         }
     }
 }
