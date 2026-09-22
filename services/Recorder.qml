@@ -32,6 +32,18 @@ Singleton {
         checkProc.running = true;
     }
 
+    // `caelestia record` spawns slurp (region captures) and gpu-screen-recorder,
+    // which inherit the stdio of whoever ran it. A Process leaves its child's
+    // channels attached to the shell's, so the recorder would keep writing to the
+    // shell's stdout/stderr - and dies with SIGPIPE once the shell closes that pipe
+    // - while slurp blocks on the shell's stdin until the shell exits. Redirect the
+    // command's stdio to /dev/null so it and its children are detached from the
+    // shell. The Process still tracks the command, so polling stays suppressed
+    // while it runs.
+    function runRecordCommand(args): void {
+        commandProc.exec(["sh", "-c", 'exec "$@" </dev/null >/dev/null 2>&1', "sh", "caelestia", "record", ...args]);
+    }
+
     PersistentProperties {
         id: props
 
@@ -51,14 +63,14 @@ Singleton {
             const running = code === 0;
 
             if (running && root.needsStop) {
-                commandProc.exec(["caelestia", "record"]);
+                root.runRecordCommand([]);
                 props.running = false;
                 props.paused = false;
             } else if (running && root.needsPause) {
-                commandProc.exec(["caelestia", "record", "-p"]);
+                root.runRecordCommand(["-p"]);
                 props.paused = !props.paused;
             } else if (!running && root.needsStart) {
-                commandProc.exec(["caelestia", "record", ...root.startArgs]);
+                root.runRecordCommand(root.startArgs);
                 props.running = true;
                 props.paused = false;
                 props.elapsed = 0;
