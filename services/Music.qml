@@ -92,6 +92,33 @@ Singleton {
     // it isn't currently inside of
     readonly property list<FileSystemEntry> artEntries: allArt.entries
 
+    // Up to four covers per folder, taken from its first tracks (each track's own art, so they
+    // can differ within a folder). The gallery collages these for folders with no cover image.
+    readonly property var folderCollages: {
+        const artByTrack = {};
+        const images = root.artEntries;
+        for (let i = 0; i < images.length; i++) {
+            const key = `${images[i].parentDir}/${images[i].baseName}`;
+            if (!(key in artByTrack))
+                artByTrack[key] = images[i].path;
+        }
+
+        const collages = {};
+        const tracks = root.library;
+        for (let i = 0; i < tracks.length; i++) {
+            const cover = artByTrack[`${tracks[i].parentDir}/${tracks[i].baseName}`];
+            if (!cover)
+                continue;
+
+            const dir = tracks[i].parentDir;
+            if (!(dir in collages))
+                collages[dir] = [];
+            if (collages[dir].length < 4)
+                collages[dir].push(cover);
+        }
+        return collages;
+    }
+
     // The best cover image inside a folder. A file named after `stem` is the art yt-dlp saved
     // next to a track and wins over the folder's own cover, matching the now playing view.
     function coverFor(dir: string, stem: string): string {
@@ -118,6 +145,19 @@ Singleton {
             }
         }
         return best || first;
+    }
+
+    // Covers to show on a folder tile: the folder's own cover, else the covers of its first
+    // tracks, which the gallery lays out as a collage as soon as there are four of them
+    function folderCoversFor(dir: string): var {
+        const own = root.coverFor(dir, "");
+        if (own)
+            return [own];
+
+        const collage = root.folderCollages[dir];
+        if (!collage)
+            return [];
+        return collage.length >= 4 ? collage : collage.slice(0, 1);
     }
 
     function playQueue(paths: var, index: int): void {

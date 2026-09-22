@@ -18,8 +18,12 @@ StyledClippingRect {
 
     readonly property string query: search.text.trim().toLowerCase()
     readonly property bool searching: root.query.length > 0
-    // Tiles wide enough to read a cover and a name, so they just wrap with the drawer width
-    readonly property int columns: Math.max(2, Math.floor(root.width / 150))
+    // Small covers at a fixed size, laid out with a Flow so a row of one or two folders keeps
+    // them small instead of stretching them across the drawer. Works out to six per row at the
+    // default tab width, and one more or less per row as it changes.
+    readonly property real tileTarget: 130
+    readonly property int columns: Math.max(1, Math.floor((flow.width + Tokens.spacing.medium) / (root.tileTarget + Tokens.spacing.medium)))
+    readonly property real tileSize: flow.width > 0 ? (flow.width - (root.columns - 1) * Tokens.spacing.medium) / root.columns : root.tileTarget
     readonly property string title: Music.relativeDir ? Music.relativeDir.split("/").join(" › ") : Tr.tr("Music")
     readonly property var browseItems: {
         const items = [];
@@ -53,6 +57,15 @@ StyledClippingRect {
         if (!dir.startsWith(Music.rootDir))
             return dir;
         return dir.slice(Music.rootDir.length).replace(/^\//, "");
+    }
+
+    // Covers to show for an entry: a track's own art, or a folder's cover and collage
+    function coversFor(entry: FileSystemEntry): var {
+        if (entry.isDir)
+            return Music.folderCoversFor(entry.path);
+
+        const cover = Music.coverFor(entry.parentDir, entry.baseName);
+        return cover ? [cover] : [];
     }
 
     function stopSearching(): void {
@@ -158,7 +171,7 @@ StyledClippingRect {
             anchors.left: parent.left
             anchors.right: parent.right
             anchors.topMargin: Tokens.spacing.medium
-            // Clamped so the grid never gets a negative height while the drawer animates
+            // Clamped so the gallery never gets a negative height while the drawer animates
             height: Math.max(0, body.height - y)
             clip: true
 
@@ -166,20 +179,18 @@ StyledClippingRect {
                 id: flickable
 
                 anchors.fill: parent
-                contentHeight: grid.implicitHeight
+                contentHeight: flow.implicitHeight
                 clip: true
 
                 StyledScrollBar.vertical: StyledScrollBar {
                     flickable: flickable
                 }
 
-                GridLayout {
-                    id: grid
+                Flow {
+                    id: flow
 
                     width: flickable.width - Tokens.padding.small
-                    columns: root.columns
-                    rowSpacing: Tokens.spacing.medium
-                    columnSpacing: Tokens.spacing.medium
+                    spacing: Tokens.spacing.medium
 
                     Repeater {
                         id: repeater
@@ -189,8 +200,9 @@ StyledClippingRect {
                         LibraryItem {
                             required property FileSystemEntry modelData
 
+                            width: root.tileSize
                             entry: modelData
-                            cover: Music.coverFor(modelData.parentDir, modelData.isDir ? "" : modelData.baseName)
+                            covers: root.coversFor(modelData)
                             current: !modelData.isDir && modelData.path === Music.currentFile
                             subtitle: root.searching && !modelData.isDir ? root.relativeDirOf(modelData) : ""
                             onClicked: root.playEntry(modelData)
