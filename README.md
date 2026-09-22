@@ -310,4 +310,4 @@ and per-monitor overrides in `~/.config/caelestia/monitors/<monitor>/shell.json`
 
 ## Credits
 
-All credit for the shell itself goes to [Caelestia](https://github.com/caelestia-dots/shell) - this fork is just my additions on top of their excellent work. The battery power-management work also builds on the `feat/battery-power-management` branch contributed by [@PixelKhaos](https://github.com/PixelKhaos).
+All credit for the shell itself goes to [Caelestia](https://github.com/caelestia-dots/shell) - this fork is just my additions on top of their excellent work. The battery power-management work also builds on the `feat/battery-power-management` branch contributed by [@PixelKhaos](https://github.com/PixelKhaos). The monitor configuration page is based on [PR #1629](https://github.com/caelestia-dots/shell/pull/1629) contributed by [@devalentineomonya](https://github.com/devalentineomonya).
