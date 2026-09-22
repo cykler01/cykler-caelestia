@@ -94,10 +94,12 @@ This is my take on the Caelestia shell - upstream's desktop shell with my own fe
     picker switches between the open MPRIS players and the built in player, which plays the
     files under `paths.musicDir` (defaults to `~/Music`) in-shell with seek, volume, shuffle
     and repeat (off / all / one).
--   **Collapsible library** — the library is a drawer under the player, so the player keeps
-    its layout, and it opens by itself when there is nothing to control. It browses the music
+-   **Collapsible library** — the library is a drawer under the player, sitting clear of it
+    and growing the tab rather than squeezing the player, and it opens by itself when there is
+    nothing to control. It browses the music
     folder as a cover gallery, like the wallpaper picker does: folders first, each named under
-    its rounded cover, and opening one shows its tracks the same way. A folder with no cover
+    its rounded cover (hovering a name that doesn't fit shows it in full), and opening one
+    shows its tracks the same way. A folder with no cover
     image of its own shows a collage of its first few tracks' art instead, and anything with
     no art at all falls back to a rounded folder or music icon. Typing in the search box
     switches to a flat gallery of every track found under the music folder, and searching

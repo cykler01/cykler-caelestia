@@ -1,6 +1,7 @@
 pragma ComponentBehavior: Bound
 
 import QtQuick
+import QtQuick.Controls
 import QtQuick.Layouts
 import M3Shapes
 import Caelestia.Config
@@ -22,6 +23,8 @@ Item {
     property bool current
     property string subtitle
 
+    // The name shown under the tile, and in full over it on hover
+    readonly property string name: root.entry.isDir ? root.entry.name : root.entry.baseName
     readonly property bool useCollage: root.covers.length >= 4
     readonly property bool showIcon: root.covers.length === 0 || (!root.useCollage && image.status !== Image.Ready)
 
@@ -114,8 +117,10 @@ Item {
         }
 
         StyledText {
+            id: nameText
+
             Layout.fillWidth: true
-            text: root.entry.isDir ? root.entry.name : root.entry.baseName
+            text: root.name
             color: root.current ? Colours.palette.m3primary : Colours.palette.m3onSurface
             font: Tokens.font.label.builders.small.weight(Font.Medium).build()
             horizontalAlignment: Text.AlignHCenter
@@ -134,6 +139,51 @@ Item {
     }
 
     StateLayer {
+        id: layer
+
         onClicked: root.clicked()
+    }
+
+    // Tiles are narrow, so a name that doesn't fit is shown in full over the tile on hover.
+    // A popup renders above the drawer instead of being clipped by it, and taking input out
+    // of it keeps it from stealing hover from the tiles it floats over.
+    Popup {
+        id: nameTip
+
+        x: Math.round((root.width - width) / 2)
+        y: -height - Tokens.padding.extraSmall
+        visible: layer.containsMouse && nameText.truncated
+        closePolicy: Popup.NoAutoClose
+        padding: Tokens.padding.small
+        enabled: false
+
+        background: StyledRect {
+            color: Colours.palette.m3surfaceContainerHighest
+            radius: Tokens.rounding.medium
+        }
+
+        contentItem: StyledText {
+            text: root.name
+            color: Colours.palette.m3onSurface
+            font: Tokens.font.label.builders.small.weight(Font.Medium).build()
+        }
+
+        enter: Transition {
+            Anim {
+                property: "opacity"
+                from: 0
+                to: 1
+                type: Anim.FastEffects
+            }
+        }
+
+        exit: Transition {
+            Anim {
+                property: "opacity"
+                from: 1
+                to: 0
+                type: Anim.FastEffects
+            }
+        }
     }
 }

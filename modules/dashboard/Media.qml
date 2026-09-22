@@ -36,6 +36,14 @@ Item {
     readonly property bool libraryOpen: root.libraryToggled || !root.source.available
     // How much the drawer adds to the tab (and so to the dashboard) while it is open
     readonly property real libraryHeight: 320
+    // Breathing room between the player and the drawer, on top of the layout's own spacing, so
+    // the drawer opens clear of the controls instead of on top of them
+    readonly property real libraryGap: Tokens.spacing.large
+    // Room the fixed tab height leaves for the player, and the height the player actually needs.
+    // A track with a volume row, or the placeholder, is taller than that room; the tab grows to
+    // match rather than cutting the bottom off the controls.
+    readonly property real playerRoom: Tokens.sizes.dashboard.mediaTabHeight - Tokens.padding.large * 2 - header.height - Tokens.spacing.small * 2
+    readonly property real playerHeight: Math.max(root.playerRoom, content.implicitHeight, noMedia.implicitHeight)
 
     // External players plus the in-shell player, for the source picker
     readonly property var sourceOptions: {
@@ -64,7 +72,10 @@ Item {
     }
 
     implicitWidth: Tokens.sizes.dashboard.mediaTabWidth
-    implicitHeight: Tokens.sizes.dashboard.mediaTabHeight + (root.libraryOpen ? root.libraryHeight : 0)
+    // The player and the drawer both grow the tab rather than eating into each other, so the
+    // controls keep the height they have while the drawer is closed and the drawer stays below
+    // whatever the player is showing
+    implicitHeight: Tokens.sizes.dashboard.mediaTabHeight + (root.libraryOpen ? root.libraryHeight + root.libraryGap : 0) + Math.max(0, root.playerHeight - root.playerRoom)
 
     BackgroundShapes {
         anchors.fill: parent
@@ -77,6 +88,8 @@ Item {
         spacing: Tokens.spacing.small
 
         RowLayout {
+            id: header
+
             Layout.fillWidth: true
             spacing: Tokens.spacing.extraSmall
 
@@ -240,6 +253,7 @@ Item {
 
         LibraryBrowser {
             Layout.fillWidth: true
+            Layout.topMargin: root.libraryOpen ? root.libraryGap : 0
             Layout.preferredHeight: root.libraryOpen ? root.libraryHeight : 0
             Layout.minimumHeight: 0
             clip: true
@@ -247,6 +261,10 @@ Item {
             enabled: root.libraryOpen
 
             onTrackPlayed: root.useLocal = true
+
+            Behavior on Layout.topMargin {
+                Anim {}
+            }
 
             Behavior on Layout.preferredHeight {
                 Anim {}
