@@ -94,6 +94,14 @@ This is my take on the Caelestia shell - upstream's desktop shell with my own fe
     picker switches between the open MPRIS players and the built in player, which plays the
     files under `paths.musicDir` (defaults to `~/Music`) in-shell with seek, volume, shuffle
     and repeat (off / all / one).
+-   **System-wide equalizer** (opt-in) — a ten band equalizer in the media tab, in the same slot
+    under the player as the library. It is off until you switch it on in Settings > Audio, and
+    its one-off PipeWire setup (see **Equalizer** below) is a manual step, so updating the shell
+    never changes your audio on its own. It equalizes the whole system rather than just the
+    player, because the audio path is a PipeWire filter chain. Moving a slider writes the band
+    straight into the running node, so a tweak is audible immediately, and there are presets for
+    different kinds of music (rock, pop, jazz, classical, electronic, hip hop, bass boost,
+    vocal, loudness) alongside flat. The curve and preset are remembered between sessions.
 -   **Collapsible library** — the library is a drawer under the player, sitting clear of it
     and growing the tab rather than squeezing the player, and it opens by itself when there is
     nothing to control. It browses the music
@@ -115,6 +123,33 @@ This is my take on the Caelestia shell - upstream's desktop shell with my own fe
     and m4a tags are read correctly, but Ogg/Opus puts its Vorbis comments on the stream
     instead, so those tracks show their file name with no artist or album. Cover art is
     unaffected.
+
+### Equalizer
+
+The equalizer is a PipeWire filter chain, not something the shell can do to its own audio: a
+virtual sink with ten peaking bands, made the default output so everything playing is equalized.
+
+It is **opt-in and off by default** (`services.equalizer` in `shell.json`, or the *System-wide
+equalizer* switch under Settings > Audio). While it is off the shell does not run `pw-cli` or
+`pactl` at all and never touches the default output, so a plain update cannot change anyone's
+audio. It also needs a one-off setup before it can do anything, because PipeWire loads that kind
+of module at startup:
+
+```sh
+mkdir -p ~/.config/pipewire/pipewire.conf.d
+cp assets/pipewire/caelestia-eq.conf ~/.config/pipewire/pipewire.conf.d/
+systemctl --user restart pipewire pipewire-pulse wireplumber
+```
+
+The panel then finds the sink (`caelestia_eq.sink`) and drives its bands with `pw-cli`; until it
+is loaded — in the panel or on the settings page — it says so rather than pretending to work.
+With the option off the media tab hides the equalizer button entirely, so the feature is only
+visible to people who have asked for it.
+
+Everything only passes through the filter chain while that sink is the default output, so turning
+the equalizer on points the default at it and turning it off puts the device that was there
+before back. That is what makes it system-wide: streams that are already playing, browser audio
+included, move across with it, and the chain's own output stays wired to the real device.
 
 ## Feature requests
 

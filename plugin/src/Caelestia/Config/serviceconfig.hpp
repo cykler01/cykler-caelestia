@@ -36,6 +36,10 @@ class ServiceConfig : public settings::ObjectNode {
     CONFIG_GLOBAL_PROPERTY(qreal, audioIncrement, 0.1)
     CONFIG_GLOBAL_PROPERTY(qreal, brightnessIncrement, 0.1)
     CONFIG_GLOBAL_PROPERTY(qreal, maxVolume, 1.0)
+    // NOTE(fork): the system-wide equalizer is opt-in and off by default. It routes every stream
+    // through a PipeWire filter chain, so leaving it enabled by default would change the audio
+    // setup of anyone who merely updates the shell
+    CONFIG_GLOBAL_PROPERTY(bool, equalizer, false)
     CONFIG_GLOBAL_PROPERTY(bool, smartScheme, true)
     CONFIG_GLOBAL_PROPERTY(QString, defaultPlayer, u"Spotify"_s)
     CONFIG_GLOBAL_LIST(PlayerAliasList, playerAliases,

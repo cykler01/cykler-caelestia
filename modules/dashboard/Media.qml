@@ -21,6 +21,8 @@ Item {
     property bool useLocal
     // Whether the user opened the library drawer themselves
     property bool libraryToggled
+    // Whether the user opened the equalizer drawer, which shares the slot under the player
+    property bool eqToggled
 
     readonly property MediaSource localSource: MediaSource {
         local: true
@@ -34,11 +36,16 @@ Item {
 
     // The library is the only useful thing to show when there is nothing to control
     readonly property bool libraryOpen: root.libraryToggled || !root.source.available
+    // The equalizer is an opt-in service (Settings > Audio), so the tab only offers it - and only
+    // keeps it open - while that option is on
+    readonly property bool eqOpen: root.eqToggled && Equalizer.enabled
+    // Only one of them is ever open, so the tab only ever grows by the one drawer
+    readonly property bool drawerOpen: root.libraryOpen || root.eqOpen
     // How much the drawer adds to the tab (and so to the dashboard) while it is open
-    readonly property real libraryHeight: 320
+    readonly property real drawerHeight: 320
     // Breathing room between the player and the drawer, on top of the layout's own spacing, so
     // the drawer opens clear of the controls instead of on top of them
-    readonly property real libraryGap: Tokens.spacing.large
+    readonly property real drawerGap: Tokens.spacing.large
     // Room the fixed tab height leaves for the player, and the height the player actually needs.
     // A track with a volume row, or the placeholder, is taller than that room; the tab grows to
     // match rather than cutting the bottom off the controls.
@@ -75,7 +82,7 @@ Item {
     // The player and the drawer both grow the tab rather than eating into each other, so the
     // controls keep the height they have while the drawer is closed and the drawer stays below
     // whatever the player is showing
-    implicitHeight: Tokens.sizes.dashboard.mediaTabHeight + (root.libraryOpen ? root.libraryHeight + root.libraryGap : 0) + Math.max(0, root.playerHeight - root.playerRoom)
+    implicitHeight: Tokens.sizes.dashboard.mediaTabHeight + (root.drawerOpen ? root.drawerHeight + root.drawerGap : 0) + Math.max(0, root.playerHeight - root.playerRoom)
 
     BackgroundShapes {
         anchors.fill: parent
@@ -100,7 +107,24 @@ Item {
                 type: root.libraryOpen ? IconButton.Filled : IconButton.Tonal
                 isToggle: true
                 checked: root.libraryOpen
-                onClicked: root.libraryToggled = !root.libraryToggled
+                onClicked: {
+                    root.libraryToggled = !root.libraryToggled;
+                    if (root.libraryToggled)
+                        root.eqToggled = false;
+                }
+            }
+
+            IconButton {
+                visible: Equalizer.enabled
+                icon: "equalizer"
+                type: root.eqOpen ? IconButton.Filled : IconButton.Tonal
+                isToggle: true
+                checked: root.eqOpen
+                onClicked: {
+                    root.eqToggled = !root.eqToggled;
+                    if (root.eqToggled)
+                        root.libraryToggled = false;
+                }
             }
 
             Item {
@@ -251,16 +275,15 @@ Item {
             }
         }
 
-        LibraryBrowser {
+        // One slot holds either drawer, so the layout only ever has to account for a single one
+        Item {
+            id: drawer
+
             Layout.fillWidth: true
-            Layout.topMargin: root.libraryOpen ? root.libraryGap : 0
-            Layout.preferredHeight: root.libraryOpen ? root.libraryHeight : 0
+            Layout.topMargin: root.drawerOpen ? root.drawerGap : 0
+            Layout.preferredHeight: root.drawerOpen ? root.drawerHeight : 0
             Layout.minimumHeight: 0
             clip: true
-            opacity: root.libraryOpen ? 1 : 0
-            enabled: root.libraryOpen
-
-            onTrackPlayed: root.useLocal = true
 
             Behavior on Layout.topMargin {
                 Anim {}
@@ -270,9 +293,29 @@ Item {
                 Anim {}
             }
 
-            Behavior on opacity {
-                Anim {
-                    type: Anim.DefaultEffects
+            LibraryBrowser {
+                anchors.fill: parent
+                opacity: root.libraryOpen ? 1 : 0
+                enabled: root.libraryOpen
+
+                onTrackPlayed: root.useLocal = true
+
+                Behavior on opacity {
+                    Anim {
+                        type: Anim.DefaultEffects
+                    }
+                }
+            }
+
+            EqualizerPanel {
+                anchors.fill: parent
+                opacity: root.eqOpen ? 1 : 0
+                enabled: root.eqOpen
+
+                Behavior on opacity {
+                    Anim {
+                        type: Anim.DefaultEffects
+                    }
                 }
             }
         }
