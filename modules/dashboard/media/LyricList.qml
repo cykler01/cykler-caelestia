@@ -15,11 +15,12 @@ import qs.services
 Item {
     id: root
 
+    required property MediaSource source
+
     // Funny binding hack to make lyrics update
     readonly property var _: {
-        const p = Players.active;
-        if (p)
-            Lyrics.setTrack(p.trackArtist, p.trackTitle, p.trackAlbum, p.length);
+        if (root.source.available)
+            Lyrics.setTrack(root.source.artist, root.source.title, root.source.album, root.source.length);
         else
             Lyrics.clearTrack();
     }
@@ -232,7 +233,7 @@ Item {
         Component.onCompleted: {
             currentIndex = Qt.binding(() => {
                 model; // Force update when lyrics change
-                return Lyrics.indexForTime(Players.active?.position ?? 0);
+                return Lyrics.indexForTime(root.source.position);
             });
             positionViewAtIndex(currentIndex, ListView.Center);
         }
@@ -285,9 +286,8 @@ Item {
                 cursorShape: Qt.PointingHandCursor
                 hoverEnabled: true
                 onClicked: {
-                    const p = Players.active;
-                    if (p)
-                        p.position = Lyrics.timeForIndex(lyric.index);
+                    if (root.source.available)
+                        root.source.seek(Lyrics.timeForIndex(lyric.index));
                 }
             }
         }

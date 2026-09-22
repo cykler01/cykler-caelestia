@@ -87,15 +87,19 @@ This is my take on the Caelestia shell - upstream's desktop shell with my own fe
 
 ### Local music player
 
--   **Music section in the dashboard media tab** — the media tab now has a source switch
-    between the usual MPRIS players and a built in player. The player browses the folder set
-    by `paths.musicDir` (defaults to `~/Music`) and plays the files in-shell, with seek,
-    volume, shuffle and repeat (off / all / one) controls alongside the basic media
-    controls.
--   **Folder and search browsing** — the library panel lists folders before tracks and can
-    step back up to the music folder, while typing in the search box switches to a flat list
-    of every track found under it. Searching matches the whole path, so an album name finds
-    its tracks too.
+-   **Unified media tab** — one tab controls whatever is playing, whether that is an
+    external MPRIS player (a browser or music app) or the built in player. When nothing is
+    loaded the library opens so you can pick something to play, otherwise the cover, lyrics
+    and visualiser follow the active source, and the same controls drive it. The source
+    picker switches between the open MPRIS players and the built in player, which plays the
+    files under `paths.musicDir` (defaults to `~/Music`) in-shell with seek, volume, shuffle
+    and repeat (off / all / one).
+-   **Collapsible library** — the library slides in beside the player and opens on its own
+    when there is nothing to control. It lists folders before tracks and can step back up to
+    the music folder, while typing in the search box switches to a flat list of every track
+    found under it; searching matches the whole path, so an album name finds its tracks too.
+    The dashboard now takes keyboard focus on demand, so that search box can actually be
+    typed into.
 -   **Cover art** — art embedded in the track is shown on the cover next to the controls,
     falling back to an image named after the track (what yt-dlp leaves behind, since opus
     cannot hold one) and then to a `cover`, `folder` or `album` image in the track's folder.

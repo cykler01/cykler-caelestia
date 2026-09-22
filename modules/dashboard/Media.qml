@@ -1,6 +1,7 @@
 import "media"
 import QtQuick
 import QtQuick.Layouts
+import Quickshell
 import M3Shapes
 import Caelestia.Config
 import Caelestia.I18n
@@ -8,17 +9,64 @@ import qs.components
 import qs.components.controls
 import qs.services
 
+// NOTE(fork): one media tab for both the external MPRIS players and the in-shell local
+// player. It follows whatever is loaded (falling back to the local player), keeps the
+// library as a collapsible panel, and lets the picker switch source or hop to local files.
 Item {
     id: root
 
     required property ScreenState screenState
-    property bool localMusic
+
+    // Whether the tab is controlling the in-shell player instead of an MPRIS player
+    property bool useLocal
+    // Whether the user opened the library panel themselves
+    property bool libraryToggled
+
+    readonly property MediaSource localSource: MediaSource {
+        local: true
+    }
+    readonly property MediaSource mprisSource: MediaSource {
+        mpris: Players.active
+    }
+    // Nothing external means the in-shell player is the only thing to control
+    readonly property bool localActive: root.useLocal || !Players.active
+    readonly property MediaSource source: root.localActive ? root.localSource : root.mprisSource
+
+    // The library is the only useful thing to show when there is nothing to control
+    readonly property bool libraryOpen: root.libraryToggled || !root.source.available
+
+    // External players plus the in-shell player, for the source picker
+    readonly property var sourceOptions: {
+        const options = [];
+        for (const player of Players.list)
+            options.push({
+                kind: "mpris",
+                player: player,
+                label: Players.getIdentity(player)
+            });
+        options.push({
+            kind: "local",
+            player: null,
+            label: Tr.tr("Local player")
+        });
+        return options;
+    }
+
+    function selectSource(option): void {
+        if (option.kind === "local") {
+            root.useLocal = true;
+            return;
+        }
+        root.useLocal = false;
+        Players.manualActive = option.player;
+    }
 
     implicitWidth: Tokens.sizes.dashboard.mediaTabWidth
     implicitHeight: Tokens.sizes.dashboard.mediaTabHeight
 
     BackgroundShapes {
         anchors.fill: parent
+        playing: root.source.isPlaying
     }
 
     ColumnLayout {
@@ -30,51 +78,69 @@ Item {
             Layout.fillWidth: true
             spacing: Tokens.spacing.extraSmall
 
-            IconTextButton {
-                icon: "queue_music"
-                text: Tr.tr("Now playing")
-                type: root.localMusic ? IconTextButton.Tonal : IconTextButton.Filled
-                font: Tokens.font.body.small
-                onClicked: root.localMusic = false
-            }
-
-            IconTextButton {
+            IconButton {
                 icon: "library_music"
-                text: Tr.tr("Music library")
-                type: root.localMusic ? IconTextButton.Filled : IconTextButton.Tonal
-                font: Tokens.font.body.small
-                onClicked: root.localMusic = true
+                type: root.libraryOpen ? IconButton.Filled : IconButton.Tonal
+                isToggle: true
+                checked: root.libraryOpen
+                onClicked: {
+                    root.libraryToggled = !root.libraryOpen;
+                    internalChecked = root.libraryOpen;
+                }
             }
 
             Item {
                 Layout.fillWidth: true
             }
+
+            SplitButton {
+                menuOnTop: true
+                menuItems: sourceItems.instances
+                active: menuItems.find(i => root.localActive ? i.modelData.kind === "local" : i.modelData.player === Players.active) ?? null
+                menu.onItemSelected: item => root.selectSource((item as SourceItem).modelData)
+                fallbackIcon: "music_note"
+                fallbackText: Tr.trCtx("No players", "no media players active")
+            }
         }
-
-        Loader {
-            Layout.fillWidth: true
-            Layout.fillHeight: true
-
-            sourceComponent: root.localMusic ? localMusicComponent : playersComponent
-        }
-    }
-
-    Component {
-        id: playersComponent
 
         RowLayout {
-            spacing: Tokens.spacing.extraLarge
+            Layout.fillWidth: true
+            Layout.fillHeight: true
+            spacing: Tokens.spacing.large
+
+            LibraryBrowser {
+                Layout.fillHeight: true
+                Layout.preferredWidth: root.libraryOpen ? Tokens.sizes.dashboard.mediaSectionWidth : 0
+                Layout.minimumWidth: 0
+                Layout.maximumWidth: Tokens.sizes.dashboard.mediaSectionWidth
+                clip: true
+                opacity: root.libraryOpen ? 1 : 0
+                enabled: root.libraryOpen
+
+                onTrackPlayed: root.useLocal = true
+
+                Behavior on Layout.preferredWidth {
+                    Anim {}
+                }
+
+                Behavior on opacity {
+                    Anim {
+                        type: Anim.DefaultEffects
+                    }
+                }
+            }
 
             CoverVisualiser {
                 Layout.fillHeight: true
                 implicitWidth: Tokens.sizes.dashboard.mediaSectionWidth
+                source: root.source
             }
 
             Item {
                 Layout.fillWidth: true
                 Layout.fillHeight: true
 
-                state: Players.active ? "" : "noMedia"
+                state: root.source.available ? "" : "noMedia"
 
                 states: State {
                     name: "noMedia"
@@ -161,7 +227,7 @@ Item {
                         }
 
                         StyledText {
-                            text: Tr.tr("Play something for it to show up here!")
+                            text: Tr.tr("Pick something from the library to play it here!")
                             color: Colours.palette.m3onSurfaceVariant
                             font: Tokens.font.body.large
                         }
@@ -180,11 +246,15 @@ Item {
 
                         Details {
                             Layout.fillWidth: true
+                            source: root.source
                         }
 
-                        LyricsAndSelector {
+                        LyricsPane {
                             Layout.fillHeight: true
                             implicitWidth: Tokens.sizes.dashboard.mediaSectionWidth
+                            source: root.source
+                            // The library takes this space instead while it is open
+                            visible: !root.libraryOpen
                         }
                     }
                 }
@@ -192,9 +262,19 @@ Item {
         }
     }
 
-    Component {
-        id: localMusicComponent
+    Variants {
+        id: sourceItems
 
-        LocalMusic {}
+        model: root.sourceOptions
+
+        SourceItem {}
+    }
+
+    component SourceItem: MenuItem {
+        required property var modelData
+
+        text: modelData.label
+        icon: modelData.kind === "local" ? "library_music" : "music_note"
+        activeIcon: modelData.kind === "local" ? "library_music" : "animated_images"
     }
 }
