@@ -13,6 +13,8 @@ import qs.services
 Item {
     id: root
 
+    required property MediaSource source
+
     readonly property real centerX: width / 2
     readonly property real centerY: height / 2
     readonly property real spacing: Tokens.spacing.medium
@@ -76,6 +78,8 @@ Item {
 
         anchors.centerIn: parent
         shape.shape: MaterialShape.Cookie9Sided
+        source: root.source.coverSource
+        spinning: root.source.isPlaying
         implicitWidth: Tokens.sizes.dashboard.mediaCoverArtSize
         implicitHeight: Tokens.sizes.dashboard.mediaCoverArtSize
     }

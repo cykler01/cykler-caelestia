@@ -10,6 +10,7 @@ Item {
 
     readonly property list<int> shapePool: [MaterialShape.Circle, MaterialShape.Cookie4Sided, MaterialShape.Cookie6Sided, MaterialShape.Cookie7Sided, MaterialShape.Cookie9Sided, MaterialShape.Cookie12Sided, MaterialShape.Sunny, MaterialShape.VerySunny, MaterialShape.SoftBurst, MaterialShape.Pentagon, MaterialShape.Gem, MaterialShape.Arch, MaterialShape.Arrow, MaterialShape.Pill, MaterialShape.Triangle, MaterialShape.Fan, MaterialShape.Oval]
 
+    property bool playing
     property int count: 14
     property real minSize: 36
     property real maxSize: 124
@@ -38,7 +39,7 @@ Item {
     }
 
     FrameAnimation {
-        running: root.visible && root.width > 0 && root.height > 0 && (Players.active?.isPlaying ?? false)
+        running: root.visible && root.width > 0 && root.height > 0 && root.playing
         onTriggered: {
             const dt = frameTime;
             for (let i = 0; i < shapes.count; i++) {

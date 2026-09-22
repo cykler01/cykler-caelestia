@@ -27,7 +27,7 @@ REPO_PKGS=(
     # -- runtime deps
     ddcutil brightnessctl
     networkmanager lm_sensors aubio libpipewire libqalculate power-profiles-daemon
-    qt6-base qt6-declarative qt6-imageformats
+    qt6-base qt6-declarative qt6-imageformats qt6-multimedia
     swappy fish bash grim slurp tesseract wl-clipboard libnotify curl jq xdg-utils
 )
 

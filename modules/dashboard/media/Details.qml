@@ -11,9 +11,11 @@ import qs.services
 ColumnLayout {
     id: root
 
-    readonly property bool hasUnknownLength: (Players.active?.length ?? 0) > 2147483647
+    required property MediaSource source
 
-    function lengthStr(length: int): string {
+    readonly property bool hasUnknownLength: root.source.length > 2147483647
+
+    function lengthStr(length: real): string {
         if (length < 0)
             return "-1:-1";
 
@@ -29,16 +31,16 @@ ColumnLayout {
     spacing: Tokens.spacing.extraSmall
 
     Timer {
-        running: Players.active?.isPlaying ?? false
+        running: root.source.isPlaying
         interval: GlobalConfig.dashboard.mediaUpdateInterval
         triggeredOnStart: true
         repeat: true
-        onTriggered: Players.active?.positionChanged()
+        onTriggered: root.source.refresh()
     }
 
     StyledText {
         Layout.fillWidth: true
-        text: Players.active?.trackTitle ?? ""
+        text: root.source.title
         font: Tokens.font.title.large
         elide: Text.ElideRight
         animate: true
@@ -46,7 +48,7 @@ ColumnLayout {
 
     StyledText {
         Layout.fillWidth: true
-        text: Players.active?.trackArtist || Tr.tr("Unknown artist")
+        text: root.source.artist || Tr.tr("Unknown artist")
         color: Colours.palette.m3onSurfaceVariant
         font: Tokens.font.title.medium
         elide: Text.ElideRight
@@ -55,7 +57,7 @@ ColumnLayout {
 
     StyledText {
         Layout.fillWidth: true
-        text: Players.active?.trackAlbum || Tr.tr("Unknown album")
+        text: root.source.album || Tr.tr("Unknown album")
         color: Colours.palette.m3secondary
         font: Tokens.font.title.medium
         elide: Text.ElideRight
@@ -70,7 +72,7 @@ ColumnLayout {
         TextMetrics {
             id: timeMetrics
 
-            text: Players.active ? root.lengthStr(Math.max(Players.active.position, root.hasUnknownLength ? 0 : Players.active.length)).replace(/[1-9]/g, "0") : "00:00"
+            text: root.source.available ? root.lengthStr(Math.max(root.source.position, root.hasUnknownLength ? 0 : root.source.length)).replace(/[1-9]/g, "0") : "00:00"
             font: Tokens.font.label.medium
         }
 
@@ -78,7 +80,7 @@ ColumnLayout {
             id: positionLabel
 
             Layout.preferredWidth: timeMetrics.width
-            text: root.lengthStr(Players.active?.position ?? -1)
+            text: root.lengthStr(root.source.available ? root.source.position : -1)
             color: Colours.palette.m3onSurfaceVariant
             font: timeMetrics.font
             horizontalAlignment: Text.AlignHCenter
@@ -88,30 +90,26 @@ ColumnLayout {
             id: positionSlider
 
             Layout.fillWidth: true
-            value: Players.active ? Players.active.position / (Players.active.length || 1) : 0
-            enabled: (Players.active?.canSeek ?? false) && !root.hasUnknownLength
+            value: root.source.length > 0 ? root.source.position / root.source.length : 0
+            enabled: root.source.canSeek && !root.hasUnknownLength
             wavy: true
-            animateWave: Players.active?.isPlaying ?? false
+            animateWave: root.source.isPlaying
             waveFrequency: 5
             waveDuration: 2000
             interactionOnMove: false
-            onInteraction: value => {
-                const active = Players.active;
-                if (active?.canSeek && active?.positionSupported)
-                    active.position = value * active.length;
-            }
+            onInteraction: value => root.source.seek(value * root.source.length)
 
             Binding {
                 target: positionLabel
                 property: "text"
-                value: root.lengthStr(positionSlider.pos * (Players.active?.length ?? 0))
+                value: root.lengthStr(positionSlider.pos * root.source.length)
                 when: positionSlider.dragging
             }
         }
 
         StyledText {
             Layout.preferredWidth: timeMetrics.width
-            text: root.hasUnknownLength ? "--:--" : root.lengthStr(Players.active?.length ?? -1)
+            text: root.hasUnknownLength ? "--:--" : root.lengthStr(root.source.available ? root.source.length : -1)
             color: Colours.palette.m3onSurfaceVariant
             font: timeMetrics.font
             horizontalAlignment: Text.AlignHCenter
@@ -128,10 +126,10 @@ ColumnLayout {
             icon: "shuffle"
             isRound: true
             shapeMorph: true
-            checked: Players.active?.shuffle ?? false
+            checked: root.source.shuffle
             font: Tokens.font.icon.builders.medium.weight(Font.Medium).build()
-            disabled: !Players.active?.shuffleSupported
-            onClicked: Players.active.shuffle = !Players.active?.shuffle
+            disabled: !root.source.shuffleSupported
+            onClicked: root.source.toggleShuffle()
             implicitWidth: Math.round(implicitHeight * 0.9)
         }
 
@@ -143,21 +141,21 @@ ColumnLayout {
             isRound: true
             shapeMorph: true
             font: Tokens.font.icon.large
-            disabled: !Players.active?.canGoPrevious
-            onClicked: Players.active?.previous()
+            disabled: !root.source.canGoPrevious
+            onClicked: root.source.previous()
         }
 
         IconButton {
             id: playPauseBtn
 
-            icon: Players.active?.isPlaying ? "pause" : "play_arrow"
+            icon: root.source.isPlaying ? "pause" : "play_arrow"
             isRound: true
             shapeMorph: true
             fillWidth: true
-            checked: Players.active?.isPlaying ?? false
+            checked: root.source.isPlaying
             font: Tokens.font.icon.large
-            disabled: !Players.active?.canTogglePlaying
-            onClicked: Players.active?.togglePlaying()
+            disabled: !root.source.canTogglePlaying
+            onClicked: root.source.togglePlaying()
         }
 
         IconButton {
@@ -168,28 +166,39 @@ ColumnLayout {
             isRound: true
             shapeMorph: true
             font: Tokens.font.icon.large
-            disabled: !Players.active?.canGoNext
-            onClicked: Players.active?.next()
+            disabled: !root.source.canGoNext
+            onClicked: root.source.next()
         }
 
         IconButton {
             type: IconButton.Tonal
-            icon: Players.active?.loopState === MprisLoopState.Track ? "repeat_one" : "repeat"
+            icon: root.source.loopState === MprisLoopState.Track ? "repeat_one" : "repeat"
             isRound: true
             shapeMorph: true
-            checked: Players.active?.loopState === MprisLoopState.Track || Players.active?.loopState === MprisLoopState.Playlist
+            checked: root.source.loopState === MprisLoopState.Track || root.source.loopState === MprisLoopState.Playlist
             font: Tokens.font.icon.builders.medium.weight(Font.Medium).build()
-            disabled: !Players.active?.loopSupported
-            onClicked: {
-                const state = Players.active.loopState;
-                if (state === MprisLoopState.None)
-                    Players.active.loopState = MprisLoopState.Track;
-                else if (state === MprisLoopState.Track)
-                    Players.active.loopState = MprisLoopState.Playlist;
-                else
-                    Players.active.loopState = MprisLoopState.None;
-            }
+            disabled: !root.source.loopSupported
+            onClicked: root.source.cycleLoop()
             implicitWidth: Math.round(implicitHeight * 0.9)
+        }
+    }
+
+    RowLayout {
+        Layout.fillWidth: true
+        Layout.topMargin: Tokens.spacing.small
+        visible: root.source.volumeSupported
+        spacing: Tokens.spacing.small
+
+        MaterialIcon {
+            text: root.source.volume === 0 ? "volume_off" : "volume_up"
+            color: Colours.palette.m3onSurfaceVariant
+            fontStyle: Tokens.font.icon.small
+        }
+
+        StyledSlider {
+            Layout.fillWidth: true
+            value: root.source.volume
+            onInteraction: value => root.source.setVolume(value)
         }
     }
 }

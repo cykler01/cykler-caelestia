@@ -20,6 +20,7 @@ This is my take on the Caelestia shell - upstream's desktop shell with my own fe
 | Battery management | --- | `BatteryMonitor` service, auto power-saving on profile change, battery pane in control center |
 | Game mode | Derived from animation state | Fixed false-trigger; also sets flat mouse accel |
 | Launcher | Standard actions | Adds OCR (`>ocr`) and Google Lens (`>lens`) region-capture actions |
+| Music player | External players only | In-shell local music player in the dashboard media tab |
 
 
 ## Features added on top of upstream
@@ -83,6 +84,72 @@ This is my take on the Caelestia shell - upstream's desktop shell with my own fe
 -   **Shell-relative asset paths fixed** — the shipped defaults use the `root:` prefix
     (e.g. `root:/assets/kurukuru.gif`), which stopped being resolved to the shell's asset
     directory, leaving the default logo, gifs and placeholder images blank.
+
+### Local music player
+
+-   **Unified media tab** — one tab controls whatever is playing, whether that is an
+    external MPRIS player (a browser or music app) or the built in player. When nothing is
+    loaded the library opens so you can pick something to play, otherwise the cover, lyrics
+    and visualiser follow the active source, and the same controls drive it. The source
+    picker switches between the open MPRIS players and the built in player, which plays the
+    files under `paths.musicDir` (defaults to `~/Music`) in-shell with seek, volume, shuffle
+    and repeat (off / all / one).
+-   **System-wide equalizer** (opt-in) — a ten band equalizer in the media tab, in the same slot
+    under the player as the library. It is off until you switch it on in Settings > Audio, and
+    its one-off PipeWire setup (see **Equalizer** below) is a manual step, so updating the shell
+    never changes your audio on its own. It equalizes the whole system rather than just the
+    player, because the audio path is a PipeWire filter chain. Moving a slider writes the band
+    straight into the running node, so a tweak is audible immediately, and there are presets for
+    different kinds of music (rock, pop, jazz, classical, electronic, hip hop, bass boost,
+    vocal, loudness) alongside flat. The curve and preset are remembered between sessions.
+-   **Collapsible library** — the library is a drawer under the player, sitting clear of it
+    and growing the tab rather than squeezing the player, and it opens by itself when there is
+    nothing to control. It browses the music
+    folder as a cover gallery, like the wallpaper picker does: folders first, each named under
+    its rounded cover (hovering a name that doesn't fit shows it in full), and opening one
+    shows its tracks the same way. A folder with no cover
+    image of its own shows a collage of its first few tracks' art instead, and anything with
+    no art at all falls back to a rounded folder or music icon. Typing in the search box
+    switches to a flat gallery of every track found under the music folder, and searching
+    matches the whole path, so an album name finds its tracks too. The dashboard now takes
+    keyboard focus on demand, so that search box can actually be typed into.
+-   **Cover art** — art embedded in the track is shown on the cover next to the controls,
+    falling back to an image named after the track (what yt-dlp leaves behind, since opus
+    cannot hold one) and then to a `cover`, `folder` or `album` image in the track's folder.
+    Embedded art arrives from QtMultimedia as a `QImage`, which `Image.source` cannot take
+    directly, so it goes through the image cache first (keyed by content, so the same
+    artwork is only written once).
+-   **Known gap** — Qt's ffmpeg backend only surfaces container level tags. mp3 (ID3), flac
+    and m4a tags are read correctly, but Ogg/Opus puts its Vorbis comments on the stream
+    instead, so those tracks show their file name with no artist or album. Cover art is
+    unaffected.
+
+### Equalizer
+
+The equalizer is a PipeWire filter chain, not something the shell can do to its own audio: a
+virtual sink with ten peaking bands, made the default output so everything playing is equalized.
+
+It is **opt-in and off by default** (`services.equalizer` in `shell.json`, or the *System-wide
+equalizer* switch under Settings > Audio). While it is off the shell does not run `pw-cli` or
+`pactl` at all and never touches the default output, so a plain update cannot change anyone's
+audio. It also needs a one-off setup before it can do anything, because PipeWire loads that kind
+of module at startup:
+
+```sh
+mkdir -p ~/.config/pipewire/pipewire.conf.d
+cp assets/pipewire/caelestia-eq.conf ~/.config/pipewire/pipewire.conf.d/
+systemctl --user restart pipewire pipewire-pulse wireplumber
+```
+
+The panel then finds the sink (`caelestia_eq.sink`) and drives its bands with `pw-cli`; until it
+is loaded — in the panel or on the settings page — it says so rather than pretending to work.
+With the option off the media tab hides the equalizer button entirely, so the feature is only
+visible to people who have asked for it.
+
+Everything only passes through the filter chain while that sink is the default output, so turning
+the equalizer on points the default at it and turning it off puts the device that was there
+before back. That is what makes it system-wide: streams that are already playing, browser audio
+included, move across with it, and the chain's own output stays wired to the real device.
 
 ## Feature requests
 
@@ -186,7 +253,7 @@ Flags:
 -   `glibc`, `gcc-libs` (base, usually already installed)
 -   `ddcutil`, `brightnessctl`
 -   `networkmanager`, `lm_sensors`, `aubio`, `libpipewire`, `libqalculate`, `power-profiles-daemon`
--   `qt6-base`, `qt6-declarative`, `qt6-imageformats`
+-   `qt6-base`, `qt6-declarative`, `qt6-imageformats`, `qt6-multimedia`
 -   `swappy`, `fish`, `bash`, `grim`, `slurp`, `tesseract`, `wl-clipboard`, `libnotify`, `curl`, `jq`, `xdg-utils`
 -   Build deps: `git`, `cmake`, `ninja`, `qt6-shadertools`
 ##### AUR:
@@ -261,4 +328,4 @@ and per-monitor overrides in `~/.config/caelestia/monitors/<monitor>/shell.json`
 
 ## Credits
 
-All credit for the shell itself goes to [Caelestia](https://github.com/caelestia-dots/shell) - this fork is just my additions on top of their excellent work. The battery power-management work also builds on the `feat/battery-power-management` branch contributed by [@PixelKhaos](https://github.com/PixelKhaos).
+All credit for the shell itself goes to [Caelestia](https://github.com/caelestia-dots/shell) - this fork is just my additions on top of their excellent work. The battery power-management work also builds on the `feat/battery-power-management` branch contributed by [@PixelKhaos](https://github.com/PixelKhaos). The monitor configuration page is based on [PR #1629](https://github.com/caelestia-dots/shell/pull/1629) contributed by [@devalentineomonya](https://github.com/devalentineomonya).
