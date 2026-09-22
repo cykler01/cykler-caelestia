@@ -88,6 +88,38 @@ Singleton {
     readonly property string coverPath: root.embeddedCover || root.sidecarCover || root.folderCover
     readonly property string queueLabel: root.hasTrack ? `${root.queueIndex + 1}/${root.queue.length}` : ""
 
+    // Every image under the music folder, so the library gallery can show covers for folders
+    // it isn't currently inside of
+    readonly property list<FileSystemEntry> artEntries: allArt.entries
+
+    // The best cover image inside a folder. A file named after `stem` is the art yt-dlp saved
+    // next to a track and wins over the folder's own cover, matching the now playing view.
+    function coverFor(dir: string, stem: string): string {
+        const preferred = ["cover", "folder", "front", "album", "albumart", "artwork"];
+        const images = root.artEntries;
+        let best = "";
+        let bestRank = preferred.length;
+        let first = "";
+        for (let i = 0; i < images.length; i++) {
+            const image = images[i];
+            if (image.parentDir !== dir)
+                continue;
+
+            if (stem && image.baseName === stem)
+                return image.path;
+
+            if (!first)
+                first = image.path;
+
+            const rank = preferred.indexOf(image.baseName.toLowerCase());
+            if (rank >= 0 && rank < bestRank) {
+                bestRank = rank;
+                best = image.path;
+            }
+        }
+        return best || first;
+    }
+
     function playQueue(paths: var, index: int): void {
         if (!paths || paths.length === 0)
             return;
@@ -247,6 +279,15 @@ Singleton {
 
         path: root.trackDir || root.rootDir
         recursive: false
+        filter: FileSystemModel.Images
+    }
+
+    FileSystemModel {
+        id: allArt
+
+        path: root.rootDir
+        recursive: true
+        watchChanges: true
         filter: FileSystemModel.Images
     }
 }

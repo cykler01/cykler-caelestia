@@ -10,8 +10,8 @@ import qs.components.controls
 import qs.services
 
 // NOTE(fork): one media tab for both the external MPRIS players and the in-shell local
-// player. It follows whatever is loaded (falling back to the local player), keeps the
-// library as a collapsible panel, and lets the picker switch source or hop to local files.
+// player. The player keeps the original layout, and the library is a drawer underneath it
+// that opens by itself whenever there is nothing to control.
 Item {
     id: root
 
@@ -19,7 +19,7 @@ Item {
 
     // Whether the tab is controlling the in-shell player instead of an MPRIS player
     property bool useLocal
-    // Whether the user opened the library panel themselves
+    // Whether the user opened the library drawer themselves
     property bool libraryToggled
 
     readonly property MediaSource localSource: MediaSource {
@@ -34,6 +34,8 @@ Item {
 
     // The library is the only useful thing to show when there is nothing to control
     readonly property bool libraryOpen: root.libraryToggled || !root.source.available
+    // How much the drawer adds to the tab (and so to the dashboard) while it is open
+    readonly property real libraryHeight: 320
 
     // External players plus the in-shell player, for the source picker
     readonly property var sourceOptions: {
@@ -62,7 +64,7 @@ Item {
     }
 
     implicitWidth: Tokens.sizes.dashboard.mediaTabWidth
-    implicitHeight: Tokens.sizes.dashboard.mediaTabHeight
+    implicitHeight: Tokens.sizes.dashboard.mediaTabHeight + (root.libraryOpen ? root.libraryHeight : 0)
 
     BackgroundShapes {
         anchors.fill: parent
@@ -79,14 +81,13 @@ Item {
             spacing: Tokens.spacing.extraSmall
 
             IconButton {
+                // The library is the only thing worth showing when there's nothing to control
+                visible: root.source.available
                 icon: "library_music"
                 type: root.libraryOpen ? IconButton.Filled : IconButton.Tonal
                 isToggle: true
                 checked: root.libraryOpen
-                onClicked: {
-                    root.libraryToggled = !root.libraryOpen;
-                    internalChecked = root.libraryOpen;
-                }
+                onClicked: root.libraryToggled = !root.libraryToggled
             }
 
             Item {
@@ -106,29 +107,7 @@ Item {
         RowLayout {
             Layout.fillWidth: true
             Layout.fillHeight: true
-            spacing: Tokens.spacing.large
-
-            LibraryBrowser {
-                Layout.fillHeight: true
-                Layout.preferredWidth: root.libraryOpen ? Tokens.sizes.dashboard.mediaSectionWidth : 0
-                Layout.minimumWidth: 0
-                Layout.maximumWidth: Tokens.sizes.dashboard.mediaSectionWidth
-                clip: true
-                opacity: root.libraryOpen ? 1 : 0
-                enabled: root.libraryOpen
-
-                onTrackPlayed: root.useLocal = true
-
-                Behavior on Layout.preferredWidth {
-                    Anim {}
-                }
-
-                Behavior on opacity {
-                    Anim {
-                        type: Anim.DefaultEffects
-                    }
-                }
-            }
+            spacing: Tokens.spacing.extraLarge
 
             CoverVisualiser {
                 Layout.fillHeight: true
@@ -253,10 +232,29 @@ Item {
                             Layout.fillHeight: true
                             implicitWidth: Tokens.sizes.dashboard.mediaSectionWidth
                             source: root.source
-                            // The library takes this space instead while it is open
-                            visible: !root.libraryOpen
                         }
                     }
+                }
+            }
+        }
+
+        LibraryBrowser {
+            Layout.fillWidth: true
+            Layout.preferredHeight: root.libraryOpen ? root.libraryHeight : 0
+            Layout.minimumHeight: 0
+            clip: true
+            opacity: root.libraryOpen ? 1 : 0
+            enabled: root.libraryOpen
+
+            onTrackPlayed: root.useLocal = true
+
+            Behavior on Layout.preferredHeight {
+                Anim {}
+            }
+
+            Behavior on opacity {
+                Anim {
+                    type: Anim.DefaultEffects
                 }
             }
         }

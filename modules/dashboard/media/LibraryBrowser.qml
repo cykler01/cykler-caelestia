@@ -10,14 +10,18 @@ import qs.components.containers
 import qs.components.controls
 import qs.services
 
-// NOTE(fork): the media tab's collapsible library. Browses the configured music folder
-// or searches the whole library, and starts playback through the local player.
-ColumnLayout {
+// NOTE(fork): the media tab's library drawer. Browsing shows the folders under the music
+// folder as a cover gallery, and opening one shows its tracks the same way, so a file can
+// always be picked without leaving the dashboard.
+StyledClippingRect {
     id: root
 
     readonly property string query: search.text.trim().toLowerCase()
     readonly property bool searching: root.query.length > 0
-    readonly property var folderItems: {
+    // Tiles wide enough to read a cover and a name, so they just wrap with the drawer width
+    readonly property int columns: Math.max(2, Math.floor(root.width / 150))
+    readonly property string title: Music.relativeDir ? Music.relativeDir.split("/").join(" › ") : Tr.tr("Music")
+    readonly property var browseItems: {
         const items = [];
         const dirs = Music.subDirs;
         for (let i = 0; i < dirs.length; i++)
@@ -39,7 +43,7 @@ ColumnLayout {
                 results.push(library[i]);
         return results;
     }
-    readonly property var items: root.searching ? root.searchResults : root.folderItems
+    readonly property var items: root.searching ? root.searchResults : root.browseItems
 
     signal trackPlayed
 
@@ -51,22 +55,37 @@ ColumnLayout {
         return dir.slice(Music.rootDir.length).replace(/^\//, "");
     }
 
-    // Plays a library entry, queueing the rest of the folder or search results behind it
+    function stopSearching(): void {
+        search.text = "";
+    }
+
+    function goUp(): void {
+        root.stopSearching();
+        Music.cdUp();
+    }
+
+    function goRoot(): void {
+        root.stopSearching();
+        Music.cdRoot();
+    }
+
+    // Plays a library entry, queueing the rest of what's on screen behind it
     function playEntry(entry: FileSystemEntry): void {
         if (entry.isDir) {
+            root.stopSearching();
             Music.cd(entry.path);
             return;
         }
 
-        const entries = root.searching ? root.searchResults : Music.folderTracks;
+        const items = root.items;
         const paths = [];
         let index = -1;
-        for (let i = 0; i < entries.length; i++) {
-            if (entries[i].isDir)
+        for (let i = 0; i < items.length; i++) {
+            if (items[i].isDir)
                 continue;
-            if (entries[i].path === entry.path)
+            if (items[i].path === entry.path)
                 index = paths.length;
-            paths.push(entries[i].path);
+            paths.push(items[i].path);
         }
 
         if (index < 0)
@@ -76,149 +95,135 @@ ColumnLayout {
         root.trackPlayed();
     }
 
-    spacing: Tokens.spacing.small
+    clip: true
+    color: Colours.tPalette.m3surfaceContainer
+    radius: Tokens.rounding.large
 
-    RowLayout {
-        Layout.fillWidth: true
-        spacing: Tokens.spacing.extraSmall
+    Item {
+        id: body
 
-        IconButton {
-            icon: "arrow_upward"
-            type: IconButton.Text
-            disabled: Music.atRoot
-            onClicked: Music.cdUp()
-        }
+        anchors.fill: parent
+        anchors.margins: Tokens.padding.medium
+        visible: root.enabled && height > 0
 
-        StyledText {
-            Layout.fillWidth: true
-            text: Music.relativeDir || Tr.tr("Music")
-            color: Colours.palette.m3onSurfaceVariant
-            font: Tokens.font.body.medium
-            elide: Text.ElideLeft
-        }
+        RowLayout {
+            id: header
 
-        IconButton {
-            icon: "home"
-            type: IconButton.Text
-            disabled: Music.atRoot
-            onClicked: Music.cdRoot()
-        }
-    }
-
-    SearchBar {
-        id: search
-
-        Layout.fillWidth: true
-        // Takes focus whenever the drawer has it, so the field can be typed into
-        focus: root.enabled
-        placeholderText: Tr.tr("Search music")
-        font: Tokens.font.body.small
-        topPadding: Tokens.padding.small
-        bottomPadding: Tokens.padding.small
-    }
-
-    StyledClippingRect {
-        Layout.fillWidth: true
-        Layout.fillHeight: true
-        radius: Tokens.rounding.large
-        color: Colours.tPalette.m3surfaceContainer
-
-        StyledListView {
-            id: list
-
-            anchors.fill: parent
-            anchors.margins: Tokens.padding.extraSmall
-            clip: true
-            spacing: Tokens.spacing.extraSmall / 2
-            model: root.items
-
-            StyledScrollBar.vertical: StyledScrollBar {
-                flickable: list
-            }
-
-            delegate: StyledRect {
-                id: entry
-
-                required property FileSystemEntry modelData
-                required property int index
-
-                readonly property bool isCurrent: !entry.modelData.isDir && entry.modelData.path === Music.currentFile
-                readonly property string subtitle: entry.modelData.isDir || !root.searching ? "" : root.relativeDirOf(entry.modelData)
-
-                implicitWidth: ListView.view.width
-                implicitHeight: layout.implicitHeight + Tokens.padding.small * 2
-                radius: Tokens.rounding.medium
-                color: entry.isCurrent ? Colours.palette.m3secondaryContainer : "transparent"
-
-                StateLayer {
-                    onClicked: root.playEntry(entry.modelData)
-                }
-
-                RowLayout {
-                    id: layout
-
-                    anchors.left: parent.left
-                    anchors.right: parent.right
-                    anchors.verticalCenter: parent.verticalCenter
-                    anchors.leftMargin: Tokens.padding.medium
-                    anchors.rightMargin: Tokens.padding.medium
-                    spacing: Tokens.spacing.small
-
-                    MaterialIcon {
-                        text: entry.modelData.isDir ? "folder" : entry.isCurrent && Music.playing ? "graphic_eq" : "music_note"
-                        color: entry.isCurrent ? Colours.palette.m3onSecondaryContainer : Colours.palette.m3onSurfaceVariant
-                        fontStyle: Tokens.font.icon.small
-                    }
-
-                    ColumnLayout {
-                        Layout.fillWidth: true
-                        spacing: 0
-
-                        StyledText {
-                            Layout.fillWidth: true
-                            text: entry.modelData.isDir ? entry.modelData.name : entry.modelData.baseName
-                            color: entry.isCurrent ? Colours.palette.m3onSecondaryContainer : Colours.palette.m3onSurface
-                            font: Tokens.font.body.medium
-                            elide: Text.ElideRight
-                        }
-
-                        StyledText {
-                            Layout.fillWidth: true
-                            visible: entry.subtitle !== ""
-                            text: entry.subtitle
-                            color: entry.isCurrent ? Colours.palette.m3onSecondaryContainer : Colours.palette.m3outline
-                            font: Tokens.font.label.small
-                            elide: Text.ElideRight
-                        }
-                    }
-                }
-            }
-        }
-
-        ColumnLayout {
-            anchors.centerIn: parent
+            anchors.top: parent.top
+            anchors.left: parent.left
+            anchors.right: parent.right
             spacing: Tokens.spacing.extraSmall
-            opacity: list.count === 0 ? 1 : 0
-            visible: opacity > 0
 
-            Behavior on opacity {
-                Anim {
-                    type: Anim.DefaultEffects
-                }
-            }
-
-            MaterialIcon {
-                Layout.alignment: Qt.AlignHCenter
-                text: root.searching ? "search_off" : "music_off"
-                color: Colours.palette.m3outline
-                fontStyle: Tokens.font.icon.extraLarge
+            IconButton {
+                icon: "arrow_upward"
+                type: IconButton.Text
+                disabled: Music.atRoot && !root.searching
+                onClicked: root.goUp()
             }
 
             StyledText {
-                Layout.alignment: Qt.AlignHCenter
-                text: root.searching ? Tr.tr("No matches") : Tr.tr("No music here")
-                color: Colours.palette.m3outline
+                Layout.fillWidth: true
+                text: root.searching ? Tr.tr("Search results") : root.title
+                color: Colours.palette.m3onSurfaceVariant
                 font: Tokens.font.body.medium
+                elide: Text.ElideMiddle
+            }
+
+            IconButton {
+                icon: "home"
+                type: IconButton.Text
+                disabled: Music.atRoot && !root.searching
+                onClicked: root.goRoot()
+            }
+        }
+
+        SearchBar {
+            id: search
+
+            anchors.top: header.bottom
+            anchors.left: parent.left
+            anchors.right: parent.right
+            anchors.topMargin: Tokens.spacing.small
+
+            placeholderText: Tr.tr("Search music")
+            font: Tokens.font.body.small
+            topPadding: Tokens.padding.small
+            bottomPadding: Tokens.padding.small
+        }
+
+        Item {
+            id: viewport
+
+            anchors.top: search.bottom
+            anchors.left: parent.left
+            anchors.right: parent.right
+            anchors.topMargin: Tokens.spacing.medium
+            // Clamped so the grid never gets a negative height while the drawer animates
+            height: Math.max(0, body.height - y)
+            clip: true
+
+            StyledFlickable {
+                id: flickable
+
+                anchors.fill: parent
+                contentHeight: grid.implicitHeight
+                clip: true
+
+                StyledScrollBar.vertical: StyledScrollBar {
+                    flickable: flickable
+                }
+
+                GridLayout {
+                    id: grid
+
+                    width: flickable.width - Tokens.padding.small
+                    columns: root.columns
+                    rowSpacing: Tokens.spacing.medium
+                    columnSpacing: Tokens.spacing.medium
+
+                    Repeater {
+                        id: repeater
+
+                        model: root.items
+
+                        LibraryItem {
+                            required property FileSystemEntry modelData
+
+                            entry: modelData
+                            cover: Music.coverFor(modelData.parentDir, modelData.isDir ? "" : modelData.baseName)
+                            current: !modelData.isDir && modelData.path === Music.currentFile
+                            subtitle: root.searching && !modelData.isDir ? root.relativeDirOf(modelData) : ""
+                            onClicked: root.playEntry(modelData)
+                        }
+                    }
+                }
+            }
+
+            ColumnLayout {
+                anchors.centerIn: parent
+                spacing: Tokens.spacing.extraSmall
+                opacity: repeater.count === 0 ? 1 : 0
+                visible: opacity > 0
+
+                Behavior on opacity {
+                    Anim {
+                        type: Anim.DefaultEffects
+                    }
+                }
+
+                MaterialIcon {
+                    Layout.alignment: Qt.AlignHCenter
+                    text: root.searching ? "search_off" : "music_off"
+                    color: Colours.palette.m3outline
+                    fontStyle: Tokens.font.icon.extraLarge
+                }
+
+                StyledText {
+                    Layout.alignment: Qt.AlignHCenter
+                    text: root.searching ? Tr.tr("No matches") : Tr.tr("No music here")
+                    color: Colours.palette.m3outline
+                    font: Tokens.font.body.medium
+                }
             }
         }
     }
