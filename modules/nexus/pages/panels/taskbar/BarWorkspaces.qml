@@ -68,7 +68,19 @@ PageBase {
             onToggled: GlobalConfig.bar.workspaces.showWindows = checked
         }
 
+        // Off means the bar ignores Hyprland's special workspaces completely: no strip in place
+        // of the workspaces, no dimming of them and no toggle on clicking the active one.
+        // Hyprland keeps them either way, so keybinds and dispatches still work
         ToggleRow {
+            text: Tr.trCtx("Special workspaces", "bar workspaces")
+            subtext: Tr.tr("Show and switch special workspaces from the bar")
+            checked: Config.bar.workspaces.specialWorkspaces
+            onToggled: GlobalConfig.bar.workspaces.specialWorkspaces = checked
+        }
+
+        ToggleRow {
+            // Nothing to show once the special workspaces themselves are off
+            visible: Config.bar.workspaces.specialWorkspaces
             text: Tr.trCtx("Windows on special workspaces", "bar workspaces")
             checked: Config.bar.workspaces.showWindowsOnSpecialWorkspaces
             onToggled: GlobalConfig.bar.workspaces.showWindowsOnSpecialWorkspaces = checked

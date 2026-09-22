@@ -39,6 +39,11 @@ class BarWorkspaces : public settings::ObjectNode {
     CONFIG_PROPERTY(bool, perMonitor, true)
     CONFIG_PROPERTY(bool, showWindows, true)
     CONFIG_PROPERTY(bool, showWindowsOnSpecialWorkspaces, true)
+    // NOTE(fork): special workspaces can be switched off entirely, for anyone who doesn't use
+    // Hyprland's. Off means the bar renders and behaves as if there were none: no strip in place
+    // of the workspaces, no dimming of them, and no toggle on clicking the active one.
+    // Hyprland itself is untouched, so keybinds and dispatches keep working
+    CONFIG_PROPERTY(bool, specialWorkspaces, true)
     CONFIG_PROPERTY(int, maxWindowIcons, 5)
     CONFIG_PROPERTY(bool, activeTrail, true)
     CONFIG_ENUM_PROPERTY(BarWorkspaceDisplay, displayType, BarWorkspaceDisplay::Shapes)

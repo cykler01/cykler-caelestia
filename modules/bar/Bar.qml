@@ -78,9 +78,10 @@ ColumnLayout {
     function handleWheel(y: real, angleDelta: point): void {
         const ch = childAt(width / 2, y) as EntryWrapper;
         if (ch?.entryId === "workspaces" && Config.bar.scrollActions.workspaces) {
-            // Workspace scroll
+            // Workspace scroll. With special workspaces switched off there is nothing to leave,
+            // so the wheel always scrolls the normal workspaces instead
             const mon = Hypr.monitorFor(screen);
-            const specialWs = mon?.lastIpcObject.specialWorkspace.name;
+            const specialWs = Config.bar.workspaces.specialWorkspaces ? mon?.lastIpcObject.specialWorkspace.name : "";
             if (specialWs?.length > 0)
                 Hypr.dispatch(Hypr.usingLua ? `hl.dsp.workspace.toggle_special("${specialWs.slice(8)}")` : `togglespecialworkspace ${specialWs.slice(8)}`);
             else if (angleDelta.y < 0 || mon.activeWorkspace?.id > 1)

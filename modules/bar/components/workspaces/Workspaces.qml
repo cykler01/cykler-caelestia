@@ -17,7 +17,10 @@ StyledClippingRect {
     required property bool fullscreen
 
     readonly property HyprlandMonitor monitor: Hypr.monitorFor(screen)
-    readonly property bool onSpecial: monitor?.lastIpcObject.specialWorkspace?.name !== ""
+    // NOTE(fork): switching special workspaces off makes the bar behave as if there were none - no
+    // strip, no dimming, no toggle on click - so the setting is honoured in one place
+    readonly property bool specialEnabled: Config.bar.workspaces.specialWorkspaces
+    readonly property bool onSpecial: root.specialEnabled && monitor?.lastIpcObject.specialWorkspace?.name !== ""
     readonly property int activeWsId: monitor.activeWorkspace?.id ?? 1
     readonly property int activeWsIdx: workspaceIndex(activeWsId)
     readonly property int shown: Math.max(1, Config.bar.workspaces.shown)
@@ -177,7 +180,7 @@ StyledClippingRect {
                     return;
                 if (Hypr.activeWsId !== ws)
                     Hypr.focusWorkspace(ws);
-                else
+                else if (root.specialEnabled)
                     Hypr.toggleSpecial("special");
             }
         }
