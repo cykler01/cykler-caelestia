@@ -138,7 +138,25 @@ git merge upstream/main
 > it first - this fork conflicts with and provides the same package.
  
 ### Arch Linux
- 
+
+#### Quick install
+
+Installs dependencies, then builds and installs the shell:
+
+```sh
+git clone https://github.com/CYKLER01/cykler-caelestia.git
+cd cykler-caelestia
+./install.sh
+```
+
+Flags:
+
+-   `--install-deps false` - skip installing dependencies (default is `true`), if you already have them
+-   `--repo-only` - skip AUR packages
+-   `--yes` / `-y` - skip the confirmation prompts
+
+Or follow the steps below to do it by hand.
+
 #### 1. Clone the repo
  
 ```sh
