@@ -2,7 +2,6 @@ import QtQuick
 import QtQuick.Layouts
 import Caelestia.Config
 import Caelestia.I18n
-import qs.components
 import qs.services
 import qs.modules.nexus.common
 
@@ -12,36 +11,59 @@ PageBase {
     title: Tr.tr("Colours")
     isSubPage: true
 
-    Item {
+    ColumnLayout {
         anchors.horizontalCenter: parent.horizontalCenter
-        implicitHeight: {
-            const f = parent.parent as Flickable;
-            return f.height - f.topMargin - f.bottomMargin;
+        anchors.top: parent.top
+        width: root.cappedWidth
+        spacing: Tokens.spacing.extraSmall / 2
+
+        // Theme
+        SectionHeader {
+            first: true
+            text: Tr.tr("Theme")
         }
 
-        ColumnLayout {
-            anchors.centerIn: parent
-            spacing: Tokens.padding.extraSmall
+        ToggleRow {
+            first: true
+            last: true
+            text: Tr.tr("Dark theme")
+            checked: !Colours.light
+            onToggled: Colours.setMode(checked ? "dark" : "light")
+        }
 
-            MaterialIcon {
-                Layout.alignment: Qt.AlignHCenter
-                text: "handyman"
-                color: Colours.palette.m3outlineVariant
-                fontStyle: Tokens.font.icon.extraLarge
+        // Colour scheme
+        SectionHeader {
+            text: Tr.tr("Colour scheme")
+        }
+
+        Repeater {
+            model: Schemes.schemes
+
+            SchemeRow {
+                required property var modelData
+                required property int index
+
+                first: index === 0
+                last: index === Schemes.schemes.length - 1
+                scheme: modelData
             }
+        }
 
-            StyledText {
-                Layout.alignment: Qt.AlignHCenter
-                text: Tr.tr("Page under construction")
-                color: Colours.palette.m3outlineVariant
-                font: Tokens.font.title.large
-            }
+        // Scheme variant
+        SectionHeader {
+            text: Tr.tr("Scheme variant")
+        }
 
-            StyledText {
-                Layout.alignment: Qt.AlignHCenter
-                text: Tr.tr("This page will be available in a future update.")
-                color: Colours.palette.m3outlineVariant
-                font: Tokens.font.body.large
+        Repeater {
+            model: Schemes.variants
+
+            VariantRow {
+                required property var modelData
+                required property int index
+
+                first: index === 0
+                last: index === Schemes.variants.length - 1
+                variant: modelData
             }
         }
     }

@@ -29,9 +29,8 @@ StyledListView {
     function stateForText(text: string): string {
         const prefix = GlobalConfig.launcher.actionPrefix;
         if (text.startsWith(prefix)) {
-            for (const action of ["calc", "scheme", "variant"])
-                if (text.startsWith(`${prefix}${action} `))
-                    return action;
+            if (text.startsWith(`${prefix}calc `))
+                return "calc";
 
             if (text === `${prefix}gpu` || text.startsWith(`${prefix}gpu `))
                 return "gpu";
@@ -51,10 +50,6 @@ StyledListView {
             return Actions.query(text);
         case "calc":
             return [0];
-        case "scheme":
-            return Schemes.query(text);
-        case "variant":
-            return M3Variants.query(text);
         case "gpu":
             return Supergfxctl.modeData;
         case "ssh":
@@ -100,9 +95,7 @@ StyledListView {
     state: screenState.launcher ? requestedState : displayState
 
     onStateChanged: {
-        if (state === "scheme" || state === "variant")
-            Schemes.reload();
-        else if (state === "gpu")
+        if (state === "gpu")
             Supergfxctl.reload();
         else if (state === "ssh")
             SSH.reload();
@@ -130,20 +123,6 @@ StyledListView {
 
             PropertyChanges {
                 root.delegate: calcItem
-            }
-        },
-        State {
-            name: "scheme"
-
-            PropertyChanges {
-                root.delegate: schemeItem
-            }
-        },
-        State {
-            name: "variant"
-
-            PropertyChanges {
-                root.delegate: variantItem
             }
         },
         State {
@@ -300,22 +279,6 @@ StyledListView {
         id: calcItem
 
         CalcItem {
-            list: root
-        }
-    }
-
-    Component {
-        id: schemeItem
-
-        SchemeItem {
-            list: root
-        }
-    }
-
-    Component {
-        id: variantItem
-
-        VariantItem {
             list: root
         }
     }
