@@ -17,6 +17,9 @@ Item {
 
     property bool hadPrevious
     property color fallbackColour: Colours.layer(Colours.palette.m3surfaceContainerHighest, 2)
+    // Defaults to the active mpris player, but any image source can be shown instead
+    property string source: Players.getArtUrl(Players.active)
+    property bool spinning: Players.active?.isPlaying ?? false
 
     // Slight glow to separate from bg
     layer.enabled: true
@@ -47,7 +50,7 @@ Item {
 
             Anim on rotation {
                 running: true
-                paused: !Players.active?.isPlaying
+                paused: !root.spinning
                 from: 360
                 to: 0
                 duration: 23500
@@ -97,7 +100,7 @@ Item {
 
         anchors.fill: parent
 
-        source: Players.getArtUrl(Players.active)
+        source: root.source
 
         layer.enabled: true
         layer.effect: Mask {

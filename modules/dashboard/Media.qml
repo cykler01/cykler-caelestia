@@ -5,12 +5,14 @@ import M3Shapes
 import Caelestia.Config
 import Caelestia.I18n
 import qs.components
+import qs.components.controls
 import qs.services
 
 Item {
     id: root
 
     required property ScreenState screenState
+    property bool localMusic
 
     implicitWidth: Tokens.sizes.dashboard.mediaTabWidth
     implicitHeight: Tokens.sizes.dashboard.mediaTabHeight
@@ -19,134 +21,180 @@ Item {
         anchors.fill: parent
     }
 
-    RowLayout {
+    ColumnLayout {
         anchors.fill: parent
         anchors.margins: Tokens.padding.large
-        spacing: Tokens.spacing.extraLarge
+        spacing: Tokens.spacing.small
 
-        CoverVisualiser {
-            Layout.fillHeight: true
-            implicitWidth: Tokens.sizes.dashboard.mediaSectionWidth
+        RowLayout {
+            Layout.fillWidth: true
+            spacing: Tokens.spacing.extraSmall
+
+            IconTextButton {
+                icon: "queue_music"
+                text: Tr.tr("Now playing")
+                type: root.localMusic ? IconTextButton.Tonal : IconTextButton.Filled
+                font: Tokens.font.body.small
+                onClicked: root.localMusic = false
+            }
+
+            IconTextButton {
+                icon: "library_music"
+                text: Tr.tr("Music library")
+                type: root.localMusic ? IconTextButton.Filled : IconTextButton.Tonal
+                font: Tokens.font.body.small
+                onClicked: root.localMusic = true
+            }
+
+            Item {
+                Layout.fillWidth: true
+            }
         }
 
-        Item {
+        Loader {
             Layout.fillWidth: true
             Layout.fillHeight: true
 
-            state: Players.active ? "" : "noMedia"
+            sourceComponent: root.localMusic ? localMusicComponent : playersComponent
+        }
+    }
 
-            states: State {
-                name: "noMedia"
+    Component {
+        id: playersComponent
 
-                PropertyChanges {
-                    noMedia.opacity: 1
-                    content.opacity: 0
-                }
+        RowLayout {
+            spacing: Tokens.spacing.extraLarge
+
+            CoverVisualiser {
+                Layout.fillHeight: true
+                implicitWidth: Tokens.sizes.dashboard.mediaSectionWidth
             }
 
-            transitions: [
-                Transition {
-                    from: ""
+            Item {
+                Layout.fillWidth: true
+                Layout.fillHeight: true
 
-                    SequentialAnimation {
-                        Anim {
-                            target: content
-                            property: "opacity"
-                            type: Anim.DefaultEffects
+                state: Players.active ? "" : "noMedia"
+
+                states: State {
+                    name: "noMedia"
+
+                    PropertyChanges {
+                        noMedia.opacity: 1
+                        content.opacity: 0
+                    }
+                }
+
+                transitions: [
+                    Transition {
+                        from: ""
+
+                        SequentialAnimation {
+                            Anim {
+                                target: content
+                                property: "opacity"
+                                type: Anim.DefaultEffects
+                            }
+                            Anim {
+                                target: noMedia
+                                property: "opacity"
+                                type: Anim.SlowEffects
+                            }
                         }
-                        Anim {
-                            target: noMedia
-                            property: "opacity"
-                            type: Anim.SlowEffects
+                    },
+                    Transition {
+                        to: ""
+
+                        SequentialAnimation {
+                            Anim {
+                                target: noMedia
+                                property: "opacity"
+                                type: Anim.DefaultEffects
+                            }
+                            Anim {
+                                target: content
+                                property: "opacity"
+                                type: Anim.SlowEffects
+                            }
                         }
                     }
-                },
-                Transition {
-                    to: ""
+                ]
 
-                    SequentialAnimation {
-                        Anim {
-                            target: noMedia
-                            property: "opacity"
-                            type: Anim.DefaultEffects
+                Loader {
+                    id: noMedia
+
+                    anchors.centerIn: parent
+                    anchors.horizontalCenterOffset: -Tokens.padding.extraLarge * 2
+                    asynchronous: true
+                    active: opacity > 0
+                    opacity: 0
+
+                    sourceComponent: ColumnLayout {
+                        spacing: Tokens.spacing.small
+
+                        MaterialShape {
+                            Layout.topMargin: (pathBounds().height - implicitSize) / 2
+                            Layout.bottomMargin: (pathBounds().height - implicitSize) / 2 + Tokens.spacing.small
+                            Layout.alignment: Qt.AlignHCenter
+                            color: Colours.palette.m3primaryContainer
+                            implicitSize: icon.implicitHeight + Tokens.padding.extraLarge * 2
+                            shape: MaterialShape.ClamShell
+
+                            Behavior on color {
+                                CAnim {}
+                            }
+
+                            MaterialIcon {
+                                id: icon
+
+                                anchors.centerIn: parent
+                                text: "queue_music"
+                                fontStyle: Tokens.font.icon.builders.large.scale(2).build()
+                                color: Colours.palette.m3onPrimaryContainer
+                            }
                         }
-                        Anim {
-                            target: content
-                            property: "opacity"
-                            type: Anim.SlowEffects
+
+                        StyledText {
+                            Layout.alignment: Qt.AlignHCenter
+                            text: Tr.tr("Nothing playing")
+                            font: Tokens.font.headline.medium
+                        }
+
+                        StyledText {
+                            text: Tr.tr("Play something for it to show up here!")
+                            color: Colours.palette.m3onSurfaceVariant
+                            font: Tokens.font.body.large
                         }
                     }
                 }
-            ]
 
-            Loader {
-                id: noMedia
+                Loader {
+                    id: content
 
-                anchors.centerIn: parent
-                anchors.horizontalCenterOffset: -Tokens.padding.extraLarge * 2
-                asynchronous: true
-                active: opacity > 0
-                opacity: 0
+                    anchors.fill: parent
+                    asynchronous: true
+                    active: opacity > 0
 
-                sourceComponent: ColumnLayout {
-                    spacing: Tokens.spacing.small
+                    sourceComponent: RowLayout {
+                        spacing: Tokens.spacing.extraLarge
 
-                    MaterialShape {
-                        Layout.topMargin: (pathBounds().height - implicitSize) / 2
-                        Layout.bottomMargin: (pathBounds().height - implicitSize) / 2 + Tokens.spacing.small
-                        Layout.alignment: Qt.AlignHCenter
-                        color: Colours.palette.m3primaryContainer
-                        implicitSize: icon.implicitHeight + Tokens.padding.extraLarge * 2
-                        shape: MaterialShape.ClamShell
-
-                        Behavior on color {
-                            CAnim {}
+                        Details {
+                            Layout.fillWidth: true
                         }
 
-                        MaterialIcon {
-                            id: icon
-
-                            anchors.centerIn: parent
-                            text: "queue_music"
-                            fontStyle: Tokens.font.icon.builders.large.scale(2).build()
-                            color: Colours.palette.m3onPrimaryContainer
+                        LyricsAndSelector {
+                            Layout.fillHeight: true
+                            implicitWidth: Tokens.sizes.dashboard.mediaSectionWidth
                         }
-                    }
-
-                    StyledText {
-                        Layout.alignment: Qt.AlignHCenter
-                        text: Tr.tr("Nothing playing")
-                        font: Tokens.font.headline.medium
-                    }
-
-                    StyledText {
-                        text: Tr.tr("Play something for it to show up here!")
-                        color: Colours.palette.m3onSurfaceVariant
-                        font: Tokens.font.body.large
-                    }
-                }
-            }
-
-            Loader {
-                id: content
-
-                anchors.fill: parent
-                asynchronous: true
-                active: opacity > 0
-
-                sourceComponent: RowLayout {
-                    spacing: Tokens.spacing.extraLarge
-
-                    Details {
-                        Layout.fillWidth: true
-                    }
-
-                    LyricsAndSelector {
-                        Layout.fillHeight: true
-                        implicitWidth: Tokens.sizes.dashboard.mediaSectionWidth
                     }
                 }
             }
         }
+    }
+
+    Component {
+        id: localMusicComponent
+
+        LocalMusic {}
     }
 }

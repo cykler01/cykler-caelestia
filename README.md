@@ -20,6 +20,7 @@ This is my take on the Caelestia shell - upstream's desktop shell with my own fe
 | Battery management | --- | `BatteryMonitor` service, auto power-saving on profile change, battery pane in control center |
 | Game mode | Derived from animation state | Fixed false-trigger; also sets flat mouse accel |
 | Launcher | Standard actions | Adds OCR (`>ocr`) and Google Lens (`>lens`) region-capture actions |
+| Music player | External players only | In-shell local music player in the dashboard media tab |
 
 
 ## Features added on top of upstream
@@ -83,6 +84,28 @@ This is my take on the Caelestia shell - upstream's desktop shell with my own fe
 -   **Shell-relative asset paths fixed** — the shipped defaults use the `root:` prefix
     (e.g. `root:/assets/kurukuru.gif`), which stopped being resolved to the shell's asset
     directory, leaving the default logo, gifs and placeholder images blank.
+
+### Local music player
+
+-   **Music section in the dashboard media tab** — the media tab now has a source switch
+    between the usual MPRIS players and a built in player. The player browses the folder set
+    by `paths.musicDir` (defaults to `~/Music`) and plays the files in-shell, with seek,
+    volume, shuffle and repeat (off / all / one) controls alongside the basic media
+    controls.
+-   **Folder and search browsing** — the library panel lists folders before tracks and can
+    step back up to the music folder, while typing in the search box switches to a flat list
+    of every track found under it. Searching matches the whole path, so an album name finds
+    its tracks too.
+-   **Cover art** — art embedded in the track is shown on the cover next to the controls,
+    falling back to an image named after the track (what yt-dlp leaves behind, since opus
+    cannot hold one) and then to a `cover`, `folder` or `album` image in the track's folder.
+    Embedded art arrives from QtMultimedia as a `QImage`, which `Image.source` cannot take
+    directly, so it goes through the image cache first (keyed by content, so the same
+    artwork is only written once).
+-   **Known gap** — Qt's ffmpeg backend only surfaces container level tags. mp3 (ID3), flac
+    and m4a tags are read correctly, but Ogg/Opus puts its Vorbis comments on the stream
+    instead, so those tracks show their file name with no artist or album. Cover art is
+    unaffected.
 
 ## Feature requests
 
@@ -168,7 +191,7 @@ Flags:
 -   `glibc`, `gcc-libs` (base, usually already installed)
 -   `ddcutil`, `brightnessctl`
 -   `networkmanager`, `lm_sensors`, `aubio`, `libpipewire`, `libqalculate`, `power-profiles-daemon`
--   `qt6-base`, `qt6-declarative`, `qt6-imageformats`
+-   `qt6-base`, `qt6-declarative`, `qt6-imageformats`, `qt6-multimedia`
 -   `swappy`, `fish`, `bash`, `grim`, `slurp`, `tesseract`, `wl-clipboard`, `libnotify`, `curl`, `jq`, `xdg-utils`
 -   Build deps: `git`, `cmake`, `ninja`, `qt6-shadertools`
 ##### AUR:
