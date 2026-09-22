@@ -42,20 +42,40 @@ VerticalFadeFlickable {
                 readonly property bool isCurrentPage: index === root.nState.currentPageIdx
                 readonly property bool isCategoryStart: index === 0 || PageRegistry.pages[index - 1].category !== modelData.category
                 readonly property bool isCategoryEnd: index === list.model.length - 1 || PageRegistry.pages[index + 1].category !== modelData.category
+                // The neighbour directly above/below the selected item (within the same
+                // group) curves inward on the side touching it, so the selection looks
+                // like it's nestled into the list rather than just overlaid on top
+                readonly property bool touchesSelectedAbove: !isCategoryStart && index - 1 === root.nState.currentPageIdx
+                readonly property bool touchesSelectedBelow: !isCategoryEnd && index + 1 === root.nState.currentPageIdx
 
                 Layout.fillWidth: true
-                Layout.topMargin: index !== 0 && isCategoryStart ? Tokens.spacing.medium : 0
+                // The selected item pushes its neighbours away a little, so it reads as
+                // popping out of the list rather than just being tinted a different colour
+                Layout.topMargin: (index !== 0 && isCategoryStart ? Tokens.spacing.medium : 0) + (isCurrentPage ? Tokens.spacing.small : 0)
+                Layout.bottomMargin: isCurrentPage ? Tokens.spacing.small : 0
                 implicitHeight: {
                     const h = layout.implicitHeight + layout.anchors.margins * 2;
                     return h % 2 === 0 ? h : h + 1;
                 }
 
+                Behavior on Layout.topMargin {
+                    Anim {
+                        type: Anim.DefaultEffects
+                    }
+                }
+
+                Behavior on Layout.bottomMargin {
+                    Anim {
+                        type: Anim.DefaultEffects
+                    }
+                }
+
                 color: isCurrentPage ? Colours.palette.m3secondaryContainer : Colours.layer(Colours.palette.m3surfaceContainerHigh, 2)
 
-                topLeftRadius: stateLayer.pressed ? Tokens.rounding.medium : isCurrentPage ? Tokens.rounding.extraLargeIncreased : isCategoryStart ? Tokens.rounding.extraLarge : Tokens.rounding.extraSmall
-                topRightRadius: stateLayer.pressed ? Tokens.rounding.medium : isCurrentPage ? Tokens.rounding.extraLargeIncreased : isCategoryStart ? Tokens.rounding.extraLarge : Tokens.rounding.extraSmall
-                bottomLeftRadius: stateLayer.pressed ? Tokens.rounding.medium : isCurrentPage ? Tokens.rounding.extraLargeIncreased : isCategoryEnd ? Tokens.rounding.extraLarge : Tokens.rounding.extraSmall
-                bottomRightRadius: stateLayer.pressed ? Tokens.rounding.medium : isCurrentPage ? Tokens.rounding.extraLargeIncreased : isCategoryEnd ? Tokens.rounding.extraLarge : Tokens.rounding.extraSmall
+                topLeftRadius: stateLayer.pressed ? Tokens.rounding.medium : isCurrentPage ? Tokens.rounding.extraLargeIncreased : isCategoryStart || touchesSelectedAbove ? Tokens.rounding.extraLarge : Tokens.rounding.extraSmall
+                topRightRadius: stateLayer.pressed ? Tokens.rounding.medium : isCurrentPage ? Tokens.rounding.extraLargeIncreased : isCategoryStart || touchesSelectedAbove ? Tokens.rounding.extraLarge : Tokens.rounding.extraSmall
+                bottomLeftRadius: stateLayer.pressed ? Tokens.rounding.medium : isCurrentPage ? Tokens.rounding.extraLargeIncreased : isCategoryEnd || touchesSelectedBelow ? Tokens.rounding.extraLarge : Tokens.rounding.extraSmall
+                bottomRightRadius: stateLayer.pressed ? Tokens.rounding.medium : isCurrentPage ? Tokens.rounding.extraLargeIncreased : isCategoryEnd || touchesSelectedBelow ? Tokens.rounding.extraLarge : Tokens.rounding.extraSmall
 
                 RadiusBehavior on topLeftRadius {}
                 RadiusBehavior on topRightRadius {}
