@@ -33,6 +33,8 @@ Singleton {
             if (GlobalConfig.utilities.toasts.gameModeChanged)
                 Toaster.toast(Tr.tr("Game mode enabled"), Tr.tr("Disabled Hyprland animations, blur, gaps, shadows and mouse acceleration"), "gamepad");
         } else {
+            // A reload drops every runtime `keyword monitor`; Monitors puts them back
+            Monitors.rememberForReload();
             Hypr.extras.message("reload");
             if (GlobalConfig.utilities.toasts.gameModeChanged)
                 Toaster.toast(Tr.tr("Game mode disabled"), Tr.tr("Hyprland settings restored"), "gamepad");

@@ -8,6 +8,8 @@ Singleton {
     id: root
 
     property alias enabled: props.enabled
+    // Only stops the idle timer from locking; the screen may still turn off
+    property alias preventLock: props.preventLock
     readonly property alias enabledSince: props.enabledSince
 
     onEnabledChanged: {
@@ -19,6 +21,7 @@ Singleton {
         id: props
 
         property bool enabled
+        property bool preventLock
         property date enabledSince
 
         reloadableId: "idleInhibitor"
@@ -41,6 +44,14 @@ Singleton {
 
         function toggle(): void {
             props.enabled = !props.enabled;
+        }
+
+        function isLockPrevented(): bool {
+            return props.preventLock;
+        }
+
+        function togglePreventLock(): void {
+            props.preventLock = !props.preventLock;
         }
 
         function enable(): void {

@@ -9,7 +9,7 @@ import qs.services
 StyledRect {
     id: root
 
-    readonly property real nonAnimHeight: layout.implicitHeight + (IdleInhibitor.enabled ? activeChip.implicitHeight + activeChip.anchors.topMargin : 0) + Tokens.padding.extraLargeIncreased
+    readonly property real nonAnimHeight: layout.implicitHeight + lockLayout.implicitHeight + lockLayout.anchors.topMargin + (IdleInhibitor.enabled ? activeChip.implicitHeight + activeChip.anchors.topMargin : 0) + Tokens.padding.extraLargeIncreased
 
     implicitHeight: nonAnimHeight
 
@@ -66,6 +66,59 @@ StyledRect {
         StyledSwitch {
             checked: IdleInhibitor.enabled
             onToggled: IdleInhibitor.enabled = checked
+        }
+    }
+
+    RowLayout {
+        id: lockLayout
+
+        anchors.top: layout.bottom
+        anchors.left: parent.left
+        anchors.right: parent.right
+        anchors.margins: Tokens.padding.large
+        anchors.topMargin: Tokens.spacing.medium
+        spacing: Tokens.spacing.medium
+
+        StyledRect {
+            implicitWidth: implicitHeight
+            implicitHeight: lockIcon.implicitHeight + Tokens.padding.large
+
+            radius: Tokens.rounding.full
+            color: IdleInhibitor.preventLock ? Colours.palette.m3secondary : Colours.palette.m3secondaryContainer
+
+            MaterialIcon {
+                id: lockIcon
+
+                anchors.centerIn: parent
+                text: "lock_clock"
+                color: IdleInhibitor.preventLock ? Colours.palette.m3onSecondary : Colours.palette.m3onSecondaryContainer
+                fontStyle: Tokens.font.icon.large
+            }
+        }
+
+        ColumnLayout {
+            Layout.fillWidth: true
+            spacing: 0
+
+            StyledText {
+                Layout.fillWidth: true
+                text: Tr.trCtx("Prevent lock", "idle inhibitor")
+                font: Tokens.font.body.medium
+                elide: Text.ElideRight
+            }
+
+            StyledText {
+                Layout.fillWidth: true
+                text: IdleInhibitor.preventLock ? Tr.trCtx("Won't lock when idle", "idle inhibitor") : Tr.trCtx("Locks after the idle timeout", "idle inhibitor")
+                color: Colours.palette.m3onSurfaceVariant
+                font: Tokens.font.body.small
+                elide: Text.ElideRight
+            }
+        }
+
+        StyledSwitch {
+            checked: IdleInhibitor.preventLock
+            onToggled: IdleInhibitor.preventLock = checked
         }
     }
 
