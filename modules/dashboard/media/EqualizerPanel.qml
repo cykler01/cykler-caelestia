@@ -69,17 +69,6 @@ StyledClippingRect {
                 fallbackText: Tr.tr("Preset")
                 disabled: !root.available
             }
-
-            // Turning this off hands the output device back, so it doubles as the "stop
-            // routing my audio through the filter chain" switch. The same option lives in
-            // Settings > Audio, which is what has to be on before this panel is even reachable
-            IconButton {
-                icon: "equalizer"
-                type: Equalizer.enabled ? IconButton.Filled : IconButton.Tonal
-                isToggle: true
-                checked: Equalizer.enabled
-                onClicked: Equalizer.toggle()
-            }
         }
 
         StyledText {
