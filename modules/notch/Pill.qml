@@ -15,12 +15,18 @@ import qs.services
 Item {
     id: root
 
+    // Set by the Wrapper: whether cava has a real level to draw yet (see cavaWarm there)
+    property bool cavaWarm
+
     readonly property int coverSize: Tokens.padding.extraLarge
 
-    // The visualiser packs its bars into 40% of the width on each side of a centre gap, so the
-    // count has to follow the size of the pill: the shell's own 60 bars come out narrower than
-    // their own spacing in a box this small and draw nothing at all.
-    readonly property int barCount: Math.max(3, Math.round(root.coverSize / 10))
+    // Drives the placeholder pattern below; only ticks while that pattern is actually on screen
+    property real placeholderPhase
+
+    // The bars are drawn as one row across the full width of the visualiser box (see singleRow
+    // below), so the count has to follow the size of the pill: more than this and they come out
+    // narrower than the gaps between them
+    readonly property int barCount: Math.max(3, Math.round(root.coverSize / 5))
 
     // Groups the shell's full-width spectrum down to the bars the pill has room for, taking the
     // peak of each group so a band sitting next to a loud one doesn't disappear
@@ -37,6 +43,22 @@ Item {
             for (let j = start; j < end && j < values.length; j++)
                 peak = Math.max(peak, values[j]);
             bars.push(peak);
+        }
+        return bars;
+    }
+
+    // Stands in for the spectrum until cava has a level to report, so the first pill of a session
+    // (where cava is starting cold and its autosensitivity takes about a second to ramp the bars
+    // up from nothing) shows a moving equaliser rather than an empty box. Two detuned waves per
+    // bar, under an envelope that lifts the middle bars, so it reads as a spectrum rather than a
+    // row of pulsing dots. Runs 0.25 to 0.65, the height range the real bars hand over in, so the
+    // swap does not read as a jump.
+    function placeholderSpectrum(count: int): var {
+        const bars = [];
+        for (let i = 0; i < count; i++) {
+            const envelope = 0.55 + 0.45 * (1 - Math.abs((i + 0.5) / count * 2 - 1));
+            const wave = 0.5 + 0.32 * Math.sin(root.placeholderPhase * (1 + i * 0.19) + i * 1.7) + 0.18 * Math.sin(root.placeholderPhase * (2.2 + i * 0.11) + i * 0.7);
+            bars.push(0.25 + 0.4 * envelope * wave);
         }
         return bars;
     }
@@ -89,7 +111,14 @@ Item {
 
                 anchors.fill: parent
 
-                values: root.sampleSpectrum(Audio.cava.values, root.barCount)
+                // Centred on the middle line and reflected above and below it rather than rising
+                // from the bottom of the pill, where the bars sat low enough to be easy to miss,
+                // and as one spectrum across the width: the component's default layout would
+                // draw this same spectrum twice, mirrored beside itself
+                // (see mirrored/singleRow in plugin/src/Caelestia/Components/visualiserbars.hpp)
+                mirrored: true
+                singleRow: true
+                values: root.cavaWarm ? root.sampleSpectrum(Audio.cava.values, root.barCount) : root.placeholderSpectrum(root.barCount)
                 primaryColor: Colours.palette.m3primary
                 secondaryColor: Colours.palette.m3inversePrimary
                 rounding: Tokens.rounding.small
@@ -102,6 +131,11 @@ Item {
             FrameAnimation {
                 running: !bars.settled
                 onTriggered: bars.advance(frameTime)
+            }
+
+            FrameAnimation {
+                running: !root.cavaWarm
+                onTriggered: root.placeholderPhase += frameTime * 4
             }
         }
     }

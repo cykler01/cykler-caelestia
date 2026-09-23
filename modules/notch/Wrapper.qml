@@ -2,6 +2,7 @@ pragma ComponentBehavior: Bound
 
 import QtQuick
 import Caelestia.Config
+import Caelestia.Services
 import qs.components
 import qs.services
 
@@ -20,6 +21,13 @@ Item {
     property bool peeking
     property bool wasAlreadyOpen
     property int previousTab
+
+    // Whether cava has ever produced a spectrum with a real level in it, which is what the pill
+    // uses to decide between its placeholder pattern and the real bars. Deliberately one way:
+    // cava keeps the autosensitivity it has learned while it is stopped, so once it has ramped up
+    // it does not have to again for the rest of the session, and a quiet passage never gets
+    // mistaken for a cold start on a later pill.
+    property bool cavaWarm: false
 
     // Stays visible through our own peek (root.peeking) so the pill keeps
     // receiving hover events to detect mouse-away and end the peek; only
@@ -53,6 +61,16 @@ Item {
             root.screenState.dashboardTab = root.previousTab;
     }
 
+    // Services are reference counted, so cava - and the PipeWire capture it reads - stops the
+    // moment the pill's own ref (in Pill.qml) goes away. Started cold it has to settle its
+    // autosensitivity first, which holds the bars at nothing for a good second before they climb
+    // to a visible height, and that is most of the pill's brief time on screen. Holding a ref for
+    // as long as something is playing keeps it warmed up, so a track change shows a visualiser
+    // that is already up to level instead of a blank pill that fills in late.
+    ServiceRef {
+        service: Config.notch.enabled && Players.active?.isPlaying === true ? Audio.cava : null
+    }
+
     visible: offsetScale < 1
     anchors.topMargin: (-implicitHeight - 5) * offsetScale
     implicitWidth: content.implicitWidth
@@ -77,6 +95,26 @@ Item {
         // e.g. playback stopped mid-peek: don't leave the dashboard force-opened
         if (!shouldBeActive && peeking)
             endPeek();
+    }
+
+    Connections {
+        // Watches the spectrum itself rather than a peak property's change signal: a passage that
+        // holds the loudest bar steady for a while still has to be able to warm this up. Stops
+        // costing anything at all once it has, since there is nothing left to wait for.
+        function onValuesChanged(): void {
+            if (root.cavaWarm)
+                return;
+
+            const values = Audio.cava.values;
+            for (let i = 0; i < values.length; i++) {
+                if (values[i] >= 0.4) {
+                    root.cavaWarm = true;
+                    return;
+                }
+            }
+        }
+
+        target: Audio.cava
     }
 
     Connections {
@@ -139,6 +177,8 @@ Item {
 
         active: root.shouldBeActive || root.visible
 
-        sourceComponent: Pill {}
+        sourceComponent: Pill {
+            cavaWarm: root.cavaWarm
+        }
     }
 }

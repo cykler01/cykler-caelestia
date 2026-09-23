@@ -4,6 +4,7 @@
 #include <qpainter.h>
 #include <qpainterpath.h>
 #include <qpen.h>
+#include <qrect.h>
 
 #include <algorithm>
 #include <cmath>
@@ -52,50 +53,78 @@ void VisualiserBars::paint(QPainter* painter) {
     painter->setRenderHint(QPainter::Antialiasing, true);
     painter->setPen(Qt::NoPen);
 
+    const qreal w = width();
     const qreal h = height();
     const qreal maxBarHeight = h * 0.4;
+    const qreal baseline = m_mirrored ? h / 2.0 : h;
 
-    QLinearGradient gradient(0, h - maxBarHeight, 0, h);
+    // Spans the tallest a bar can reach on either side of the baseline. Mirrored, that reaches
+    // the same distance below the middle line as above it (maxBarHeight is under half the height,
+    // so the reflected spectrum still fits).
+    QLinearGradient gradient(0, baseline - maxBarHeight, 0, m_mirrored ? baseline + maxBarHeight : baseline);
     gradient.setColorAt(0, m_primaryColor);
-    gradient.setColorAt(1, m_secondaryColor);
+    if (m_mirrored) {
+        // Graded towards the middle line, so a reflection of the top half and the bottom half
+        // come out identical: primary at each tip, secondary along the middle line
+        gradient.setColorAt(0.5, m_secondaryColor);
+        gradient.setColorAt(1, m_primaryColor);
+    } else {
+        gradient.setColorAt(1, m_secondaryColor);
+    }
     painter->setBrush(gradient);
 
-    drawSide(painter, false);
-    drawSide(painter, true);
+    if (m_singleRow) {
+        drawGroup(painter, 0, w, false);
+    } else {
+        // Either side of a centre gap, mirrored against each other
+        drawGroup(painter, 0, w * 0.4, true);
+        drawGroup(painter, w * 0.6, w * 0.4, false);
+    }
 }
 
-void VisualiserBars::drawSide(QPainter* painter, bool rightSide) {
-    const qreal w = width();
+void VisualiserBars::drawGroup(QPainter* painter, qreal xOffset, qreal groupWidth, bool reverse) {
     const qreal h = height();
     const auto count = m_displayValues.size();
 
     if (count == 0)
         return;
 
-    const qreal sideWidth = w * 0.4;
-    const qreal slotWidth = sideWidth / static_cast<qreal>(count);
+    const qreal slotWidth = groupWidth / static_cast<qreal>(count);
     const qreal barWidth = slotWidth - m_spacing;
 
     if (barWidth <= 0)
         return;
 
-    const qreal sideOffset = rightSide ? w * 0.6 : 0;
     const qreal maxBarHeight = h * 0.4;
 
+    // The line the bars grow from: the bottom edge normally, or the middle of the item when the
+    // spectrum is mirrored, which puts a bar half above and half below it
+    const qreal baseline = m_mirrored ? h / 2.0 : h;
+
     for (qsizetype i = 0; i < count; ++i) {
-        const qsizetype valueIndex = rightSide ? i : (count - i - 1);
+        const qsizetype valueIndex = reverse ? (count - i - 1) : i;
         const qreal value = std::clamp(m_displayValues[valueIndex], 0.0, 1.0);
         const qreal barHeight = value * maxBarHeight;
 
         if (barHeight <= 0)
             continue;
 
-        const qreal x = static_cast<qreal>(i) * slotWidth + sideOffset;
-        const qreal y = h - barHeight;
+        const qreal x = static_cast<qreal>(i) * slotWidth + xOffset;
         const qreal r = std::min({ m_rounding, barWidth / 2.0, barHeight });
 
         QPainterPath path;
-        path.moveTo(x, h);
+
+        if (m_mirrored) {
+            // A pill straddling the baseline: the same bar reflected above and below it, rounded
+            // at both tips rather than sitting square on the bottom edge
+            path.addRoundedRect(QRectF(x, baseline - barHeight, barWidth, barHeight * 2.0), r, r);
+            painter->drawPath(path);
+            continue;
+        }
+
+        const qreal y = baseline - barHeight;
+
+        path.moveTo(x, baseline);
         path.lineTo(x, y + r);
 
         if (r > 0) {
@@ -107,7 +136,7 @@ void VisualiserBars::drawSide(QPainter* painter, bool rightSide) {
             path.lineTo(x + barWidth, y);
         }
 
-        path.lineTo(x + barWidth, h);
+        path.lineTo(x + barWidth, baseline);
         path.closeSubpath();
 
         painter->drawPath(path);
@@ -135,6 +164,30 @@ void VisualiserBars::setValues(const QVector<double>& values) {
 
 bool VisualiserBars::settled() const {
     return m_settled;
+}
+
+bool VisualiserBars::mirrored() const {
+    return m_mirrored;
+}
+
+void VisualiserBars::setMirrored(bool mirrored) {
+    if (m_mirrored == mirrored)
+        return;
+    m_mirrored = mirrored;
+    emit mirroredChanged();
+    update();
+}
+
+bool VisualiserBars::singleRow() const {
+    return m_singleRow;
+}
+
+void VisualiserBars::setSingleRow(bool singleRow) {
+    if (m_singleRow == singleRow)
+        return;
+    m_singleRow = singleRow;
+    emit singleRowChanged();
+    update();
 }
 
 QColor VisualiserBars::primaryColor() const {
