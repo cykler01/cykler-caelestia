@@ -161,7 +161,6 @@ PageBase {
         }
 
         RefreshRateSelector {
-            last: true
             label: Tr.tr("Refresh rate")
             showRestore: true
             showUnchanged: true
@@ -170,7 +169,6 @@ PageBase {
         }
 
         TriStateRow {
-            first: true
             label: Tr.tr("Animations")
             value: GlobalConfig.general.battery.powerManagement.onCharging.disableAnimations
             onTriStateValueChanged: newValue => GlobalConfig.general.battery.powerManagement.onCharging.disableAnimations = newValue
@@ -209,7 +207,6 @@ PageBase {
         }
 
         RefreshRateSelector {
-            last: true
             label: Tr.tr("Refresh rate")
             showRestore: true
             showUnchanged: true
@@ -218,7 +215,6 @@ PageBase {
         }
 
         TriStateRow {
-            first: true
             label: Tr.tr("Animations")
             value: GlobalConfig.general.battery.powerManagement.onUnplugged.disableAnimations
             onTriStateValueChanged: newValue => GlobalConfig.general.battery.powerManagement.onUnplugged.disableAnimations = newValue
@@ -267,6 +263,8 @@ PageBase {
             model: root.thresholds
 
             ThresholdCard {
+                first: index === 0
+
                 onThresholdChanged: newData => {
                     const thresholds = [...root.thresholds];
                     thresholds[index] = newData;
@@ -283,6 +281,9 @@ PageBase {
         }
 
         AddThresholdButton {
+            first: root.thresholds.length === 0
+            last: true
+
             onClicked: {
                 const thresholds = [...root.thresholds,
                     {
@@ -319,12 +320,16 @@ PageBase {
 
             ProfileBehaviorCard {
                 Layout.fillWidth: true
+                first: true
+                last: true
                 profileName: Tr.tr("Power Saver")
                 behavior: GlobalConfig.general.battery.powerManagement.profileBehaviors.powerSaver
             }
 
             ProfileBehaviorCard {
                 Layout.fillWidth: true
+                first: true
+                last: true
                 profileName: Tr.tr("Balanced")
                 behavior: GlobalConfig.general.battery.powerManagement.profileBehaviors.balanced
             }
@@ -336,6 +341,8 @@ PageBase {
 
             ProfileBehaviorCard {
                 Layout.fillWidth: true
+                first: true
+                last: true
                 profileName: Tr.tr("Performance")
                 behavior: GlobalConfig.general.battery.powerManagement.profileBehaviors.performance
             }
