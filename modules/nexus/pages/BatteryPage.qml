@@ -112,11 +112,18 @@ PageBase {
         }
 
         TimeoutRow {
-            last: true
             label: Tr.tr("Sleep after")
             subtext: Tr.tr("Idle time before the device suspends")
             value: root.idleTimeout("sleep")
             onTimeoutChanged: seconds => root.setIdleTimeout("sleep", seconds)
+        }
+
+        ToggleRow {
+            last: true
+            text: Tr.tr("Session controls on lock screen")
+            subtext: Tr.tr("Show power/reboot/logout buttons while locked")
+            checked: GlobalConfig.lock.enableSessionControls
+            onToggled: GlobalConfig.lock.enableSessionControls = checked
         }
 
         // General
