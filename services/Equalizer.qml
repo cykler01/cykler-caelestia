@@ -3,6 +3,7 @@ pragma Singleton
 import QtQuick
 import Quickshell
 import Quickshell.Io
+import Quickshell.Services.Pipewire
 import Caelestia.Config
 import Caelestia.I18n
 import qs.utils
@@ -10,17 +11,21 @@ import qs.utils
 // NOTE(fork): system-wide equalizer. The audio path itself lives in PipeWire (see
 // assets/pipewire/caelestia-eq.conf, installed into pipewire.conf.d): a filter-chain virtual sink
 // with ten peaking bands, made the default sink so everything is equalized rather than just the
-// shell. This singleton only talks to that running node, writing the band gains into it with
-// pw-cli, and keeps the curve across restarts.
+// shell. This singleton only talks to that running node: it finds the node in the graph the shell
+// already tracks, writes the band gains into it with pw-cli, points the default output at it while
+// the feature is switched on, and keeps the curve across restarts.
 //
 // The whole feature is opt-in: GlobalConfig.services.equalizer (Settings > Audio) is off by
-// default, and while it is off nothing here runs at all - no pw-cli, no pactl, no routing. That is
-// deliberate, so that updating the shell cannot change what anybody's audio is doing.
+// default, and while it is off nothing here runs at all - no pw-cli, and no touching of the
+// default output. That is deliberate, so that updating the shell cannot change what anybody's
+// audio is doing.
 Singleton {
     id: root
 
-    // Must match capture.props.node.name in assets/pipewire/caelestia-eq.conf
+    // Must match capture.props.node.name and playback.props.node.name in
+    // assets/pipewire/caelestia-eq.conf
     readonly property string sinkName: "caelestia_eq.sink"
+    readonly property string outputName: "caelestia_eq.out"
     // Centre frequencies of the ten bands, matching the b0..b9 filter nodes in that config
     readonly property var bandFreqs: [31, 62, 125, 250, 500, 1000, 2000, 4000, 8000, 16000]
     readonly property real maxGain: 12
@@ -33,10 +38,13 @@ Singleton {
     // applied and nothing is routed while it is off (see syncRouting)
     readonly property bool enabled: GlobalConfig.services.equalizer
 
-    // Id of the PipeWire node, 0 while the config hasn't been installed and loaded. It is only
-    // ever looked up while the equalizer is switched on
-    property int nodeId: 0
-    readonly property bool available: root.nodeId > 0
+    // The running sink node, taken from the graph the shell already tracks rather than looked up
+    // by hand, and null until PipeWire has loaded the config
+    readonly property PwNode node: Pipewire.nodes.values.find(n => n.name === root.sinkName) ?? null
+    readonly property bool available: root.node !== null
+    // Its id in the graph, which is what the band gains are written to
+    readonly property int nodeId: root.node?.id ?? 0
+
     // Output device to put back when the equalizer is switched off, since being enabled means the
     // filter chain is the default sink (see syncRouting)
     property string previousSink: ""
@@ -94,6 +102,17 @@ Singleton {
         }
     ]
 
+    // The chain's own two nodes are plumbing rather than output devices: the sink is where audio
+    // goes in and the output is where the chain passes it on. Pointing a default at one of those
+    // routes everything into something with no hardware behind it, so neither is ever offered or
+    // left holding the output
+    function isInternalNode(node: PwNode): bool {
+        if (!node)
+            return false;
+
+        return node.name === root.sinkName || node.name === root.outputName;
+    }
+
     // Used by the panel's power button; the value itself lives in the config so it survives a
     // restart without any state of our own
     function setEnabled(value: bool): void {
@@ -122,31 +141,63 @@ Singleton {
         applyTimer.restart();
     }
 
-    // Everything only passes through the filter chain while it is the default sink, so switching
-    // the equalizer on points the default at it; switching it off puts the device back. There is
-    // nothing to route while the option is off and no device was ever taken, which is the state
-    // every install starts in
+    // An output the equalizer can hand the default back to: a real sink, by name
+    function sinkByName(name: string): PwNode {
+        if (!name)
+            return null;
+
+        return Pipewire.nodes.values.find(node => !node.isStream && node.isSink && node.name === name) ?? null;
+    }
+
+    // First real output in the graph, used when the device to restore is gone (unplugged, renamed)
+    function firstSink(): PwNode {
+        return Pipewire.nodes.values.find(node => !node.isStream && node.isSink && !root.isInternalNode(node)) ?? null;
+    }
+
+    // The whole feature hangs off the filter chain being the default output, since audio only
+    // passes through it while it is. Switching the equalizer on points the default at it, and
+    // switching it off puts a real device back.
+    //
+    // This goes through the same preference the audio settings page uses, so the two can never
+    // fight over the default sink (pactl and the shell each undoing what the other just did is
+    // what leaves the output pointing at a sink that is not an output at all). It also only runs
+    // when that switch changes, never on a timer, so a device picked in the settings stays picked.
     function syncRouting(): void {
         if (root.enabled) {
-            if (root.available)
-                defaultSinkProc.running = true;
+            // The chain can only take the default once it is loaded, and until then there is
+            // nothing to route through
+            if (!root.available)
+                return;
+
+            const current = Pipewire.defaultAudioSink;
+            if (current !== null && !root.isInternalNode(current))
+                root.previousSink = current.name;
+
+            Pipewire.preferredDefaultAudioSink = root.node;
             return;
         }
 
-        if (root.previousSink.length > 0)
-            setSinkProc.exec(["pactl", "set-default-sink", root.previousSink]);
+        // Switched off with nothing of ours holding the output: leave the device that has it
+        // alone. Doing even this much when the equalizer was never on is the point - it is what
+        // stops a leftover default leaving the machine with no sound at all
+        const current = Pipewire.defaultAudioSink;
+        if (current !== null && !root.isInternalNode(current))
+            return;
+
+        // Ours still has it, so hand it back: the device that was there before if it is still
+        // plugged in, otherwise any real output. A default that is simply missing (which is what a
+        // sink that no longer exists leaves behind) is only replaced with a device we knew about,
+        // so a graph that hasn't picked one yet is left to pick for itself
+        const restore = root.sinkByName(root.previousSink) ?? (current !== null ? root.firstSink() : null);
+        if (restore)
+            Pipewire.preferredDefaultAudioSink = restore;
     }
 
     // Writes every band into the running node in one call, which is what the filter chain wants:
     // pw-cli set-param <node-id> Props '{ params = [ "b0:Gain" 3.0 "b1:Gain" -1.5 ... ] }'
     function apply(): void {
-        if (!root.enabled)
+        if (!root.enabled || !root.available)
             return;
-
-        if (root.nodeId <= 0) {
-            findProc.running = true;
-            return;
-        }
 
         const bands = [];
         for (let i = 0; i < root.bandFreqs.length; i++)
@@ -156,19 +207,38 @@ Singleton {
     }
 
     onEnabledChanged: {
-        applyTimer.restart();
         root.syncRouting();
+        if (root.enabled)
+            applyTimer.restart();
     }
 
+    // The chain appearing is the point at which audio can start going through it; a chain that has
+    // gone away cannot be the default output, so whatever it was holding has to come back
     onAvailableChanged: {
-        if (root.available)
-            root.syncRouting();
+        root.syncRouting();
+        if (root.enabled && root.available)
+            applyTimer.restart();
     }
+
+    // Node lookups come up empty until the shell has finished its first sync with PipeWire, in
+    // which case this does nothing and the connection below settles the routing instead
+    Component.onCompleted: root.syncRouting()
 
     onPreviousSinkChanged: saveTimer.restart()
 
     onGainsChanged: saveTimer.restart()
     onPresetChanged: saveTimer.restart()
+
+    // Once the graph and the metadata the default output lives in are known, the routing is
+    // settled for real - which is what gives back an output a previous session left pointing at
+    // the filter chain
+    Connections {
+        function onReadyChanged(): void {
+            root.syncRouting();
+        }
+
+        target: Pipewire
+    }
 
     FileView {
         id: state
@@ -184,6 +254,10 @@ Singleton {
                     root.preset = data.preset;
                 if (typeof data.previousSink === "string")
                     root.previousSink = data.previousSink;
+
+                // The device to hand the output back to is only known now, so a restore that
+                // happened before this loaded can be corrected
+                root.syncRouting();
             } catch (e) {
                 // Nothing saved yet, or unreadable: the defaults stand
             }
@@ -191,99 +265,7 @@ Singleton {
     }
 
     Process {
-        id: findProc
-
-        command: ["pw-cli", "ls", "Node"]
-        stdout: StdioCollector {
-            onStreamFinished: {
-                // pw-cli prints "id <n>, type ..." and then that node's properties, so walk the
-                // lines remembering the last id and match the sink name against it
-                let id = 0;
-                const lines = text.split("\n");
-                for (const line of lines) {
-                    const node = line.match(/id (\d+), type/);
-                    if (node) {
-                        id = parseInt(node[1]);
-                        continue;
-                    }
-
-                    const name = line.match(/node\.name = "(.*)"/);
-                    if (!name || name[1] !== root.sinkName)
-                        continue;
-
-                    const appeared = id !== root.nodeId;
-                    root.nodeId = id;
-                    if (appeared)
-                        root.apply();
-                    return;
-                }
-
-                root.nodeId = 0;
-            }
-        }
-    }
-
-    Process {
         id: applyProc
-
-        onExited: code => { // qmllint disable signal-handler-parameters
-            // The node disappears if the audio daemon restarts, so look it up again
-            if (code !== 0) {
-                root.nodeId = 0;
-                findProc.running = true;
-            }
-        }
-    }
-
-    Process {
-        id: defaultSinkProc
-
-        command: ["pactl", "get-default-sink"]
-        stdout: StdioCollector {
-            onStreamFinished: {
-                const sink = text.trim();
-                if (!sink)
-                    return;
-
-                // Already routed through the filter chain, so there is nothing to switch and no
-                // device remembered yet: adopt what is there and find a real one to fall back to
-                if (sink === root.sinkName) {
-                    if (root.previousSink.length === 0)
-                        listSinksProc.running = true;
-                    return;
-                }
-
-                root.previousSink = sink;
-                if (root.enabled)
-                    setSinkProc.exec(["pactl", "set-default-sink", root.sinkName]);
-            }
-        }
-    }
-
-    Process {
-        id: setSinkProc
-    }
-
-    Process {
-        id: listSinksProc
-
-        command: ["pactl", "list", "short", "sinks"]
-        stdout: StdioCollector {
-            onStreamFinished: {
-                // First output that isn't our own filter chain, used when the equalizer is
-                // switched off without one having been recorded
-                const lines = text.trim().split("\n");
-                for (const line of lines) {
-                    const name = line.split("\t")[1];
-                    if (!name || name === root.sinkName)
-                        continue;
-
-                    root.previousSink = name;
-                    setSinkProc.exec(["pactl", "set-default-sink", name]);
-                    return;
-                }
-            }
-        }
     }
 
     // Dragging a band fires a lot of small changes; one call per settle is plenty
@@ -303,16 +285,5 @@ Singleton {
             preset: root.preset,
             previousSink: root.previousSink
         }))
-    }
-
-    // The node only exists once the config is installed and the daemon restarted, so keep looking
-    // while it is missing and let the panel tell the user what to do. Nothing is polled while the
-    // equalizer is switched off, which is the default
-    Timer {
-        running: root.enabled && root.nodeId <= 0
-        interval: 10000
-        repeat: true
-        triggeredOnStart: true
-        onTriggered: findProc.running = true
     }
 }

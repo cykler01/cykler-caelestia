@@ -6,7 +6,6 @@ import Caelestia.Config
 import Caelestia.I18n
 import Caelestia.Models
 import qs.components
-import qs.components.containers
 import qs.components.controls
 import qs.services
 
@@ -18,12 +17,26 @@ StyledClippingRect {
 
     readonly property string query: search.text.trim().toLowerCase()
     readonly property bool searching: root.query.length > 0
-    // Small covers at a fixed size, laid out with a Flow so a row of one or two folders keeps
-    // them small instead of stretching them across the drawer. Works out to six per row at the
-    // default tab width, and one more or less per row as it changes.
+    // Covers keep this size instead of being stretched across the drawer, so a folder of a few
+    // entries doesn't end up with posters. It works out to six per row at the default tab width.
     readonly property real tileTarget: 130
-    readonly property int columns: Math.max(1, Math.floor((flow.width + Tokens.spacing.medium) / (root.tileTarget + Tokens.spacing.medium)))
-    readonly property real tileSize: flow.width > 0 ? (flow.width - (root.columns - 1) * Tokens.spacing.medium) / root.columns : root.tileTarget
+    readonly property real gap: Tokens.spacing.medium
+    readonly property int maxColumns: Math.max(1, Math.floor(gridArea.width / (root.tileTarget + root.gap)))
+    // Never more columns than there are entries to fill them, so a folder holding five tracks lays
+    // those five out rather than leaving the sixth column empty
+    readonly property int columns: Math.max(1, Math.min(root.maxColumns, root.items.length))
+    // The grid packs each row from the cell width, so the cell is the cover plus the gap to its
+    // neighbour. Spreading the columns over the drawer widens the cells, and the covers keep their
+    // size through it - only the gap grows, and only up to twice the design gap, so a wide drawer
+    // doesn't end up with a couple of covers marooned on their own. A row narrower than the drawer
+    // is centred by the grid being only as wide as its columns.
+    readonly property real cellWidth: gridArea.width > 0 ? Math.min(Math.floor(gridArea.width / root.columns), root.tileTarget + 2 * root.gap) : root.tileTarget + root.gap
+    readonly property real tileSize: Math.max(1, Math.min(root.tileTarget, root.cellWidth - root.gap))
+    // One row of cells: the cover, the name under it, and the subtitle that only searching shows,
+    // plus the space that keeps the rows apart. The label heights are measured off the components
+    // the tiles draw the labels with: a TextMetrics without any text set reports no height at all,
+    // which left the labels sitting on the row of covers underneath.
+    readonly property real cellHeight: root.tileSize + Tokens.spacing.extraSmall + nameLabelMetrics.implicitHeight + (root.searching ? Tokens.spacing.extraSmall + subtitleLabelMetrics.implicitHeight : 0) + Tokens.spacing.medium
     readonly property string title: Music.relativeDir ? Music.relativeDir.split("/").join(" › ") : Tr.tr("Music")
     readonly property var browseItems: {
         const items = [];
@@ -112,6 +125,25 @@ StyledClippingRect {
     color: Colours.tPalette.m3surfaceContainer
     radius: Tokens.rounding.large
 
+    // Off-screen copies of the two label rows a tile draws, kept only to measure them. A single
+    // line's height comes from the font rather than the words in it, so one sample with an ascender
+    // and a descender measures the same as a track name would. They mirror LibraryItem's labels.
+    StyledText {
+        id: nameLabelMetrics
+
+        visible: false
+        text: "Ag"
+        font: Tokens.font.label.builders.small.weight(Font.Medium).build()
+    }
+
+    StyledText {
+        id: subtitleLabelMetrics
+
+        visible: false
+        text: "Ag"
+        font: Tokens.font.label.small
+    }
+
     Item {
         id: body
 
@@ -175,38 +207,44 @@ StyledClippingRect {
             height: Math.max(0, body.height - y)
             clip: true
 
-            StyledFlickable {
-                id: flickable
+            Item {
+                id: gridArea
 
                 anchors.fill: parent
-                contentHeight: flow.implicitHeight
-                clip: true
+                // Gutter for the scrollbar, so the last column doesn't sit under it
+                anchors.rightMargin: Tokens.padding.small
 
-                StyledScrollBar.vertical: StyledScrollBar {
-                    flickable: flickable
-                }
+                // Only the tiles on screen are ever built. A delegate is a cover, a shape and a
+                // tooltip, so building one per entry means a folder of a few thousand tracks builds
+                // a few thousand of them in one go, and the shell stops responding while it does.
+                // As wide as its own columns and no wider, so a row that doesn't fill the drawer
+                // ends up centred rather than hanging on the left edge.
+                GridView {
+                    id: grid
 
-                Flow {
-                    id: flow
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    width: Math.min(parent.width, root.columns * root.cellWidth)
+                    height: parent.height
+                    cellWidth: root.cellWidth
+                    cellHeight: root.cellHeight
+                    clip: true
 
-                    width: flickable.width - Tokens.padding.small
-                    spacing: Tokens.spacing.medium
+                    StyledScrollBar.vertical: StyledScrollBar {
+                        flickable: grid
+                    }
 
-                    Repeater {
-                        id: repeater
+                    model: root.items
 
-                        model: root.items
+                    delegate: LibraryItem {
+                        required property FileSystemEntry modelData
 
-                        LibraryItem {
-                            required property FileSystemEntry modelData
-
-                            width: root.tileSize
-                            entry: modelData
-                            covers: root.coversFor(modelData)
-                            current: !modelData.isDir && modelData.path === Music.currentFile
-                            subtitle: root.searching && !modelData.isDir ? root.relativeDirOf(modelData) : ""
-                            onClicked: root.playEntry(modelData)
-                        }
+                        width: root.tileSize
+                        height: root.cellHeight
+                        entry: modelData
+                        covers: root.coversFor(modelData)
+                        current: !modelData.isDir && modelData.path === Music.currentFile
+                        subtitle: root.searching && !modelData.isDir ? root.relativeDirOf(modelData) : ""
+                        onClicked: root.playEntry(modelData)
                     }
                 }
             }
@@ -214,7 +252,7 @@ StyledClippingRect {
             ColumnLayout {
                 anchors.centerIn: parent
                 spacing: Tokens.spacing.extraSmall
-                opacity: repeater.count === 0 ? 1 : 0
+                opacity: grid.count === 0 ? 1 : 0
                 visible: opacity > 0
 
                 Behavior on opacity {

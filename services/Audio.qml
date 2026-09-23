@@ -8,6 +8,7 @@ import Caelestia
 import Caelestia.Config
 import Caelestia.I18n
 import Caelestia.Services
+import qs.services
 
 Singleton {
     id: root
@@ -113,10 +114,17 @@ Singleton {
 
         for (const node of Pipewire.nodes.values) {
             if (!node.isStream) {
-                if (node.isSink)
+                if (node.isSink) {
+                    // The equalizer's virtual sink is not an output device: offering it would
+                    // route audio into something with no hardware behind it, and the shell
+                    // remembers the pick, so it would stay routed there
+                    if (Equalizer.isInternalNode(node))
+                        continue;
+
                     newSinks.push(node);
-                else if (node.audio)
+                } else if (node.audio) {
                     newSources.push(node);
+                }
             } else if (node.audio) {
                 newStreams.push(node);
             }

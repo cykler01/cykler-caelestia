@@ -92,49 +92,61 @@ Singleton {
     // it isn't currently inside of
     readonly property list<FileSystemEntry> artEntries: allArt.entries
 
-    // Up to four covers per folder, taken from its first tracks (each track's own art, so they
-    // can differ within a folder). The gallery collages these for folders with no cover image.
-    readonly property var folderCollages: {
-        const artByTrack = {};
+    // Those images and the tracks, grouped by the folder they are in, plus the art that sits
+    // beside a track (named after it, what yt-dlp leaves behind). The gallery asks for the covers
+    // of one entry at a time, so grouping them once here is what keeps a tile to a lookup in its
+    // own folder instead of a walk over the whole library: with a few thousand tracks the latter
+    // is per tile, and that is what locks the shell up when a big folder is opened. Each index is
+    // rebuilt only when a scan changes what is on disk.
+    readonly property var artByDir: {
+        const index = {};
+        const images = root.artEntries;
+        for (let i = 0; i < images.length; i++) {
+            const dir = images[i].parentDir;
+            if (!(dir in index))
+                index[dir] = [];
+            index[dir].push(images[i]);
+        }
+        return index;
+    }
+    readonly property var artByTrack: {
+        const index = {};
         const images = root.artEntries;
         for (let i = 0; i < images.length; i++) {
             const key = `${images[i].parentDir}/${images[i].baseName}`;
-            if (!(key in artByTrack))
-                artByTrack[key] = images[i].path;
+            if (!(key in index))
+                index[key] = images[i].path;
         }
-
-        const collages = {};
+        return index;
+    }
+    readonly property var tracksByDir: {
+        const index = {};
         const tracks = root.library;
         for (let i = 0; i < tracks.length; i++) {
-            const cover = artByTrack[`${tracks[i].parentDir}/${tracks[i].baseName}`];
-            if (!cover)
-                continue;
-
             const dir = tracks[i].parentDir;
-            if (!(dir in collages))
-                collages[dir] = [];
-            if (collages[dir].length < 4)
-                collages[dir].push(cover);
+            if (!(dir in index))
+                index[dir] = [];
+            index[dir].push(tracks[i]);
         }
-        return collages;
+        return index;
     }
 
     // The best cover image inside a folder. A file named after `stem` is the art yt-dlp saved
     // next to a track and wins over the folder's own cover, matching the now playing view.
     function coverFor(dir: string, stem: string): string {
+        if (stem) {
+            const art = root.artByTrack[`${dir}/${stem}`];
+            if (art)
+                return art;
+        }
+
         const preferred = ["cover", "folder", "front", "album", "albumart", "artwork"];
-        const images = root.artEntries;
+        const images = root.artByDir[dir] ?? [];
         let best = "";
         let bestRank = preferred.length;
         let first = "";
         for (let i = 0; i < images.length; i++) {
             const image = images[i];
-            if (image.parentDir !== dir)
-                continue;
-
-            if (stem && image.baseName === stem)
-                return image.path;
-
             if (!first)
                 first = image.path;
 
@@ -154,8 +166,15 @@ Singleton {
         if (own)
             return [own];
 
-        const collage = root.folderCollages[dir];
-        if (!collage)
+        const tracks = root.tracksByDir[dir] ?? [];
+        const collage = [];
+        for (let i = 0; i < tracks.length && collage.length < 4; i++) {
+            const art = root.artByTrack[`${dir}/${tracks[i].baseName}`];
+            if (art)
+                collage.push(art);
+        }
+
+        if (collage.length === 0)
             return [];
         return collage.length >= 4 ? collage : collage.slice(0, 1);
     }
