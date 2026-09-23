@@ -90,6 +90,13 @@ QtObject {
             category: "shell"
         },
         {
+            // NOTE(fork): mouse and touchpad input configuration
+            label: Tr.tr("Input"),
+            icon: "mouse",
+            description: Tr.tr("Mouse, touchpad, scrolling"),
+            category: "shell"
+        },
+        {
             label: Tr.tr("Language & region"),
             icon: "globe",
             description: Tr.tr("UI language, weather location, display units"),

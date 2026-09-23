@@ -4,13 +4,28 @@
 #include <qjsonarray.h>
 #include <qlocalsocket.h>
 #include <qloggingcategory.h>
+#include <qmetatype.h>
 #include <qvariant.h>
 
 #include "hyprdevices.hpp"
 
 namespace {
 
+using Qt::StringLiterals::operator""_s;
+
 Q_LOGGING_CATEGORY(lcHypr, "caelestia.services.hypr", QtInfoMsg)
+
+// Unlike hyprctl's keyword command, Lua declarations need string values quoted
+QString luaValue(const QVariant& value) {
+    if (value.metaType().id() != QMetaType::QString) {
+        return value.toString();
+    }
+
+    auto str = value.toString();
+    str.replace(u'\\', u"\\\\"_s);
+    str.replace(u'"', u"\\\""_s);
+    return u"\""_s + str + u"\""_s;
+}
 
 } // namespace
 
@@ -99,7 +114,7 @@ void HyprExtras::applyOptions(const QVariantHash& options) {
             request += u"keyword "_s + it.key() + u' ' + it.value().toString() + u';';
         } else {
             auto parts = it.key().split(u':');
-            request += u"eval hl.config({ "_s + parts.join(u" = { "_s) + u" = "_s + it.value().toString() +
+            request += u"eval hl.config({ "_s + parts.join(u" = { "_s) + u" = "_s + luaValue(it.value()) +
                        u" }"_s.repeated(parts.size() - 1) + u" });"_s;
         }
     }

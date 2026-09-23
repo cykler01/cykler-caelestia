@@ -15,8 +15,19 @@ ConnectedRect {
     property alias label: label.text
     property alias valueLabel: valueLabel.text
     property real value
+    property real from
+    property real to: 1
+    property real stepSize: GlobalConfig.services.audioIncrement
+
+    // StyledSlider is 0-1 only, so expose the value in its own range
+    readonly property real position: root.to === root.from ? 0 : Math.max(0, Math.min(1, (root.value - root.from) / (root.to - root.from)))
 
     signal moved(value: real)
+
+    function valueAt(pos: real): real {
+        const clamped = Math.max(0, Math.min(1, pos));
+        return root.from + clamped * (root.to - root.from);
+    }
 
     Layout.fillWidth: true
     implicitHeight: rowLayout.implicitHeight + rowLayout.anchors.margins + rowLayout.anchors.topMargin
@@ -62,11 +73,10 @@ ConnectedRect {
 
             CustomMouseArea {
                 function onWheel(event: WheelEvent): void {
-                    const step = GlobalConfig.services.audioIncrement;
                     if (event.angleDelta.y > 0)
-                        root.moved(Math.min(1, root.value + step));
+                        root.moved(Math.min(root.to, root.value + root.stepSize));
                     else if (event.angleDelta.y < 0)
-                        root.moved(Math.max(0, root.value - step));
+                        root.moved(Math.max(root.from, root.value - root.stepSize));
                 }
 
                 Layout.fillWidth: true
@@ -79,9 +89,9 @@ ConnectedRect {
                     implicitHeight: parent.implicitHeight
 
                     radius: Tokens.rounding.small
-                    value: root.value
+                    value: root.position
                     enabled: root.enabled
-                    onInteraction: v => root.moved(v)
+                    onInteraction: v => root.moved(root.valueAt(v))
                 }
             }
         }

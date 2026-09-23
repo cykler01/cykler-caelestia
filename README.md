@@ -19,6 +19,7 @@ This is my take on the Caelestia shell - upstream's desktop shell with my own fe
 |---|---|---|
 | Battery management | --- | `BatteryMonitor` service, auto power-saving on profile change, battery pane in control center |
 | Game mode | Derived from animation state | Fixed false-trigger; also sets flat mouse accel |
+| Input configuration | Hand-edited Hyprland config | Mouse, scroll and touchpad settings in Nexus |
 | Launcher | Standard actions | Adds OCR (`>ocr`) and Google Lens (`>lens`) region-capture actions |
 | Music player | External players only | In-shell local music player in the dashboard media tab |
 
@@ -44,6 +45,16 @@ This is my take on the Caelestia shell - upstream's desktop shell with my own fe
 
 -   Game mode now also sets `input:accel_profile: flat` in Hyprland, disabling mouse
     acceleration while gaming (and restores it when game mode is turned off)
+
+### Input settings
+
+-   **Settings page** - a new "Input" page under *Settings* with sliders for mouse
+    sensitivity and scroll speed and for touchpad scroll speed, plus a toggle for mouse
+    acceleration.
+-   **Applied at runtime, remembered by the shell** - the values are sent to Hyprland as
+    runtime keywords, which a config reload would otherwise drop, so the shell puts them back
+    when Hyprland reloads or when the shell starts. Only settings changed here are applied, so
+    anything left alone keeps whatever `hyprland.conf` sets.
 
 ### Launcher image tools
 

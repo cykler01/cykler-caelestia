@@ -201,6 +201,14 @@ QtObject {
             }
         },
         Component {
+            // NOTE(fork): mouse and touchpad input configuration
+            StackPage {
+                Component {
+                    InputPage {}
+                }
+            }
+        },
+        Component {
             // Language & region
             StackPage {
                 Component {
