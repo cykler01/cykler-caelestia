@@ -6,7 +6,6 @@ import Quickshell.Io
 import Quickshell.Services.Mpris
 import Caelestia
 import Caelestia.Config
-import Caelestia.I18n
 import qs.components.misc
 
 Singleton {
@@ -17,11 +16,10 @@ Singleton {
     property alias manualActive: props.manualActive
 
     // Dedup key for progressive metadata (e.g. mpv-mpris/yt-dlp player fills title then artist later).
-    property string lastNowPlayingKey: ""
+    property string lastTrackKey: ""
 
-    // Fired once per unique track (deduped the same way as the toast below),
-    // regardless of the toast setting - e.g. the notch uses this to trigger
-    // its own transient display without needing the toast enabled.
+    // Fired once per unique track (deduped per track below), e.g. the notch
+    // uses this to trigger its own transient display of what's playing.
     signal trackChanged(title: string, artist: string)
 
     function getIdentity(player: MprisPlayer): string {
@@ -49,7 +47,7 @@ Singleton {
     // Quickshell only emits postTrackChanged when trackid/url/title change, so late
     // artist updates (common with mpv-mpris + yt-dlp player) never retrigger it. Watch
     // title/artist too and fire trackChanged once both are usable, deduped per track.
-    function maybeToastNowPlaying(): void {
+    function maybeNotifyTrackChanged(): void {
         const player = root.active;
         if (!player)
             return;
@@ -60,29 +58,26 @@ Singleton {
             return;
 
         const key = `${getIdentity(player)}\0${player.uniqueId}\0${title}\0${artist}`;
-        if (key === lastNowPlayingKey)
+        if (key === lastTrackKey)
             return;
 
-        lastNowPlayingKey = key;
+        lastTrackKey = key;
         root.trackChanged(title, artist);
-
-        if (GlobalConfig.utilities.toasts.nowPlaying)
-            Toaster.toast(Tr.tr("Now playing"), Tr.trCtx("%1 - %2", "track artist and title").arg(artist).arg(title), "music_note");
     }
 
-    onActiveChanged: lastNowPlayingKey = ""
+    onActiveChanged: lastTrackKey = ""
 
     Connections {
         function onPostTrackChanged(): void {
-            root.maybeToastNowPlaying();
+            root.maybeNotifyTrackChanged();
         }
 
         function onTrackTitleChanged(): void {
-            root.maybeToastNowPlaying();
+            root.maybeNotifyTrackChanged();
         }
 
         function onTrackArtistChanged(): void {
-            root.maybeToastNowPlaying();
+            root.maybeNotifyTrackChanged();
         }
 
         target: root.active

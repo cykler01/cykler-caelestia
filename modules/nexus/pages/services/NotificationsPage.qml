@@ -183,12 +183,6 @@ PageBase {
         }
 
         ToggleRow {
-            text: Tr.tr("Now playing")
-            checked: GlobalConfig.utilities.toasts.nowPlaying
-            onToggled: GlobalConfig.utilities.toasts.nowPlaying = checked
-        }
-
-        ToggleRow {
             last: true
             text: Tr.tr("Repo update available")
             subtext: Tr.tr("New commit on cykler01/cykler-caelestia")

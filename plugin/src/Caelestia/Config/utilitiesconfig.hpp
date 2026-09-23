@@ -26,7 +26,6 @@ class UtilitiesToasts : public settings::ObjectNode {
     CONFIG_GLOBAL_PROPERTY(bool, kbLayoutChanged, true)
     CONFIG_GLOBAL_PROPERTY(bool, kbLimit, true)
     CONFIG_GLOBAL_PROPERTY(bool, vpnChanged, true)
-    CONFIG_GLOBAL_PROPERTY(bool, nowPlaying, false)
     CONFIG_GLOBAL_PROPERTY(bool, repoUpdateAvailable, false)
 };
 
