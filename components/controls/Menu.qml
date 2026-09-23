@@ -27,6 +27,23 @@ MouseArea {
     property real marginX
     property real marginY
 
+    // thisSideY above is the *preferred* vertical side; if the menu doesn't fit there
+    // (e.g. attached to something near the top of the screen with menuOnTop), it opens
+    // on the other side instead rather than clipping off-screen.
+    readonly property bool preferAbove: thisSideY === Menu.Bottom
+    readonly property real itemTopY: {
+        watcher.transform;
+        return attachTo.mapToItem(parent, 0, 0).y;
+    }
+    readonly property real itemBottomY: {
+        watcher.transform;
+        return attachTo.mapToItem(parent, 0, attachTo.height).y;
+    }
+    readonly property real spaceAbove: itemTopY
+    readonly property real spaceBelow: (parent?.height ?? 0) - itemBottomY
+    readonly property bool effectiveAbove: preferAbove ? (spaceAbove >= menu.implicitHeight || spaceBelow < menu.implicitHeight) : !(spaceBelow >= menu.implicitHeight || spaceAbove < menu.implicitHeight)
+    readonly property real effectiveMarginY: effectiveAbove === preferAbove ? marginY : -marginY
+
     property list<MenuItem> items
     property MenuItem active: items[0] ?? null
     property bool expanded
@@ -75,10 +92,10 @@ MouseArea {
         y: {
             watcher.transform; // mapToItem is not reactive so this forces updates
             const item = root.attachTo;
-            let off = root.attachSideY === Menu.Top ? 0 : item.height;
-            if (root.thisSideY === Menu.Bottom)
+            let off = root.effectiveAbove ? 0 : item.height;
+            if (root.effectiveAbove)
                 off -= height;
-            return item.mapToItem(root.parent, 0, off).y + root.marginY;
+            return item.mapToItem(root.parent, 0, off).y + root.effectiveMarginY;
         }
 
         radius: Tokens.rounding.large
@@ -89,7 +106,7 @@ MouseArea {
 
         transform: Scale {
             yScale: root.expanded ? 1 : 0.1
-            origin.y: root.thisSideY === Menu.Bottom ? menu.height : 0
+            origin.y: root.effectiveAbove ? menu.height : 0
 
             Behavior on yScale {
                 Anim {}
