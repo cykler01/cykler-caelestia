@@ -95,183 +95,212 @@ Item {
         spacing: Tokens.spacing.small
 
         RowLayout {
-            id: header
-
-            Layout.fillWidth: true
-            spacing: Tokens.spacing.extraSmall
-
-            IconButton {
-                // The library is the only thing worth showing when there's nothing to control
-                visible: root.source.available
-                icon: "library_music"
-                type: root.libraryOpen ? IconButton.Filled : IconButton.Tonal
-                isToggle: true
-                checked: root.libraryOpen
-                onClicked: {
-                    root.libraryToggled = !root.libraryToggled;
-                    if (root.libraryToggled)
-                        root.eqToggled = false;
-                }
-            }
-
-            IconButton {
-                visible: Equalizer.enabled
-                icon: "equalizer"
-                type: root.eqOpen ? IconButton.Filled : IconButton.Tonal
-                isToggle: true
-                checked: root.eqOpen
-                onClicked: {
-                    root.eqToggled = !root.eqToggled;
-                    if (root.eqToggled)
-                        root.libraryToggled = false;
-                }
-            }
-
-            Item {
-                Layout.fillWidth: true
-            }
-
-            SplitButton {
-                menuOnTop: true
-                menuItems: sourceItems.instances
-                active: menuItems.find(i => root.localActive ? i.modelData.kind === "local" : i.modelData.player === Players.active) ?? null
-                menu.onItemSelected: item => root.selectSource((item as SourceItem).modelData)
-                fallbackIcon: "music_note"
-                fallbackText: Tr.trCtx("No players", "no media players active")
-            }
-        }
-
-        RowLayout {
             Layout.fillWidth: true
             Layout.fillHeight: true
             spacing: Tokens.spacing.extraLarge
 
-            CoverVisualiser {
+            // The player's own column. The header belongs over the cover and details rather than
+            // across the whole tab, which is what lets the lyrics column beside it run the full
+            // height of the tab instead of starting below the header
+            ColumnLayout {
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+                spacing: Tokens.spacing.small
+
+                RowLayout {
+                    id: header
+
+                    Layout.fillWidth: true
+                    spacing: Tokens.spacing.extraSmall
+
+                    IconButton {
+                        // The library is the only thing worth showing when there's nothing to control
+                        visible: root.source.available
+                        icon: "library_music"
+                        type: root.libraryOpen ? IconButton.Filled : IconButton.Tonal
+                        isToggle: true
+                        checked: root.libraryOpen
+                        onClicked: {
+                            root.libraryToggled = !root.libraryToggled;
+                            if (root.libraryToggled)
+                                root.eqToggled = false;
+                        }
+                    }
+
+                    IconButton {
+                        visible: Equalizer.enabled
+                        icon: "equalizer"
+                        type: root.eqOpen ? IconButton.Filled : IconButton.Tonal
+                        isToggle: true
+                        checked: root.eqOpen
+                        onClicked: {
+                            root.eqToggled = !root.eqToggled;
+                            if (root.eqToggled)
+                                root.libraryToggled = false;
+                        }
+                    }
+
+                    // Sits just right of the drawer toggles rather than out at the right hand end,
+                    // so the menu that comes out of it drops over the cover and details and leaves
+                    // the lyrics column clear
+                    SplitButton {
+                        // Dropdown arrow leading, ahead of the name of the media system being
+                        // controlled
+                        expandOnLeft: true
+                        menuItems: sourceItems.instances
+                        active: menuItems.find(i => root.localActive ? i.modelData.kind === "local" : i.modelData.player === Players.active) ?? null
+                        // Drops down rather than up: the header sits at the top of the tab, so
+                        // there is far more room below the button than above it, and Menu still
+                        // flips it back up by itself if one ever grows too tall to fit (see
+                        // Menu.effectiveAbove). With the arrow leading, SplitButton lays the menu
+                        // out under it, so the menu starts at the left edge of the selector
+                        // rather than out at the far end of the label
+                        menu.onItemSelected: item => root.selectSource((item as SourceItem).modelData)
+                        fallbackIcon: "music_note"
+                        fallbackText: Tr.trCtx("No players", "no media players active")
+                    }
+
+                    Item {
+                        Layout.fillWidth: true
+                    }
+                }
+
+                RowLayout {
+                    Layout.fillWidth: true
+                    Layout.fillHeight: true
+                    spacing: Tokens.spacing.extraLarge
+
+                    CoverVisualiser {
+                        Layout.fillHeight: true
+                        implicitWidth: Tokens.sizes.dashboard.mediaSectionWidth
+                        source: root.source
+                    }
+
+                    Item {
+                        Layout.fillWidth: true
+                        Layout.fillHeight: true
+
+                        state: root.source.available ? "" : "noMedia"
+
+                        states: State {
+                            name: "noMedia"
+
+                            PropertyChanges {
+                                noMedia.opacity: 1
+                                content.opacity: 0
+                            }
+                        }
+
+                        transitions: [
+                            Transition {
+                                from: ""
+
+                                SequentialAnimation {
+                                    Anim {
+                                        target: content
+                                        property: "opacity"
+                                        type: Anim.DefaultEffects
+                                    }
+                                    Anim {
+                                        target: noMedia
+                                        property: "opacity"
+                                        type: Anim.SlowEffects
+                                    }
+                                }
+                            },
+                            Transition {
+                                to: ""
+
+                                SequentialAnimation {
+                                    Anim {
+                                        target: noMedia
+                                        property: "opacity"
+                                        type: Anim.DefaultEffects
+                                    }
+                                    Anim {
+                                        target: content
+                                        property: "opacity"
+                                        type: Anim.SlowEffects
+                                    }
+                                }
+                            }
+                        ]
+
+                        Loader {
+                            id: noMedia
+
+                            anchors.centerIn: parent
+                            anchors.horizontalCenterOffset: -Tokens.padding.extraLarge * 2
+                            asynchronous: true
+                            active: opacity > 0
+                            opacity: 0
+
+                            sourceComponent: ColumnLayout {
+                                spacing: Tokens.spacing.small
+
+                                MaterialShape {
+                                    Layout.topMargin: (pathBounds().height - implicitSize) / 2
+                                    Layout.bottomMargin: (pathBounds().height - implicitSize) / 2 + Tokens.spacing.small
+                                    Layout.alignment: Qt.AlignHCenter
+                                    color: Colours.palette.m3primaryContainer
+                                    implicitSize: icon.implicitHeight + Tokens.padding.extraLarge * 2
+                                    shape: MaterialShape.ClamShell
+
+                                    Behavior on color {
+                                        CAnim {}
+                                    }
+
+                                    MaterialIcon {
+                                        id: icon
+
+                                        anchors.centerIn: parent
+                                        text: "queue_music"
+                                        fontStyle: Tokens.font.icon.builders.large.scale(2).build()
+                                        color: Colours.palette.m3onPrimaryContainer
+                                    }
+                                }
+
+                                StyledText {
+                                    Layout.alignment: Qt.AlignHCenter
+                                    text: Tr.tr("Nothing playing")
+                                    font: Tokens.font.headline.medium
+                                }
+
+                                StyledText {
+                                    text: Tr.tr("Pick something from the library to play it here!")
+                                    color: Colours.palette.m3onSurfaceVariant
+                                    font: Tokens.font.body.large
+                                }
+                            }
+                        }
+
+                        Loader {
+                            id: content
+
+                            anchors.fill: parent
+                            asynchronous: true
+                            active: opacity > 0
+
+                            // Still in a layout of its own, so the details keep to their own height
+                            // and stay centred in the column rather than being stretched by the
+                            // loader
+                            sourceComponent: RowLayout {
+                                Details {
+                                    Layout.fillWidth: true
+                                    source: root.source
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Spans the tab beside the player, since the header above only covers the player's own
+            // column: the lyrics are as tall as the two of them together
+            LyricsPane {
                 Layout.fillHeight: true
                 implicitWidth: Tokens.sizes.dashboard.mediaSectionWidth
                 source: root.source
-            }
-
-            Item {
-                Layout.fillWidth: true
-                Layout.fillHeight: true
-
-                state: root.source.available ? "" : "noMedia"
-
-                states: State {
-                    name: "noMedia"
-
-                    PropertyChanges {
-                        noMedia.opacity: 1
-                        content.opacity: 0
-                    }
-                }
-
-                transitions: [
-                    Transition {
-                        from: ""
-
-                        SequentialAnimation {
-                            Anim {
-                                target: content
-                                property: "opacity"
-                                type: Anim.DefaultEffects
-                            }
-                            Anim {
-                                target: noMedia
-                                property: "opacity"
-                                type: Anim.SlowEffects
-                            }
-                        }
-                    },
-                    Transition {
-                        to: ""
-
-                        SequentialAnimation {
-                            Anim {
-                                target: noMedia
-                                property: "opacity"
-                                type: Anim.DefaultEffects
-                            }
-                            Anim {
-                                target: content
-                                property: "opacity"
-                                type: Anim.SlowEffects
-                            }
-                        }
-                    }
-                ]
-
-                Loader {
-                    id: noMedia
-
-                    anchors.centerIn: parent
-                    anchors.horizontalCenterOffset: -Tokens.padding.extraLarge * 2
-                    asynchronous: true
-                    active: opacity > 0
-                    opacity: 0
-
-                    sourceComponent: ColumnLayout {
-                        spacing: Tokens.spacing.small
-
-                        MaterialShape {
-                            Layout.topMargin: (pathBounds().height - implicitSize) / 2
-                            Layout.bottomMargin: (pathBounds().height - implicitSize) / 2 + Tokens.spacing.small
-                            Layout.alignment: Qt.AlignHCenter
-                            color: Colours.palette.m3primaryContainer
-                            implicitSize: icon.implicitHeight + Tokens.padding.extraLarge * 2
-                            shape: MaterialShape.ClamShell
-
-                            Behavior on color {
-                                CAnim {}
-                            }
-
-                            MaterialIcon {
-                                id: icon
-
-                                anchors.centerIn: parent
-                                text: "queue_music"
-                                fontStyle: Tokens.font.icon.builders.large.scale(2).build()
-                                color: Colours.palette.m3onPrimaryContainer
-                            }
-                        }
-
-                        StyledText {
-                            Layout.alignment: Qt.AlignHCenter
-                            text: Tr.tr("Nothing playing")
-                            font: Tokens.font.headline.medium
-                        }
-
-                        StyledText {
-                            text: Tr.tr("Pick something from the library to play it here!")
-                            color: Colours.palette.m3onSurfaceVariant
-                            font: Tokens.font.body.large
-                        }
-                    }
-                }
-
-                Loader {
-                    id: content
-
-                    anchors.fill: parent
-                    asynchronous: true
-                    active: opacity > 0
-
-                    sourceComponent: RowLayout {
-                        spacing: Tokens.spacing.extraLarge
-
-                        Details {
-                            Layout.fillWidth: true
-                            source: root.source
-                        }
-
-                        LyricsPane {
-                            Layout.fillHeight: true
-                            implicitWidth: Tokens.sizes.dashboard.mediaSectionWidth
-                            source: root.source
-                        }
-                    }
-                }
             }
         }
 

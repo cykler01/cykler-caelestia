@@ -132,7 +132,7 @@ class DashboardTokens : public settings::ObjectNode {
     CONFIG_PROPERTY(int, weatherWidth, 275)
     CONFIG_PROPERTY(int, mediaCoverArtSize, 200)
     CONFIG_PROPERTY(int, mediaTabWidth, 1000)
-    CONFIG_PROPERTY(int, mediaTabHeight, 320)
+    CONFIG_PROPERTY(int, mediaTabHeight, 400)
     CONFIG_PROPERTY(int, mediaSectionWidth, 300)
     CONFIG_PROPERTY(int, perfHeroCardWidth, 400)
     CONFIG_PROPERTY(int, perfUsageShapeSize, 100)

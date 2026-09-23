@@ -17,6 +17,11 @@ Row {
     property int type: SplitButton.Filled
     property bool disabled
     property bool menuOnTop
+    // Puts the expand button ahead of the label instead of after it, e.g. for a selector that wants
+    // its dropdown on the leading side. The row declares the label first, so laying it out right to
+    // left is what swaps the two around, and the corners the two share square off on whichever
+    // side they meet on
+    property bool expandOnLeft
     property string fallbackIcon
     property string fallbackText
     property real minLeftWidth
@@ -37,11 +42,14 @@ Row {
     property color disabledTextColour: Qt.alpha(Colours.palette.m3onSurface, 0.38)
 
     spacing: Math.floor(Tokens.spacing.extraSmall / 2)
+    layoutDirection: root.expandOnLeft ? Qt.RightToLeft : Qt.LeftToRight
 
     StyledRect {
         radius: implicitHeight / 2 * Math.min(1, Tokens.rounding.scale)
-        topRightRadius: Tokens.rounding.medium / 2
-        bottomRightRadius: Tokens.rounding.medium / 2
+        topLeftRadius: root.expandOnLeft ? Tokens.rounding.medium / 2 : radius
+        bottomLeftRadius: root.expandOnLeft ? Tokens.rounding.medium / 2 : radius
+        topRightRadius: root.expandOnLeft ? radius : Tokens.rounding.medium / 2
+        bottomRightRadius: root.expandOnLeft ? radius : Tokens.rounding.medium / 2
         color: root.disabled ? root.disabledColour : root.colour
 
         implicitWidth: Math.max(root.minLeftWidth, textRow.implicitWidth + root.horizontalPadding * 2)
@@ -99,8 +107,10 @@ Row {
         property real rad: root.expanded ? implicitHeight / 2 * Math.min(1, Tokens.rounding.scale) : Tokens.rounding.medium / 2
 
         radius: implicitHeight / 2 * Math.min(1, Tokens.rounding.scale)
-        topLeftRadius: rad
-        bottomLeftRadius: rad
+        topLeftRadius: root.expandOnLeft ? radius : rad
+        bottomLeftRadius: root.expandOnLeft ? radius : rad
+        topRightRadius: root.expandOnLeft ? rad : radius
+        bottomRightRadius: root.expandOnLeft ? rad : radius
         color: root.disabled ? root.disabledColour : root.colour
 
         implicitWidth: implicitHeight
@@ -120,7 +130,7 @@ Row {
             id: expandIcon
 
             anchors.centerIn: parent
-            anchors.horizontalCenterOffset: root.expanded ? 0 : -Math.floor(root.verticalPadding / 4)
+            anchors.horizontalCenterOffset: root.expanded ? 0 : (root.expandOnLeft ? Math.floor(root.verticalPadding / 4) : -Math.floor(root.verticalPadding / 4))
 
             text: "expand_more"
             color: root.disabled ? root.disabledTextColour : root.textColour
@@ -144,6 +154,8 @@ Row {
         id: menu
 
         attachTo: expandBtn
+        attachSideX: root.expandOnLeft ? Menu.Left : Menu.Right
+        thisSideX: root.expandOnLeft ? Menu.Left : Menu.Right
         attachSideY: root.menuOnTop ? Menu.Top : Menu.Bottom
         thisSideY: root.menuOnTop ? Menu.Bottom : Menu.Top
         marginY: Tokens.spacing.small * (root.menuOnTop ? -1 : 1)
