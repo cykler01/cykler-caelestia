@@ -60,6 +60,12 @@ class LauncherConfig : public settings::ObjectNode {
                 { u"command"_s, QStringList{ u"autocomplete"_s, u"gpu"_s } },
             }),
             vmap({
+                { u"name"_s, markCtx(u"To-do"_s, u"launcher action"_s) },
+                { u"icon"_s, u"checklist"_s },
+                { u"description"_s, mark(u"View and tick off your to-do list"_s) },
+                { u"command"_s, QStringList{ u"autocomplete"_s, u"todo"_s } },
+            }),
+            vmap({
                 { u"name"_s, markCtx(u"OCR"_s, u"launcher action"_s) },
                 { u"icon"_s, u"text_fields"_s },
                 { u"description"_s, mark(u"Capture a region and copy detected text"_s) },

@@ -38,6 +38,9 @@ StyledListView {
             if (text === `${prefix}ssh` || text.startsWith(`${prefix}ssh `))
                 return "ssh";
 
+            if (text === `${prefix}todo` || text.startsWith(`${prefix}todo `))
+                return "todo";
+
             return "actions";
         }
 
@@ -54,6 +57,8 @@ StyledListView {
             return Supergfxctl.modeData;
         case "ssh":
             return SSH.search(text);
+        case "todo":
+            return Todo.items(text);
         default:
             return Apps.search(text);
         }
@@ -64,6 +69,7 @@ StyledListView {
             SSH.hostRevision;
             Supergfxctl.modeRevision;
             Supergfxctl.modeData;
+            Todo.revision;
             return root.resultsForText(root.displayText);
         }
         onValuesChanged: root.currentIndex = 0
@@ -137,6 +143,13 @@ StyledListView {
 
             PropertyChanges {
                 root.delegate: sshItem
+            }
+        },
+        State {
+            name: "todo"
+
+            PropertyChanges {
+                root.delegate: actionItem
             }
         }
     ]

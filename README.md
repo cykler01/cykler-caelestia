@@ -22,6 +22,7 @@ This is my take on the Caelestia shell - upstream's desktop shell with my own fe
 | Input configuration | Hand-edited Hyprland config | Mouse, scroll and touchpad settings in Nexus |
 | Launcher | Standard actions | Adds OCR (`>ocr`) and Google Lens (`>lens`) region-capture actions |
 | Music player | External players only | In-shell local music player in the dashboard media tab |
+| To-do list | Fuzzel script in the dotfiles | `>todo` list in the launcher |
 
 
 ## Features added on top of upstream
@@ -64,6 +65,15 @@ This is my take on the Caelestia shell - upstream's desktop shell with my own fe
     Uguu, and open the result in Google Lens.
 -   Launch either tool from the command panel by selecting its action or searching for
     `>ocr` / `>lens`.
+
+### Launcher to-do list
+
+-   **Ported from the fuzzel script** - `>todo` lists your tasks with a leading *New task* row.
+    Picking a task marks it done, and picking *New task* hands over to a `>todo add ` prompt
+    where typed text becomes the new task.
+-   **Stored with the shell** - tasks live in `~/.local/share/caelestia/todo.json`. The first
+    time it runs, the list is imported once from the old fuzzel cache
+    (`~/.local/share/todo-fuzzel/todo.cache`), so existing tasks carry over.
 
 ### Launcher wallpaper switching
 
