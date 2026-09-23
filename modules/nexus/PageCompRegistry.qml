@@ -160,6 +160,11 @@ QtObject {
                 Component {
                     BarClock {}
                 }
+
+                // Notch settings sub-page
+                Component {
+                    NotchPanel {}
+                }
             }
         },
         Component {

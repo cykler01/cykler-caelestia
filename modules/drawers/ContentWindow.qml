@@ -183,6 +183,13 @@ StyledWindow {
         }
 
         PanelBg {
+            id: notchBg
+
+            panel: panels.notch
+            deformAmount: 0.1
+        }
+
+        PanelBg {
             id: launcherBg
 
             panel: panels.launcher

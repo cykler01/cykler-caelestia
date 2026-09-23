@@ -19,6 +19,11 @@ Singleton {
     // Dedup key for progressive metadata (e.g. mpv-mpris/yt-dlp player fills title then artist later).
     property string lastNowPlayingKey: ""
 
+    // Fired once per unique track (deduped the same way as the toast below),
+    // regardless of the toast setting - e.g. the notch uses this to trigger
+    // its own transient display without needing the toast enabled.
+    signal trackChanged(title: string, artist: string)
+
     function getIdentity(player: MprisPlayer): string {
         if (!player)
             return "";
@@ -43,11 +48,8 @@ Singleton {
 
     // Quickshell only emits postTrackChanged when trackid/url/title change, so late
     // artist updates (common with mpv-mpris + yt-dlp player) never retrigger it. Watch
-    // title/artist too and toast once both are usable.
+    // title/artist too and fire trackChanged once both are usable, deduped per track.
     function maybeToastNowPlaying(): void {
-        if (!GlobalConfig.utilities.toasts.nowPlaying)
-            return;
-
         const player = root.active;
         if (!player)
             return;
@@ -62,7 +64,10 @@ Singleton {
             return;
 
         lastNowPlayingKey = key;
-        Toaster.toast(Tr.tr("Now playing"), Tr.trCtx("%1 - %2", "track artist and title").arg(artist).arg(title), "music_note");
+        root.trackChanged(title, artist);
+
+        if (GlobalConfig.utilities.toasts.nowPlaying)
+            Toaster.toast(Tr.tr("Now playing"), Tr.trCtx("%1 - %2", "track artist and title").arg(artist).arg(title), "music_note");
     }
 
     onActiveChanged: lastNowPlayingKey = ""
