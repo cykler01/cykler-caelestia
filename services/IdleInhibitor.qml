@@ -7,28 +7,37 @@ import Quickshell.Wayland
 Singleton {
     id: root
 
-    property alias enabled: props.enabled
-    // Only stops the idle timer from locking; the screen may still turn off
-    property alias preventLock: props.preventLock
+    // 0 = off, 1 = prevent sleep (display off/suspend), 2 = also prevent lock
+    readonly property int off: 0
+    readonly property int preventSleepMode: 1
+    readonly property int preventLockAndSleepMode: 2
+
+    property alias mode: props.mode
+    readonly property bool active: mode > root.off
+    readonly property bool preventSleep: mode >= root.preventSleepMode
+    readonly property bool preventLock: mode >= root.preventLockAndSleepMode
+    // Only the strongest mode uses the real Wayland idle-inhibitor (it can't
+    // selectively allow lock while blocking sleep), so weaker modes fall back
+    // to modules/IdleMonitors.qml gating individual idle actions instead
+    readonly property bool enabled: mode >= root.preventLockAndSleepMode
     readonly property alias enabledSince: props.enabledSince
 
-    onEnabledChanged: {
-        if (enabled)
+    onModeChanged: {
+        if (active)
             props.enabledSince = new Date();
     }
 
     PersistentProperties {
         id: props
 
-        property bool enabled
-        property bool preventLock
+        property int mode: 0
         property date enabledSince
 
         reloadableId: "idleInhibitor"
     }
 
     IdleInhibitor {
-        enabled: props.enabled
+        enabled: root.enabled
         window: PanelWindow {
             implicitWidth: 0
             implicitHeight: 0
@@ -38,28 +47,16 @@ Singleton {
     }
 
     IpcHandler {
-        function isEnabled(): bool {
-            return props.enabled;
+        function getMode(): int {
+            return props.mode;
         }
 
-        function toggle(): void {
-            props.enabled = !props.enabled;
+        function setMode(newMode: int): void {
+            props.mode = Math.max(0, Math.min(2, newMode));
         }
 
-        function isLockPrevented(): bool {
-            return props.preventLock;
-        }
-
-        function togglePreventLock(): void {
-            props.preventLock = !props.preventLock;
-        }
-
-        function enable(): void {
-            props.enabled = true;
-        }
-
-        function disable(): void {
-            props.enabled = false;
+        function cycle(): void {
+            props.mode = (props.mode + 1) % 3;
         }
 
         target: "idleInhibitor"

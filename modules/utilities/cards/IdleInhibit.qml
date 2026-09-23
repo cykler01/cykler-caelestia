@@ -9,7 +9,7 @@ import qs.services
 StyledRect {
     id: root
 
-    readonly property real nonAnimHeight: layout.implicitHeight + lockLayout.implicitHeight + lockLayout.anchors.topMargin + (IdleInhibitor.enabled ? activeChip.implicitHeight + activeChip.anchors.topMargin : 0) + Tokens.padding.extraLargeIncreased
+    readonly property real nonAnimHeight: layout.implicitHeight + (IdleInhibitor.active ? activeChip.implicitHeight + activeChip.anchors.topMargin : 0) + Tokens.padding.extraLargeIncreased
 
     implicitHeight: nonAnimHeight
 
@@ -31,14 +31,14 @@ StyledRect {
             implicitHeight: icon.implicitHeight + Tokens.padding.large
 
             radius: Tokens.rounding.full
-            color: IdleInhibitor.enabled ? Colours.palette.m3secondary : Colours.palette.m3secondaryContainer
+            color: IdleInhibitor.active ? Colours.palette.m3secondary : Colours.palette.m3secondaryContainer
 
             MaterialIcon {
                 id: icon
 
                 anchors.centerIn: parent
-                text: "coffee"
-                color: IdleInhibitor.enabled ? Colours.palette.m3onSecondary : Colours.palette.m3onSecondaryContainer
+                text: IdleInhibitor.preventLock ? "lock_clock" : "coffee"
+                color: IdleInhibitor.active ? Colours.palette.m3onSecondary : Colours.palette.m3onSecondaryContainer
                 fontStyle: Tokens.font.icon.large
             }
         }
@@ -56,69 +56,51 @@ StyledRect {
 
             StyledText {
                 Layout.fillWidth: true
-                text: IdleInhibitor.enabled ? Tr.trCtx("Preventing sleep mode", "idle inhibitor") : Tr.trCtx("Normal power management", "idle inhibitor")
+                text: {
+                    if (IdleInhibitor.preventLock)
+                        return Tr.trCtx("Won't lock or sleep when idle", "idle inhibitor");
+                    if (IdleInhibitor.preventSleep)
+                        return Tr.trCtx("Won't sleep when idle, still locks", "idle inhibitor");
+                    return Tr.trCtx("Normal power management", "idle inhibitor");
+                }
                 color: Colours.palette.m3onSurfaceVariant
                 font: Tokens.font.body.small
                 elide: Text.ElideRight
             }
         }
 
-        StyledSwitch {
-            checked: IdleInhibitor.enabled
-            onToggled: IdleInhibitor.enabled = checked
-        }
-    }
+        Row {
+            spacing: Tokens.spacing.extraSmall / 2
 
-    RowLayout {
-        id: lockLayout
+            IconButton {
+                isRound: true
+                type: IconButton.Tonal
+                icon: "close"
+                inactiveColour: IdleInhibitor.mode === IdleInhibitor.off ? Colours.palette.m3primary : Colours.tPalette.m3surfaceContainerHigh
+                inactiveOnColour: IdleInhibitor.mode === IdleInhibitor.off ? Colours.palette.m3onPrimary : Colours.palette.m3onSurfaceVariant
 
-        anchors.top: layout.bottom
-        anchors.left: parent.left
-        anchors.right: parent.right
-        anchors.margins: Tokens.padding.large
-        anchors.topMargin: Tokens.spacing.medium
-        spacing: Tokens.spacing.medium
-
-        StyledRect {
-            implicitWidth: implicitHeight
-            implicitHeight: lockIcon.implicitHeight + Tokens.padding.large
-
-            radius: Tokens.rounding.full
-            color: IdleInhibitor.preventLock ? Colours.palette.m3secondary : Colours.palette.m3secondaryContainer
-
-            MaterialIcon {
-                id: lockIcon
-
-                anchors.centerIn: parent
-                text: "lock_clock"
-                color: IdleInhibitor.preventLock ? Colours.palette.m3onSecondary : Colours.palette.m3onSecondaryContainer
-                fontStyle: Tokens.font.icon.large
-            }
-        }
-
-        ColumnLayout {
-            Layout.fillWidth: true
-            spacing: 0
-
-            StyledText {
-                Layout.fillWidth: true
-                text: Tr.trCtx("Prevent lock", "idle inhibitor")
-                font: Tokens.font.body.medium
-                elide: Text.ElideRight
+                onClicked: IdleInhibitor.mode = IdleInhibitor.off
             }
 
-            StyledText {
-                Layout.fillWidth: true
-                text: IdleInhibitor.preventLock ? Tr.trCtx("Won't lock when idle", "idle inhibitor") : Tr.trCtx("Locks after the idle timeout", "idle inhibitor")
-                color: Colours.palette.m3onSurfaceVariant
-                font: Tokens.font.body.small
-                elide: Text.ElideRight
-            }
-        }
+            IconButton {
+                isRound: true
+                type: IconButton.Tonal
+                icon: "coffee"
+                inactiveColour: IdleInhibitor.mode === IdleInhibitor.preventSleepMode ? Colours.palette.m3secondary : Colours.tPalette.m3surfaceContainerHigh
+                inactiveOnColour: IdleInhibitor.mode === IdleInhibitor.preventSleepMode ? Colours.palette.m3onSecondary : Colours.palette.m3onSurfaceVariant
 
-        StyledSwitch {
-            checked: IdleInhibitor.preventLock
-            onToggled: IdleInhibitor.preventLock = checked
+                onClicked: IdleInhibitor.mode = IdleInhibitor.preventSleepMode
+            }
+
+            IconButton {
+                isRound: true
+                type: IconButton.Tonal
+                icon: "lock_clock"
+                inactiveColour: IdleInhibitor.mode === IdleInhibitor.preventLockAndSleepMode ? Colours.palette.m3secondary : Colours.tPalette.m3surfaceContainerHigh
+                inactiveOnColour: IdleInhibitor.mode === IdleInhibitor.preventLockAndSleepMode ? Colours.palette.m3onSecondary : Colours.palette.m3onSurfaceVariant
+
+                onClicked: IdleInhibitor.mode = IdleInhibitor.preventLockAndSleepMode
+            }
         }
     }
 
@@ -126,14 +108,13 @@ StyledRect {
         id: activeChip
 
         asynchronous: true
-        anchors.bottom: parent.bottom
+        anchors.top: layout.bottom
         anchors.left: parent.left
-        anchors.topMargin: Tokens.spacing.large
-        anchors.bottomMargin: IdleInhibitor.enabled ? Tokens.padding.large : -implicitHeight
+        anchors.topMargin: IdleInhibitor.active ? Tokens.spacing.large : -implicitHeight
         anchors.leftMargin: Tokens.padding.large
 
-        opacity: IdleInhibitor.enabled ? 1 : 0
-        scale: IdleInhibitor.enabled ? 1 : 0.5
+        opacity: IdleInhibitor.active ? 1 : 0
+        scale: IdleInhibitor.active ? 1 : 0.5
 
         Component.onCompleted: active = Qt.binding(() => opacity > 0)
 
@@ -155,7 +136,7 @@ StyledRect {
             }
         }
 
-        Behavior on anchors.bottomMargin {
+        Behavior on anchors.topMargin {
             Anim {}
         }
 
