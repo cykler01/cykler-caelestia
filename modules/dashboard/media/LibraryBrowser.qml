@@ -20,6 +20,9 @@ import qs.services
 // Selecting turns taps on tracks into a selection that can be added to the queue in one go,
 // and it survives opening a folder or searching, so a batch can be gathered up from several
 // places before it is queued.
+//
+// The queue button in the header swaps the whole pane over to what has been queued, in the
+// order it will play, where songs can be moved around and taken back out.
 StyledClippingRect {
     id: root
 
@@ -27,6 +30,8 @@ StyledClippingRect {
     property bool byArtist
     // The artist whose playlist is open, empty at the list of artists
     property string artistFilter
+    // Showing the queue rather than the library
+    property bool onQueue
 
     readonly property string query: search.text.trim().toLowerCase()
     readonly property bool searching: root.query.length > 0
@@ -54,14 +59,30 @@ StyledClippingRect {
     // Folders and artists both list their contents, so both navigate the same way
     readonly property bool atGroupRoot: root.byArtist ? root.artistFilter === "" : Music.atRoot
     readonly property string title: {
+        if (root.onQueue)
+            return Tr.tr("Queue");
         if (root.searching)
             return Tr.tr("Search results");
         if (root.byArtist)
             return root.artistFilter === "" ? Tr.tr("Artists") : root.artistLabel(root.artistFilter);
         return Music.relativeDir ? Music.relativeDir.split("/").join(" › ") : Tr.tr("Music");
     }
-    readonly property string emptyIcon: root.searching ? "search_off" : root.readingTags && root.byArtist ? "hourglass_empty" : "music_off"
-    readonly property string emptyText: root.searching ? Tr.tr("No matches") : root.readingTags && root.byArtist ? Tr.tr("Reading tags") : Tr.tr("No music here")
+    readonly property string emptyIcon: {
+        if (root.onQueue)
+            return "queue_music";
+        if (root.searching)
+            return "search_off";
+        return root.readingTags && root.byArtist ? "hourglass_empty" : "music_off";
+    }
+    readonly property string emptyText: {
+        if (root.onQueue)
+            return Tr.tr("Nothing queued");
+        if (root.searching)
+            return Tr.tr("No matches");
+        return root.readingTags && root.byArtist ? Tr.tr("Reading tags") : Tr.tr("No music here");
+    }
+    // Rows whichever list is showing, so the empty state covers both of them
+    readonly property int visibleRows: root.onQueue ? queue.rows.length : list.count
 
     // What the list is showing, one plain object per row so the row doesn't have to care
     // whether it is looking at a folder, an artist or a track
@@ -214,14 +235,14 @@ StyledClippingRect {
     }
 
     // Queues the selection in the order it was picked, and leaves selection mode so the queue
-    // is what the controls are on next
+    // is what the controls are on next. Adding says nothing on the screen: the queue button in
+    // the header fills up, and that is the whole of the feedback.
     function addToQueue(): void {
         const paths = root.selected.slice();
         if (paths.length === 0)
             return;
 
         Music.enqueue(paths);
-        Toaster.toast(Tr.tr("Added to queue"), Tr.trN("%1 song", "%1 songs", paths.length).arg(paths.length), "playlist_add", Toast.Success);
         root.selecting = false;
     }
 
@@ -255,8 +276,6 @@ StyledClippingRect {
         Music.cdRoot();
     }
 
-    // Playing a track queues whatever else is on the list behind it, so a folder or an
-    // artist's playlist plays through instead of stopping after one song
     function activate(item: var): void {
         if (item.kind === "artist") {
             root.stopSearching();
@@ -277,15 +296,24 @@ StyledClippingRect {
             return;
         }
 
+        root.playItem(item);
+    }
+
+    // Playing a track queues whatever else is on the list behind it, so a folder or an
+    // artist's playlist plays through instead of stopping after one song
+    function playItem(item: var): void {
+        if (item.kind !== "track")
+            return;
+
         const rows = root.items;
         const paths = [];
         let index = -1;
         for (let i = 0; i < rows.length; i++) {
             if (rows[i].kind !== "track")
                 continue;
-            if (rows[i].entry.path === item.entry.path)
+            if (rows[i].path === item.path)
                 index = paths.length;
-            paths.push(rows[i].entry.path);
+            paths.push(rows[i].path);
         }
 
         if (index < 0)
@@ -294,6 +322,19 @@ StyledClippingRect {
         Music.playQueue(paths, index);
         root.trackPlayed();
     }
+
+    // The second button on a row: this one track goes into the queue behind whatever is
+    // playing, and playback carries on undisturbed
+    function enqueueItem(item: var): void {
+        if (item.kind !== "track")
+            return;
+
+        Music.enqueue([item.path]);
+    }
+
+    // The queue is a plain list, so leaving a selection behind while it is up would only make
+    // it come back unexplained
+    onOnQueueChanged: root.selecting = false
 
     clip: true
     color: Colours.tPalette.m3surfaceContainer
@@ -314,9 +355,11 @@ StyledClippingRect {
             anchors.right: parent.right
             spacing: Tokens.spacing.extraSmall
 
+            // Browsing only - the queue has no folders or artists to climb out of
             IconButton {
                 icon: "arrow_upward"
                 type: IconButton.Text
+                visible: !root.onQueue
                 disabled: root.atGroupRoot && !root.searching
                 onClicked: root.goUp()
             }
@@ -333,6 +376,7 @@ StyledClippingRect {
             IconButton {
                 icon: "folder"
                 isToggle: true
+                visible: !root.onQueue
                 checked: !root.byArtist
                 type: root.byArtist ? IconButton.Tonal : IconButton.Filled
                 disabled: root.searching
@@ -343,6 +387,7 @@ StyledClippingRect {
             IconButton {
                 icon: "person"
                 isToggle: true
+                visible: !root.onQueue
                 checked: root.byArtist
                 type: root.byArtist ? IconButton.Filled : IconButton.Tonal
                 disabled: root.searching
@@ -354,6 +399,7 @@ StyledClippingRect {
             IconButton {
                 icon: "checklist"
                 isToggle: true
+                visible: !root.onQueue
                 checked: root.selecting
                 type: root.selecting ? IconButton.Filled : IconButton.Tonal
                 onClicked: root.selecting = !root.selecting
@@ -362,8 +408,19 @@ StyledClippingRect {
             IconButton {
                 icon: "home"
                 type: IconButton.Text
+                visible: !root.onQueue
                 disabled: root.atGroupRoot && !root.searching
                 onClicked: root.goRoot()
+            }
+
+            // What has been queued, in the order it will play, where songs can be moved
+            // around and taken back out
+            IconButton {
+                icon: "queue_music"
+                isToggle: true
+                checked: root.onQueue
+                type: root.onQueue ? IconButton.Filled : IconButton.Tonal
+                onClicked: root.onQueue = !root.onQueue
             }
         }
 
@@ -375,9 +432,11 @@ StyledClippingRect {
             anchors.right: parent.right
             anchors.topMargin: Tokens.spacing.small
 
+            // Nothing to search in the queue
+            visible: !root.onQueue
             // Takes focus whenever the library does, so the field can be typed into without
             // reaching for it first
-            focus: root.enabled
+            focus: root.enabled && visible
             placeholderText: Tr.tr("Search songs and artists")
             font: Tokens.font.body.small
             topPadding: Tokens.padding.small
@@ -387,7 +446,7 @@ StyledClippingRect {
         Item {
             id: viewport
 
-            anchors.top: search.bottom
+            anchors.top: root.onQueue ? header.bottom : search.bottom
             anchors.left: parent.left
             anchors.right: parent.right
             anchors.topMargin: Tokens.spacing.medium
@@ -404,6 +463,7 @@ StyledClippingRect {
                 anchors.fill: parent
                 // Gutter for the scrollbar, so the rows don't sit under it
                 anchors.rightMargin: Tokens.padding.small
+                visible: !root.onQueue
                 clip: true
                 spacing: Tokens.spacing.extraSmall / 2
 
@@ -421,13 +481,25 @@ StyledClippingRect {
                     selecting: root.selecting
                     selected: root.isSelected(modelData)
                     onClicked: root.activate(modelData)
+                    onPlayClicked: root.playItem(modelData)
+                    onEnqueueClicked: root.enqueueItem(modelData)
                 }
+            }
+
+            // The queue, once the header button swaps over to it
+            QueueView {
+                id: queue
+
+                anchors.fill: parent
+                // Same gutter as the library list, so both scroll under the scrollbar
+                anchors.rightMargin: Tokens.padding.small
+                visible: root.onQueue
             }
 
             ColumnLayout {
                 anchors.centerIn: parent
                 spacing: Tokens.spacing.extraSmall
-                opacity: list.count === 0 ? 1 : 0
+                opacity: root.visibleRows === 0 ? 1 : 0
                 visible: opacity > 0
 
                 Behavior on opacity {
@@ -461,7 +533,7 @@ StyledClippingRect {
             anchors.right: parent.right
             anchors.bottom: parent.bottom
             spacing: Tokens.spacing.extraSmall
-            visible: root.selecting
+            visible: root.selecting && !root.onQueue
 
             StyledText {
                 Layout.fillWidth: true

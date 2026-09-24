@@ -115,7 +115,8 @@ ColumnLayout {
             isRound: true
             shapeMorph: true
             font: Tokens.font.icon.large
-            disabled: !Music.hasTrack
+            // The history is behind it, so this works with nothing playing too
+            disabled: !Music.hasTrack && Music.played.length === 0
             onClicked: Music.previous()
         }
 
@@ -136,7 +137,8 @@ ColumnLayout {
             isRound: true
             shapeMorph: true
             font: Tokens.font.icon.large
-            disabled: !Music.hasTrack
+            // Nothing left to move on to, unless the repeat is going round again
+            disabled: !Music.hasTrack || (Music.queue.length === 0 && Music.repeatMode !== "all")
             onClicked: Music.next()
         }
 

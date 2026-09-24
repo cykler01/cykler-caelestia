@@ -71,16 +71,24 @@ Singleton {
     readonly property bool atRoot: currentDir === rootDir
     readonly property string relativeDir: root.atRoot || !currentDir.startsWith(rootDir) ? "" : currentDir.slice(rootDir.length + 1)
 
-    // Playback
-    property list<string> queue: []
-    property int queueIndex: -1
+    // Playback. The queue plays out top to bottom in the queue view: what has already played,
+    // the song playing now, the songs picked by hand, then the rest of the album, artist or
+    // folder they were picked out of. Every entry is { path, origin } - origin being "user"
+    // for something added to the queue by hand and "auto" for the rest of a context - so the
+    // two halves of what is still to come can be shown and reordered apart from each other.
+    property var played: []
+    property var current: null
+    property var queue: []
     property bool shuffle: false
     // "off" | "all" | "one"
     property string repeatMode: "off"
     property real volume: 1
 
-    readonly property bool hasTrack: queueIndex >= 0 && queueIndex < queue.length
-    readonly property string currentFile: root.hasTrack ? queue[queueIndex] : ""
+    // How much history is kept, so a queue left running doesn't pile it up forever
+    readonly property int playedLimit: 100
+
+    readonly property bool hasTrack: root.current !== null
+    readonly property string currentFile: root.current?.path ?? ""
     readonly property string fileName: root.currentFile.slice(root.currentFile.lastIndexOf("/") + 1)
     readonly property bool playing: mediaPlayer.playbackState === MediaPlayer.PlayingState
     readonly property real position: mediaPlayer.position / 1000
@@ -132,7 +140,8 @@ Singleton {
         return best;
     }
     readonly property string coverPath: root.embeddedCover || root.sidecarCover || root.folderCover
-    readonly property string queueLabel: root.hasTrack ? `${root.queueIndex + 1}/${root.queue.length}` : ""
+    // Where the playhead is in the whole context, counting the history as already played
+    readonly property string queueLabel: root.hasTrack ? `${root.played.length + 1}/${root.played.length + 1 + root.queue.length}` : ""
 
     // Every image under the music folder, so the library gallery can show covers for folders
     // it isn't currently inside of
@@ -277,35 +286,62 @@ Singleton {
         if (!paths || paths.length === 0)
             return;
 
-        root.queue = paths;
-        root.queueIndex = Math.max(0, Math.min(index, paths.length - 1));
+        const at = Math.max(0, Math.min(index, paths.length - 1));
+        const entries = paths.map(path => ({ path: path, origin: "auto" }));
+
+        // A context replaces whatever came before it, so the history starts again. What the
+        // context puts before the chosen song counts as played, so previous() walks back into
+        // it the same way it walks back through anything else.
+        root.played = entries.slice(0, at);
+        root.current = entries[at];
+        root.queue = entries.slice(at + 1);
         root.loadCurrent();
     }
 
-    // Adds tracks to the end of the queue without disturbing what is playing, so there is no
-    // gap and the current song carries on. Adding to an empty player starts the queue instead
-    // of leaving it silent, which is what adding to nothing would otherwise do.
+    // Adds tracks to the queue without disturbing what is playing, so there is no gap and the
+    // current song carries on. They go ahead of the rest of the album or artist they were
+    // picked out of but behind anything already added, so hand-picked songs play first, in the
+    // order they were picked. Adding to an empty player starts the queue instead of leaving it
+    // silent, which is what adding to nothing would otherwise do.
     function enqueue(paths: var): void {
         if (!paths || paths.length === 0)
             return;
 
-        const next = [];
-        const current = root.queue;
-        for (let i = 0; i < current.length; i++)
-            next.push(current[i]);
-        for (let i = 0; i < paths.length; i++)
-            next.push(paths[i]);
+        const added = paths.map(path => ({ path: path, origin: "user" }));
+        const queued = root.queue;
+        let at = 0;
+        while (at < queued.length && queued[at].origin === "user")
+            at++;
+
+        const merged = queued.slice(0, at).concat(added).concat(queued.slice(at));
 
         if (!root.hasTrack) {
-            root.playQueue(next, 0);
+            root.played = [];
+            root.current = merged[0];
+            root.queue = merged.slice(1);
+            root.loadCurrent();
             return;
         }
 
-        root.queue = next;
+        root.queue = merged;
     }
 
-    // Moves a queued track up or down the queue. The song that is playing is followed to
-    // wherever it ends up, so moving songs around never switches what you are hearing.
+    // Jumps to a place in the queue, for picking a song out of what is still to come rather
+    // than waiting for it. Everything ahead of it counts as played, so it can be walked back
+    // to afterwards.
+    function skipTo(index: int): void {
+        if (index < 0 || index >= root.queue.length)
+            return;
+
+        root.played = root.trimPlayed(root.played.concat(root.queue.slice(0, index)));
+        root.current = root.queue[index];
+        root.queue = root.queue.slice(index + 1);
+        root.loadCurrent();
+    }
+
+    // Moves a queued song up or down the queue. Nothing about what is playing changes, so
+    // moving songs around never switches what you are hearing. The queue view only ever asks
+    // for a move within one of its sections.
     function moveInQueue(from: int, to: int): void {
         const length = root.queue.length;
         if (from === to || from < 0 || from >= length || to < 0 || to >= length)
@@ -314,46 +350,50 @@ Singleton {
         const next = root.queue.slice();
         const moved = next.splice(from, 1)[0];
         next.splice(to, 0, moved);
-
-        // Everything between the two positions shifts by one, including the current track
-        if (root.queueIndex === from)
-            root.queueIndex = to;
-        else if (from < root.queueIndex && to >= root.queueIndex)
-            root.queueIndex--;
-        else if (from > root.queueIndex && to <= root.queueIndex)
-            root.queueIndex++;
-
         root.queue = next;
     }
 
-    // Takes a track out of the queue. Removing the one that is playing skips to the next (the
-    // last one, if it was the end of the queue), and emptying the queue stops playback rather
-    // than leaving the player pointing at something that is no longer there.
+    // Takes a song out of what is still to come. Nothing playing changes - the song that is
+    // playing is not part of the queue, it is what the queue is waiting behind.
     function removeFromQueue(index: int): void {
         if (index < 0 || index >= root.queue.length)
             return;
 
         const next = root.queue.slice();
         next.splice(index, 1);
-        const wasCurrent = index === root.queueIndex;
-
-        if (next.length === 0) {
-            root.queue = next;
-            root.queueIndex = -1;
-            mediaPlayer.stop();
-            mediaPlayer.position = 0;
-            return;
-        }
-
         root.queue = next;
+    }
 
-        if (index < root.queueIndex)
-            root.queueIndex--;
-        else if (wasCurrent)
-            root.queueIndex = Math.min(index, next.length - 1);
+    // Takes a song out of the history, which only tidies the list up
+    function removeFromPlayed(index: int): void {
+        if (index < 0 || index >= root.played.length)
+            return;
 
-        if (wasCurrent)
-            root.loadCurrent();
+        const next = root.played.slice();
+        next.splice(index, 1);
+        root.played = next;
+    }
+
+    // Picking a song out of the history puts the playhead back there. Everything that came
+    // after it goes back into the queue, along with the song it interrupts, so the songs that
+    // were lined up behind it are still lined up behind it.
+    function replayPlayed(index: int): void {
+        if (index < 0 || index >= root.played.length)
+            return;
+
+        const entry = root.played[index];
+        const later = root.played.slice(index + 1);
+        const playing = root.current ? [root.current] : [];
+
+        root.played = root.played.slice(0, index);
+        root.current = entry;
+        root.queue = later.concat(playing).concat(root.queue);
+        root.loadCurrent();
+    }
+
+    // Keeps the history to its limit, oldest first out
+    function trimPlayed(entries: var): var {
+        return entries.length > root.playedLimit ? entries.slice(entries.length - root.playedLimit) : entries;
     }
 
     function loadCurrent(): void {
@@ -374,46 +414,77 @@ Singleton {
             mediaPlayer.play();
     }
 
+    // The song that is playing moves into the history and the next one starts. At the end of
+    // the queue: playing it all again if the repeat is on, otherwise stopping with nothing
+    // playing and everything in the history.
     function next(): void {
         if (!root.hasTrack)
             return;
 
-        if (root.shuffle && root.queue.length > 1) {
-            root.queueIndex = root.randomIndex();
-        } else if (root.queueIndex < root.queue.length - 1) {
-            root.queueIndex++;
-        } else if (root.repeatMode === "all") {
-            root.queueIndex = 0;
-        } else {
-            mediaPlayer.stop();
-            mediaPlayer.position = 0;
+        const finished = root.trimPlayed(root.played.concat([root.current]));
+
+        if (root.queue.length > 0) {
+            let at = 0;
+            if (root.shuffle && root.queue.length > 1)
+                at = Math.floor(Math.random() * root.queue.length);
+
+            const queue = root.queue;
+            root.played = finished;
+            // In shuffle the songs that were skipped go to the back rather than into the
+            // history, so the history stays what has actually played
+            root.queue = queue.slice(at + 1).concat(queue.slice(0, at));
+            root.current = queue[at];
+            root.loadCurrent();
             return;
         }
 
-        root.loadCurrent();
+        if (root.repeatMode === "all") {
+            // Round again, with the song that just finished at the end of it
+            root.played = [];
+            root.current = finished[0];
+            root.queue = finished.slice(1);
+            root.loadCurrent();
+            return;
+        }
+
+        root.played = finished;
+        root.current = null;
+        mediaPlayer.stop();
+        mediaPlayer.position = 0;
     }
 
+    // Back one song: the last thing in the history becomes what is playing, and the song it
+    // interrupts goes back to the front of the queue so next() returns to it.
     function previous(): void {
-        if (!root.hasTrack)
-            return;
-
-        // Restart the track unless we're near its very beginning
-        if (mediaPlayer.position > 3000) {
+        // Restart the track unless we're near its very beginning. With nothing playing - the
+        // end of the queue arrived at with the repeat off - this is what picks the last song in
+        // the history back up.
+        if (root.hasTrack && mediaPlayer.position > 3000) {
             mediaPlayer.position = 0;
             return;
         }
 
-        if (root.shuffle && root.queue.length > 1) {
-            root.queueIndex = root.randomIndex();
-        } else if (root.queueIndex > 0) {
-            root.queueIndex--;
-        } else if (root.repeatMode === "all") {
-            root.queueIndex = root.queue.length - 1;
-        } else {
-            mediaPlayer.position = 0;
+        if (root.played.length === 0) {
+            if (root.hasTrack && root.repeatMode === "all" && root.queue.length > 0) {
+                // Wrap round to the end of what is still queued
+                const last = root.queue[root.queue.length - 1];
+                root.queue = [root.current].concat(root.queue.slice(0, -1));
+                root.current = last;
+                root.loadCurrent();
+                return;
+            }
+
+            if (root.hasTrack)
+                mediaPlayer.position = 0;
             return;
         }
 
+        const back = root.played[root.played.length - 1];
+        root.played = root.played.slice(0, -1);
+        // What is playing goes back to the front of the queue, so next() returns to it
+        if (root.current)
+            root.queue = [root.current].concat(root.queue);
+        root.current = back;
         root.loadCurrent();
     }
 
@@ -427,16 +498,6 @@ Singleton {
 
     function cycleRepeat(): void {
         root.repeatMode = root.repeatMode === "off" ? "all" : root.repeatMode === "all" ? "one" : "off";
-    }
-
-    function randomIndex(): int {
-        if (root.queue.length <= 1)
-            return root.queueIndex;
-
-        let index = root.queueIndex;
-        while (index === root.queueIndex)
-            index = Math.floor(Math.random() * root.queue.length);
-        return index;
     }
 
     function cd(dir: string): void {

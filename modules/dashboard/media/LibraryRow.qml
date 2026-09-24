@@ -4,6 +4,7 @@ import QtQuick
 import QtQuick.Layouts
 import Caelestia.Config
 import qs.components
+import qs.components.controls
 import qs.components.images
 import qs.services
 
@@ -12,6 +13,10 @@ import qs.services
 // a wall of artwork, and a row with no art of its own falls back to an icon on a rounded
 // placeholder. The whole row is the button, and while the library is selecting it carries a
 // checkbox and toggles instead of playing.
+//
+// A track also carries its own two buttons: play it now, or put it on the end of the queue
+// behind whatever is playing. In the queue view the same row carries a grip it can be dragged
+// by, and a button to take it out of the queue or out of the history.
 Item {
     id: root
 
@@ -20,12 +25,23 @@ Item {
     // Whether the library is collecting tracks into a selection
     property bool selecting
     property bool selected
+    // Whether this row is a song in the queue view that can be dragged to reorder it
+    property bool reorderable
+    // ...and whether it can be taken out of the queue or out of the history
+    property bool removable
 
-    readonly property bool showingCover: root.item.cover !== "" && image.status !== Image.Error
+    // The queue view puts section headers through this row too, with none of a song's fields,
+    // so everything that reads one of them falls back to an empty value
+    readonly property bool showingCover: (root.item.cover ?? "") !== "" && image.status !== Image.Error
     // Only tracks can be queued, so a folder or an artist has nothing to tick
     readonly property bool selectable: root.selecting && root.item.kind === "track"
+    // The row's own actions only apply to something that can be played on its own
+    readonly property bool actionsShown: root.item.kind === "track" && !root.selecting && !root.reorderable && !root.removable
 
     signal clicked
+    signal playClicked
+    signal enqueueClicked
+    signal removeClicked
 
     implicitHeight: Math.max(cover.implicitHeight, layout.implicitHeight) + Tokens.padding.small * 2
 
@@ -36,12 +52,20 @@ Item {
         color: root.item.current ? Colours.palette.m3secondaryContainer : root.selected ? Qt.alpha(Colours.palette.m3primary, 0.16) : "transparent"
         radius: Tokens.rounding.medium
 
+        // Under the content rather than over it, so the row's own buttons get their click and
+        // everything else falls through to here - which is what plays the track
+        StateLayer {
+            id: layer
+
+            onClicked: root.clicked()
+        }
+
         RowLayout {
             id: layout
 
             anchors.fill: parent
             anchors.leftMargin: Tokens.padding.small
-            anchors.rightMargin: Tokens.padding.medium
+            anchors.rightMargin: Tokens.padding.small
             spacing: Tokens.spacing.medium
 
             StyledClippingRect {
@@ -58,7 +82,7 @@ Item {
 
                     anchors.fill: parent
                     visible: root.showingCover
-                    source: root.item.cover
+                    source: root.item.cover ?? ""
                 }
 
                 MaterialIcon {
@@ -76,7 +100,7 @@ Item {
 
                 StyledText {
                     Layout.fillWidth: true
-                    text: root.item.name
+                    text: root.item.name ?? ""
                     color: root.item.current ? Colours.palette.m3onSecondaryContainer : Colours.palette.m3onSurface
                     font: Tokens.font.body.small
                     elide: Text.ElideRight
@@ -84,8 +108,8 @@ Item {
 
                 StyledText {
                     Layout.fillWidth: true
-                    visible: root.item.subtitle !== ""
-                    text: root.item.subtitle
+                    visible: (root.item.subtitle ?? "") !== ""
+                    text: root.item.subtitle ?? ""
                     color: root.item.current ? Colours.palette.m3onSecondaryContainer : Colours.palette.m3outline
                     font: Tokens.font.label.small
                     elide: Text.ElideMiddle
@@ -94,7 +118,7 @@ Item {
 
             MaterialIcon {
                 Layout.alignment: Qt.AlignVCenter
-                visible: root.item.playing
+                visible: root.item.playing === true
                 text: "graphic_eq"
                 color: Colours.palette.m3primary
                 fontStyle: Tokens.font.icon.medium
@@ -107,10 +131,41 @@ Item {
                 color: root.selected ? Colours.palette.m3primary : Colours.palette.m3outline
                 fontStyle: Tokens.font.icon.medium
             }
-        }
 
-        StateLayer {
-            onClicked: root.clicked()
+            // Grip to drag the row by, up and down the queue
+            MaterialIcon {
+                Layout.alignment: Qt.AlignVCenter
+                visible: root.reorderable
+                text: "drag_indicator"
+                color: Colours.palette.m3outline
+                fontStyle: Tokens.font.icon.medium
+            }
+
+            // Out of the queue, or out of the history
+            IconButton {
+                Layout.alignment: Qt.AlignVCenter
+                visible: root.removable
+                icon: "delete"
+                type: IconButton.Text
+                onClicked: root.removeClicked()
+            }
+
+            // Play this one, or line it up behind what is already playing
+            IconButton {
+                Layout.alignment: Qt.AlignVCenter
+                visible: root.actionsShown
+                icon: "play_arrow"
+                type: IconButton.Text
+                onClicked: root.playClicked()
+            }
+
+            IconButton {
+                Layout.alignment: Qt.AlignVCenter
+                visible: root.actionsShown
+                icon: "playlist_add"
+                type: IconButton.Text
+                onClicked: root.enqueueClicked()
+            }
         }
     }
 }
