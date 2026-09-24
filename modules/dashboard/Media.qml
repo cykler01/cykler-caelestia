@@ -267,7 +267,7 @@ Item {
                                 }
 
                                 StyledText {
-                                    text: Tr.tr("Pick something from the library to play it here!")
+                                    text: Tr.tr("Pick something to play it here!")
                                     color: Colours.palette.m3onSurfaceVariant
                                     font: Tokens.font.body.large
                                 }
