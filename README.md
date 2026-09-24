@@ -172,6 +172,30 @@ the equalizer on points the default at it and turning it off puts the device tha
 before back. That is what makes it system-wide: streams that are already playing, browser audio
 included, move across with it, and the chain's own output stays wired to the real device.
 
+### Notification popout and gestures
+
+A 4-finger swipe on the trackpad opens a separate notification panel on the right edge: swipe
+**left to open** it, **right to close** it. It sits on its own blurred layer, so it looks blurrier
+than the rest of the shell without changing Hyprland's blur for any other window.
+
+There is nothing to set up. The shell registers the swipes with Hyprland itself each time it
+starts and after every Hyprland config reload, so a normal install is enough. It only does this
+when Hyprland is using its Lua config. Three fingers are left alone for workspace swiping.
+
+Both settings are in `shell.json`:
+
+```json
+"notifPopout": {
+    "gestures": true,
+    "gestureFingers": 4
+}
+```
+
+Set `gestures` to `false` to stop the shell registering them (they go away on the next Hyprland
+reload), for example if you already bind those swipes yourself. The popout can still be driven
+without a trackpad with `qs -c caelestia ipc call notifPopout open`, `close` or `toggle`, or by
+binding the `caelestia:notifPopoutOpen` / `caelestia:notifPopoutClose` global shortcuts.
+
 ## Feature requests
 
 Any feature requests are welcome - open an [issue](https://github.com/CYKLER01/cykler-caelestia/issues) and I will try to get onto them quickly.

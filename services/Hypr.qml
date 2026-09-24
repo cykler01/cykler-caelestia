@@ -4,6 +4,7 @@ import QtQuick
 import Quickshell
 import Quickshell.Hyprland
 import Quickshell.Io
+import Caelestia.Config
 import Caelestia.I18n
 import Caelestia.Services
 import qs.components.misc
@@ -109,9 +110,20 @@ Singleton {
         return ipc.tags?.some(tag => ignoredTags.includes(tag.replace(/\*$/, ""))) ?? false;
     }
 
+    // Trackpad gestures, registered here so they work without anyone editing their
+    // Hyprland config. Lua only: the shell has no known-good keyword form for these
+    function gestureConf(fingers: int, direction: string, shortcut: string): string {
+        return `eval hl.gesture({ fingers = ${fingers}, direction = "${direction}", action = function() hl.dispatch(hl.dsp.global("caelestia:${shortcut}")) end })`;
+    }
+
     function reloadDynamicConfs(): void {
         if (usingLua) {
-            extras.batchMessage(['eval hl.bind("Caps_Lock", hl.dsp.global("caelestia:refreshDevices"), { locked = true, non_consuming = true, ignore_mods = true, release = true })', 'eval hl.bind("Num_Lock", hl.dsp.global("caelestia:refreshDevices"), { locked = true, non_consuming = true, ignore_mods = true, release = true })']);
+            const confs = ['eval hl.bind("Caps_Lock", hl.dsp.global("caelestia:refreshDevices"), { locked = true, non_consuming = true, ignore_mods = true, release = true })', 'eval hl.bind("Num_Lock", hl.dsp.global("caelestia:refreshDevices"), { locked = true, non_consuming = true, ignore_mods = true, release = true })'];
+            if (GlobalConfig.notifPopout.gestures) {
+                const fingers = GlobalConfig.notifPopout.gestureFingers;
+                confs.push(gestureConf(fingers, "left", "notifPopoutOpen"), gestureConf(fingers, "right", "notifPopoutClose"));
+            }
+            extras.batchMessage(confs);
         } else {
             extras.batchMessage(["keyword bindlni ,Caps_Lock,global,caelestia:refreshDevices", "keyword bindlni ,Num_Lock,global,caelestia:refreshDevices"]);
         }

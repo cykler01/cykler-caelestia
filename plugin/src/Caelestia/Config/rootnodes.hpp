@@ -16,6 +16,7 @@
 #include "lockconfig.hpp"
 #include "nexusconfig.hpp"
 #include "notchconfig.hpp"
+#include "notifpopoutconfig.hpp"
 #include "notifsconfig.hpp"
 #include "osdconfig.hpp"
 #include "serviceconfig.hpp"
@@ -42,6 +43,7 @@ class ConfigRoot : public settings::RootNode {
     CONFIG_SUBOBJECT(LockConfig, lock)
     CONFIG_SUBOBJECT(NexusConfig, nexus)
     CONFIG_SUBOBJECT(NotchConfig, notch)
+    CONFIG_SUBOBJECT(NotifPopoutConfig, notifPopout)
     CONFIG_SUBOBJECT(NotifsConfig, notifs)
     CONFIG_SUBOBJECT(OsdConfig, osd)
     CONFIG_SUBOBJECT(ServiceConfig, services)

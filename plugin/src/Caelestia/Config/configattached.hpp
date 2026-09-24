@@ -24,6 +24,7 @@ class Config : public QQuickAttachedPropertyPropagator, public QQmlParserStatus 
     Q_PROPERTY(const caelestia::config::LockConfig* lock READ lock NOTIFY sourceChanged)
     Q_PROPERTY(const caelestia::config::NexusConfig* nexus READ nexus NOTIFY sourceChanged)
     Q_PROPERTY(const caelestia::config::NotchConfig* notch READ notch NOTIFY sourceChanged)
+    Q_PROPERTY(const caelestia::config::NotifPopoutConfig* notifPopout READ notifPopout NOTIFY sourceChanged)
     Q_PROPERTY(const caelestia::config::NotifsConfig* notifs READ notifs NOTIFY sourceChanged)
     Q_PROPERTY(const caelestia::config::OsdConfig* osd READ osd NOTIFY sourceChanged)
     Q_PROPERTY(const caelestia::config::ServiceConfig* services READ services NOTIFY sourceChanged)
@@ -48,6 +49,7 @@ public:
     [[nodiscard]] const LockConfig* lock() const;
     [[nodiscard]] const NexusConfig* nexus() const;
     [[nodiscard]] const NotchConfig* notch() const;
+    [[nodiscard]] const NotifPopoutConfig* notifPopout() const;
     [[nodiscard]] const NotifsConfig* notifs() const;
     [[nodiscard]] const OsdConfig* osd() const;
     [[nodiscard]] const ServiceConfig* services() const;
