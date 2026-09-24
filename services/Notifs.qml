@@ -30,6 +30,23 @@ Singleton {
         return false;
     }
 
+    // NOTE(fork): whether replaced notifications from this app are kept as separate messages
+    function keepsHistory(appName: string): bool {
+        if (!GlobalConfig.notifs.keepChatHistory)
+            return false;
+        const name = appName.toLowerCase();
+        return GlobalConfig.notifs.chatApps.some(app => name.includes(app.toLowerCase()));
+    }
+
+    // NOTE(fork): called when a chat app replaces `live` with a new message. Keeps the previous
+    // message as its own (non-popup) notification just below it, and moves `live` to the top
+    // since it now holds the newest message.
+    function keepReplaced(live: NotifData, previous: var): void {
+        const kept = notifComp.createObject(root, previous);
+        const rest = root.list.filter(n => n !== live);
+        root.list = [live, kept, ...rest];
+    }
+
     function shouldShowPopup(): bool {
         if (props.dnd || ShellState.anySidebarOpen())
             return false;

@@ -102,8 +102,9 @@ Item {
             Layout.preferredWidth: root.coverSize
             Layout.preferredHeight: root.coverSize
 
+            // Power Saver can pause audio capture; the bars then rest flat (see PowerSaving)
             ServiceRef {
-                service: Audio.cava
+                service: PowerSaving.pauseVisualisers ? null : Audio.cava
             }
 
             VisualiserBars {
@@ -118,7 +119,11 @@ Item {
                 // (see mirrored/singleRow in plugin/src/Caelestia/Components/visualiserbars.hpp)
                 mirrored: true
                 singleRow: true
-                values: root.cavaWarm ? root.sampleSpectrum(Audio.cava.values, root.barCount) : root.placeholderSpectrum(root.barCount)
+                values: {
+                    if (PowerSaving.pauseVisualisers)
+                        return Array(root.barCount).fill(0.2);
+                    return root.cavaWarm ? root.sampleSpectrum(Audio.cava.values, root.barCount) : root.placeholderSpectrum(root.barCount);
+                }
                 primaryColor: Colours.palette.m3primary
                 secondaryColor: Colours.palette.m3inversePrimary
                 rounding: Tokens.rounding.small
@@ -134,7 +139,7 @@ Item {
             }
 
             FrameAnimation {
-                running: !root.cavaWarm
+                running: !root.cavaWarm && !PowerSaving.pauseVisualisers
                 onTriggered: root.placeholderPhase += frameTime * 4
             }
         }

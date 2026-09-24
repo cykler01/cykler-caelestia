@@ -21,6 +21,15 @@ Scope {
         })
     property int currentThresholdIndex: -1
     property bool settingsModified: false
+    // Profile active before the shell first changed it, for "restore" (-1 = nothing saved)
+    property int originalProfile: -1
+    // Profile the shell just switched to itself, so onProfileChanged doesn't re-apply that
+    // profile's behaviour over the settings that asked for it (-1 = none pending)
+    property int expectedProfile: -1
+    // Whether the current plug state has been applied since the shell started
+    property bool initialised: false
+
+    readonly property list<string> effectKeys: ["disableAnimations", "disableBlur", "disableRounding", "disableShadows"]
 
     function handleBatteryWarnings(): void {
         const p = UPower.displayDevice.percentage * 100;
@@ -129,17 +138,105 @@ Scope {
         return lowestRate;
     }
 
-    function setPowerProfile(profileName): void {
-        const profileMap = {
-            "power-saver": PowerProfile.PowerSaver,
-            "balanced": PowerProfile.Balanced,
-            "performance": PowerProfile.Performance
+    function profileFromName(name: string): int {
+        if (name === "power-saver")
+            return PowerProfile.PowerSaver;
+        if (name === "balanced")
+            return PowerProfile.Balanced;
+        if (name === "performance")
+            return PowerProfile.Performance;
+        return -1;
+    }
+
+    function behaviourFor(profile: int): var {
+        const behaviours = GlobalConfig.general.battery.powerManagement.profileBehaviors;
+        if (profile === PowerProfile.PowerSaver)
+            return behaviours.powerSaver;
+        if (profile === PowerProfile.Performance)
+            return behaviours.performance;
+        if (profile === PowerProfile.Balanced)
+            return behaviours.balanced;
+        return null;
+    }
+
+    function hasValue(value: var): bool {
+        return value !== undefined && value !== null && value !== "" && value !== "unchanged";
+    }
+
+    // NOTE(fork): applies a set of power actions (plug state, threshold or profile behaviour).
+    // A profile switch also brings in that profile's behaviour, with the actions' own settings
+    // taking precedence, so switching profile never undoes what the actions asked for.
+    // Returns a short description of what was applied, for toasts.
+    function applyActions(actions: var, restoreFallback: int): list<string> {
+        let profile = -1;
+        if (actions.setPowerProfile === "restore")
+            profile = root.originalProfile >= 0 ? root.originalProfile : restoreFallback;
+        else
+            profile = root.profileFromName(actions.setPowerProfile ?? "");
+
+        const behaviour = profile >= 0 ? root.behaviourFor(profile) : null;
+        const effects = {};
+        for (const key of root.effectKeys)
+            effects[key] = root.hasValue(actions[key]) ? actions[key] : (behaviour && root.hasValue(behaviour[key]) ? behaviour[key] : "");
+
+        let rate = "";
+        if (root.hasValue(actions.setRefreshRate))
+            rate = actions.setRefreshRate;
+        else if (behaviour && root.hasValue(behaviour.setRefreshRate))
+            rate = behaviour.setRefreshRate;
+
+        if (profile >= 0 && PowerProfiles.profile !== profile) {
+            root.expectedProfile = profile;
+            PowerProfiles.profile = profile;
+        }
+
+        root.applyVisualEffects(effects);
+        if (rate)
+            root.applyRefreshRate(rate);
+
+        return root.describe(profile, rate, effects);
+    }
+
+    function describe(profile: int, rate: string, effects: var): list<string> {
+        const applied = [];
+        if (profile === PowerProfile.PowerSaver)
+            applied.push(Tr.tr("Power Saver"));
+        else if (profile === PowerProfile.Balanced)
+            applied.push(Tr.tr("Balanced"));
+        else if (profile === PowerProfile.Performance)
+            applied.push(Tr.tr("Performance"));
+
+        if (rate === "auto")
+            applied.push(Tr.tr("lowest Hz"));
+        else if (rate === "restore")
+            applied.push(Tr.tr("original Hz"));
+        else if (rate)
+            applied.push(`${rate}Hz`);
+
+        const names = {
+            disableAnimations: Tr.tr("animations"),
+            disableBlur: Tr.tr("blur"),
+            disableRounding: Tr.tr("rounding"),
+            disableShadows: Tr.tr("shadows")
         };
-        if (profileMap[profileName] !== undefined)
-            PowerProfiles.profile = profileMap[profileName];
+        for (const key of root.effectKeys) {
+            if (effects[key] === "disable")
+                // TRANSLATORS: %1 = a visual effect, e.g. "blur"
+                applied.push(Tr.tr("no %1").arg(names[key]));
+            else if (effects[key] === "enable")
+                // TRANSLATORS: %1 = a visual effect, e.g. "blur"
+                applied.push(Tr.tr("%1 on").arg(names[key]));
+        }
+        return applied;
+    }
+
+    function toastApplied(title: string, applied: list<string>): void {
+        if (GlobalConfig.utilities.toasts.lowPowerModeChanged && applied.length > 0)
+            Toaster.toast(title, Tr.tr("Applied: %1").arg(applied.join(", ")), "battery_saver");
     }
 
     function saveOriginalSettings(): void {
+        root.originalProfile = PowerProfiles.profile;
         for (const monitor of Hypr.monitors.values) {
             const data = monitor.lastIpcObject;
             if (data)
@@ -161,36 +258,19 @@ Scope {
         }
     }
 
-    function applyPowerSavingSettings(settings): void {
-        root.applyVisualEffects(settings);
+    function handleUnpluggedState(silent: bool): void {
+        const config = GlobalConfig.general.battery.powerManagement.onUnplugged;
 
-        if (settings.setRefreshRate !== null && settings.setRefreshRate !== undefined && settings.setRefreshRate !== "")
-            root.applyRefreshRate(settings.setRefreshRate);
-    }
+        if (!root.settingsModified)
+            root.saveOriginalSettings();
 
-    function handleUnpluggedState(): void {
-        const unpluggedConfig = GlobalConfig.general.battery.powerManagement.onUnplugged;
+        const applied = root.applyActions(config, -1);
+        root.settingsModified = true;
+        if (!silent)
+            root.toastApplied(Tr.tr("On battery"), applied);
 
-        const hasExplicitActions = (unpluggedConfig.setPowerProfile && unpluggedConfig.setPowerProfile !== "") || (unpluggedConfig.setRefreshRate && unpluggedConfig.setRefreshRate !== "") || unpluggedConfig.disableAnimations !== "" || unpluggedConfig.disableBlur !== "" || unpluggedConfig.disableRounding !== "" || unpluggedConfig.disableShadows !== "";
-
-        if (hasExplicitActions) {
-            if (!root.settingsModified)
-                root.saveOriginalSettings();
-
-            if (unpluggedConfig.setPowerProfile && unpluggedConfig.setPowerProfile !== "")
-                root.setPowerProfile(unpluggedConfig.setPowerProfile);
-
-            root.applyPowerSavingSettings({
-                disableAnimations: unpluggedConfig.disableAnimations,
-                disableBlur: unpluggedConfig.disableBlur,
-                disableRounding: unpluggedConfig.disableRounding,
-                disableShadows: unpluggedConfig.disableShadows,
-                setRefreshRate: (unpluggedConfig.setRefreshRate && unpluggedConfig.setRefreshRate !== "") ? unpluggedConfig.setRefreshRate : null
-            });
-            root.settingsModified = true;
-        }
-
-        if (unpluggedConfig.evaluateThresholds)
+        root.currentThresholdIndex = -1;
+        if (config.evaluateThresholds)
             root.evaluateThresholds();
     }
 
@@ -220,49 +300,42 @@ Scope {
         if (!root.settingsModified)
             root.saveOriginalSettings();
 
-        if (threshold.setPowerProfile && threshold.setPowerProfile !== "")
-            root.setPowerProfile(threshold.setPowerProfile);
-
-        root.applyPowerSavingSettings(threshold);
-
+        const applied = root.applyActions(threshold, -1);
         root.settingsModified = true;
-
-        if (GlobalConfig.utilities.toasts.lowPowerModeChanged) {
-            const actions = [];
-            if (threshold.setPowerProfile && threshold.setPowerProfile !== "")
-                actions.push("profile: " + threshold.setPowerProfile);
-            if (threshold.setRefreshRate && threshold.setRefreshRate !== "")
-                actions.push(threshold.setRefreshRate === "auto" ? "lowest Hz" : threshold.setRefreshRate + "Hz");
-            if (threshold.disableAnimations === "disable")
-                actions.push("no animations");
-            else if (threshold.disableAnimations === "enable")
-                actions.push("animations on");
-            if (threshold.disableBlur === "disable")
-                actions.push("no blur");
-            else if (threshold.disableBlur === "enable")
-                actions.push("blur on");
-
-            if (actions.length > 0)
-                Toaster.toast(Tr.tr("Battery saving active"), Tr.tr("Applied: %1").arg(actions.join(", ")), "battery_saver");
-        }
+        root.toastApplied(Tr.tr("Battery saving active"), applied);
     }
 
-    function handleChargingState(): void {
-        const config = GlobalConfig.general.battery.powerManagement.onCharging;
-
-        if (config.setPowerProfile === "restore")
-            PowerProfiles.profile = PowerProfile.Balanced;
-        else if (config.setPowerProfile && config.setPowerProfile !== "")
-            root.setPowerProfile(config.setPowerProfile);
-
-        if (config.setRefreshRate && config.setRefreshRate !== "" && config.setRefreshRate !== "unchanged")
-            root.applyRefreshRate(config.setRefreshRate);
-
-        root.applyVisualEffects(config);
+    // NOTE(fork): runs on every plug-in, not only after the shell changed something on unplug,
+    // so plugging in always gives the "When plugged in" settings
+    function handleChargingState(silent: bool): void {
+        const applied = root.applyActions(GlobalConfig.general.battery.powerManagement.onCharging, PowerProfile.Balanced);
 
         root.settingsModified = false;
+        root.originalProfile = -1;
         root.currentThresholdIndex = -1;
+        if (!silent)
+            root.toastApplied(Tr.tr("Plugged in"), applied);
     }
+
+    // NOTE(fork): applies the settings for the current plug state once the battery is known,
+    // so they hold after a shell restart instead of waiting for the next plug or unplug
+    function applyCurrentState(): void {
+        if (root.initialised || !root.powerManagementEnabled || !UPower.displayDevice.ready)
+            return;
+
+        root.initialised = true;
+        if (UPower.onBattery)
+            root.handleUnpluggedState(true);
+        else
+            root.handleChargingState(true);
+    }
+
+    onPowerManagementEnabledChanged: {
+        root.initialised = false;
+        startupTimer.restart();
+    }
+
+    Component.onCompleted: startupTimer.start()
 
     Connections {
         function onOnBatteryChanged(): void {
@@ -276,15 +349,15 @@ Scope {
 
                 // NOTE(fork): apply power saving settings on unplug
                 if (root.powerManagementEnabled)
-                    root.handleUnpluggedState();
+                    root.handleUnpluggedState(false);
             } else {
                 if (GlobalConfig.utilities.toasts.chargingChanged)
                     Toaster.toast(Tr.tr("Charger plugged in"), Tr.tr("Battery is charging"), "power");
                 root.lastPercentage = 100;
 
-                // NOTE(fork): restore settings on plug in
-                if (root.powerManagementEnabled && root.settingsModified)
-                    root.handleChargingState();
+                // NOTE(fork): apply the plugged-in settings
+                if (root.powerManagementEnabled)
+                    root.handleChargingState(false);
             }
         }
 
@@ -296,6 +369,7 @@ Scope {
             if (!UPower.displayDevice.ready)
                 return;
             root.handleBatteryWarnings();
+            startupTimer.restart();
         }
 
         target: UPower.displayDevice
@@ -311,62 +385,41 @@ Scope {
         target: UPower.displayDevice
     }
 
-    // NOTE(fork): react to power profile changes made outside the shell
+    // NOTE(fork): react to power profile changes made outside the shell (e.g. the bar's battery
+    // popout) by applying that profile's behaviour. Changes the shell made itself already
+    // included it, merged under the settings that asked for them, so they are skipped here.
     Connections {
         function onProfileChanged(): void {
-            if (!root.powerManagementEnabled)
+            const expected = root.expectedProfile;
+            root.expectedProfile = -1;
+            if (!root.powerManagementEnabled || PowerProfiles.profile === expected)
                 return;
 
-            const profileBehaviors = GlobalConfig.general.battery.powerManagement.profileBehaviors;
-            let behavior = null;
-            let profileName = "";
-
-            if (PowerProfiles.profile === PowerProfile.PowerSaver) {
-                behavior = profileBehaviors.powerSaver;
-                profileName = Tr.tr("Power Saver");
-            } else if (PowerProfiles.profile === PowerProfile.Balanced) {
-                behavior = profileBehaviors.balanced;
-                profileName = Tr.tr("Balanced");
-            } else if (PowerProfiles.profile === PowerProfile.Performance) {
-                behavior = profileBehaviors.performance;
-                profileName = Tr.tr("Performance");
-            }
-
-            if (!behavior)
+            const behaviour = root.behaviourFor(PowerProfiles.profile);
+            if (!behaviour)
                 return;
 
-            if (behavior.setRefreshRate && behavior.setRefreshRate !== "" && behavior.setRefreshRate !== "unchanged")
-                root.applyRefreshRate(behavior.setRefreshRate);
-
-            root.applyVisualEffects(behavior);
-
-            if (GlobalConfig.utilities.toasts.lowPowerModeChanged) {
-                const actions = [];
-                if (behavior.setRefreshRate && behavior.setRefreshRate !== "" && behavior.setRefreshRate !== "restore")
-                    actions.push(behavior.setRefreshRate === "auto" ? "lowest Hz" : behavior.setRefreshRate + "Hz");
-                if (behavior.disableAnimations === "disable")
-                    actions.push("no animations");
-                else if (behavior.disableAnimations === "enable")
-                    actions.push("animations on");
-                if (behavior.disableBlur === "disable")
-                    actions.push("no blur");
-                else if (behavior.disableBlur === "enable")
-                    actions.push("blur on");
-                if (behavior.disableRounding === "disable")
-                    actions.push("no rounding");
-                else if (behavior.disableRounding === "enable")
-                    actions.push("rounding on");
-                if (behavior.disableShadows === "disable")
-                    actions.push("no shadows");
-                else if (behavior.disableShadows === "enable")
-                    actions.push("shadows on");
-
-                if (actions.length > 0)
-                    Toaster.toast(Tr.tr("%1 profile").arg(profileName), Tr.tr("Applied: %1").arg(actions.join(", ")), "battery_saver");
-            }
+            const applied = root.applyActions({
+                setPowerProfile: "",
+                setRefreshRate: behaviour.setRefreshRate,
+                disableAnimations: behaviour.disableAnimations,
+                disableBlur: behaviour.disableBlur,
+                disableRounding: behaviour.disableRounding,
+                disableShadows: behaviour.disableShadows
+            }, -1);
+            root.toastApplied(root.describe(PowerProfiles.profile, "", {})[0] ?? "", applied);
         }
 
         target: PowerProfiles
+    }
+
+    // Gives Hyprland's monitor list a moment to load before the startup state is applied,
+    // since refresh rates are set per monitor
+    Timer {
+        id: startupTimer
+
+        interval: 1500
+        onTriggered: root.applyCurrentState()
     }
 
     Timer {

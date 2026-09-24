@@ -1,10 +1,14 @@
 #pragma once
 
+#include <qstringlist.h>
+
 #include "settings/objectnode.hpp"
 #include "common.hpp"
 #include "enums.hpp"
 
 namespace caelestia::config {
+
+using Qt::StringLiterals::operator""_s;
 
 class NotifsConfig : public settings::ObjectNode {
     CONFIG_NODE(NotifsConfig, settings::ObjectNode)
@@ -18,6 +22,23 @@ class NotifsConfig : public settings::ObjectNode {
     CONFIG_GLOBAL_PROPERTY(bool, actionOnClick, false)
     CONFIG_PROPERTY(int, groupPreviewNum, 3)
     CONFIG_PROPERTY(bool, openExpanded, false)
+    // Chat apps reuse one notification per conversation and replace it with each new message;
+    // for these apps the replaced messages are kept as their own notifications
+    CONFIG_GLOBAL_PROPERTY(bool, keepChatHistory, true)
+    CONFIG_GLOBAL_PROPERTY(QStringList, chatApps,
+        DEFAULT_ARG({
+            u"vesktop"_s,
+            u"discord"_s,
+            u"vencord"_s,
+            u"legcord"_s,
+            u"webcord"_s,
+            u"equibop"_s,
+            u"slack"_s,
+            u"signal"_s,
+            u"telegram"_s,
+            u"whatsapp"_s,
+            u"firefox"_s,
+        }))
 };
 
 } // namespace caelestia::config

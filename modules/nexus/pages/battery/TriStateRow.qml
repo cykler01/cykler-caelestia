@@ -3,12 +3,12 @@ pragma ComponentBehavior: Bound
 import QtQuick
 import QtQuick.Layouts
 import Caelestia.Config
+import Caelestia.I18n
 import qs.components
-import qs.components.controls
 import qs.services
 import qs.modules.nexus.common
 
-// A row with a three-state control: force-disable / unchanged / force-enable (fork feature)
+// A row with a three-state control: force off / keep as is / force on (fork feature)
 ConnectedRect {
     id: root
 
@@ -55,44 +55,23 @@ ConnectedRect {
             }
         }
 
-        Row {
-            spacing: Tokens.spacing.extraSmall / 2
-
-            IconButton {
-                id: disableButton
-
-                isRound: true
-                type: IconButton.Tonal
-                icon: "toggle_off"
-                inactiveColour: root.isDisable ? Colours.palette.m3error : Colours.tPalette.m3surfaceContainerHigh
-                inactiveOnColour: root.isDisable ? Colours.palette.m3onError : Colours.palette.m3onSurfaceVariant
-
-                onClicked: root.triStateValueChanged("disable")
-            }
-
-            IconButton {
-                id: unchangedButton
-
-                isRound: true
-                type: IconButton.Tonal
-                icon: "block"
-                inactiveColour: root.isUnchanged ? Colours.palette.m3primary : Colours.tPalette.m3surfaceContainerHigh
-                inactiveOnColour: root.isUnchanged ? Colours.palette.m3onPrimary : Colours.palette.m3onSurfaceVariant
-
-                onClicked: root.triStateValueChanged("")
-            }
-
-            IconButton {
-                id: enableButton
-
-                isRound: true
-                type: IconButton.Tonal
-                icon: "toggle_on"
-                inactiveColour: root.isEnable ? Colours.palette.m3primary : Colours.tPalette.m3surfaceContainerHigh
-                inactiveOnColour: root.isEnable ? Colours.palette.m3onPrimary : Colours.palette.m3onSurfaceVariant
-
-                onClicked: root.triStateValueChanged("enable")
-            }
+        SegmentedButtons {
+            value: root.isUnchanged ? "" : root.value
+            options: [
+                {
+                    text: Tr.trCtx("Off", "force a visual effect off"),
+                    value: "disable"
+                },
+                {
+                    text: Tr.trCtx("Keep", "leave a visual effect as it is"),
+                    value: ""
+                },
+                {
+                    text: Tr.trCtx("On", "force a visual effect on"),
+                    value: "enable"
+                }
+            ]
+            onPicked: v => root.triStateValueChanged(v)
         }
     }
 }

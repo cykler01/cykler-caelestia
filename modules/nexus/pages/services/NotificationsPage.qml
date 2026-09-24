@@ -69,6 +69,13 @@ PageBase {
         }
 
         ToggleRow {
+            text: Tr.tr("Keep every chat message")
+            subtext: Tr.tr("Chat apps like Discord replace a chat's notification with each new message; keep the earlier ones too")
+            checked: GlobalConfig.notifs.keepChatHistory
+            onToggled: GlobalConfig.notifs.keepChatHistory = checked
+        }
+
+        ToggleRow {
             text: Tr.tr("Open expanded")
             subtext: Tr.tr("Show notifications expanded by default")
             checked: GlobalConfig.notifs.openExpanded

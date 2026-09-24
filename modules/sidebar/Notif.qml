@@ -15,6 +15,8 @@ StyledRect {
     required property bool expanded
     required property ScreenState screenState
     property real cardOpacity: 1
+    property bool showImage
+    readonly property bool hasImage: showImage && (modelData?.image.length ?? 0) > 0
 
     readonly property StyledText body: (expandedContent.item as ExpandedBody)?.body ?? null
     readonly property real nonAnimHeight: expanded ? summary.implicitHeight + expandedContent.implicitHeight + expandedContent.anchors.topMargin + Tokens.padding.medium * 2 : summaryHeightMetrics.height
@@ -34,11 +36,12 @@ StyledRect {
 
         PropertyChanges {
             summary.anchors.margins: root.Tokens.padding.medium
+            avatar.anchors.margins: root.Tokens.padding.medium
             dummySummary.anchors.margins: root.Tokens.padding.medium
             compactBody.anchors.margins: root.Tokens.padding.medium
             timeStr.anchors.margins: root.Tokens.padding.medium
             expandedContent.anchors.margins: root.Tokens.padding.medium
-            summary.width: root.width - root.Tokens.padding.medium * 2 - timeStr.implicitWidth - root.Tokens.spacing.small
+            summary.width: root.width - root.Tokens.padding.medium * 2 - timeStr.implicitWidth - root.Tokens.spacing.small - root.avatarSpace
             summary.maximumLineCount: Number.MAX_SAFE_INTEGER
         }
     }
@@ -46,6 +49,30 @@ StyledRect {
     transitions: Transition {
         Anim {
             properties: "margins,width,maximumLineCount"
+        }
+    }
+
+    readonly property real avatarSpace: hasImage ? avatar.width + Tokens.spacing.small : 0
+
+    StyledClippingRect {
+        id: avatar
+
+        anchors.top: parent.top
+        anchors.left: parent.left
+
+        visible: root.hasImage
+        implicitWidth: root.hasImage ? summaryHeightMetrics.height : 0
+        implicitHeight: implicitWidth
+        radius: Tokens.rounding.full
+        color: "transparent"
+
+        Image {
+            anchors.fill: parent
+            source: root.hasImage ? Qt.resolvedUrl(root.modelData.image) : ""
+            fillMode: Image.PreserveAspectCrop
+            sourceSize.width: width * 2
+            sourceSize.height: height * 2
+            asynchronous: true
         }
     }
 
@@ -61,8 +88,9 @@ StyledRect {
 
         anchors.top: parent.top
         anchors.left: parent.left
+        anchors.leftMargin: root.avatarSpace + (root.expanded ? Tokens.padding.medium : 0)
 
-        width: parent.width
+        width: parent.width - root.avatarSpace
         text: root.modelData?.summary ?? ""
         color: root.modelData?.urgency === "critical" ? Colours.palette.m3onSecondaryContainer : Colours.palette.m3onSurface
         elide: Text.ElideRight
@@ -75,6 +103,7 @@ StyledRect {
 
         anchors.top: parent.top
         anchors.left: parent.left
+        anchors.leftMargin: root.avatarSpace + (root.expanded ? Tokens.padding.medium : 0)
 
         visible: false
         text: root.modelData?.summary ?? ""

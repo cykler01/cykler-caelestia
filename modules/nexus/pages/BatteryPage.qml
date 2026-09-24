@@ -16,24 +16,9 @@ PageBase {
     // NOTE(fork): thresholds are a QVariantList in config, mirrored into a local
     // JS model for editing and written back on every change
     property list<var> thresholds: [...GlobalConfig.general.battery.powerManagement.thresholds]
-    readonly property list<MenuItem> profileItems: [
-        MenuItem {
-            text: Tr.trCtx("Auto", "default power profile")
-            value: ""
-        },
-        MenuItem {
-            text: Tr.tr("Power Saver")
-            value: "power-saver"
-        },
-        MenuItem {
-            text: Tr.tr("Balanced")
-            value: "balanced"
-        },
-        MenuItem {
-            text: Tr.tr("Performance")
-            value: "performance"
-        }
-    ]
+    readonly property var pm: GlobalConfig.general.battery.powerManagement
+    // Which profile's behaviour the tabbed card is editing
+    property string behaviourTab: "powerSaver"
 
     function idleKind(entry: var): string {
         const action = entry.idleAction;
@@ -90,9 +75,235 @@ PageBase {
         width: root.cappedWidth
         spacing: Tokens.spacing.extraSmall / 2
 
+        PowerStatusCard {}
+
+        // General
+        SectionHeader {
+            text: Tr.tr("Power management")
+        }
+
+        ToggleRow {
+            first: true
+            text: Tr.tr("Automatic power management")
+            subtext: Tr.tr("Change profile and effects when plugging in, unplugging or running low")
+            checked: root.pm.enabled
+            onToggled: root.pm.enabled = checked
+        }
+
+        ToggleRow {
+            last: true
+            text: Tr.tr("Notify when settings change")
+            subtext: Tr.tr("Show what was applied after each automatic change")
+            checked: GlobalConfig.utilities.toasts.lowPowerModeChanged
+            onToggled: GlobalConfig.utilities.toasts.lowPowerModeChanged = checked
+        }
+
+        // Everything below only runs with automatic power management on
+        ColumnLayout {
+            Layout.fillWidth: true
+            spacing: Tokens.spacing.extraSmall / 2
+            enabled: root.pm.enabled
+            opacity: enabled ? 1 : 0.5
+
+            Behavior on opacity {
+                Anim {
+                    type: Anim.DefaultEffects
+                }
+            }
+
+            // Power Saver
+            SectionHeader {
+                text: Tr.tr("Power Saver")
+            }
+
+            ToggleRow {
+                first: true
+                text: Tr.tr("Pause the performance graph")
+                subtext: Tr.tr("Stop recording usage history; the dashboard shows the original cards")
+                checked: root.pm.pauseGraphInPowerSaver
+                onToggled: root.pm.pauseGraphInPowerSaver = checked
+            }
+
+            ToggleRow {
+                last: true
+                text: Tr.tr("Pause audio visualisers")
+                subtext: Tr.tr("Stop audio capture for the notch, dashboard and wallpaper visualisers")
+                checked: root.pm.pauseVisualisersInPowerSaver
+                onToggled: root.pm.pauseVisualisersInPowerSaver = checked
+            }
+
+            // Plugged in
+            SectionHeader {
+                text: Tr.tr("When plugged in")
+            }
+
+            PowerProfileSelector {
+                first: true
+                label: Tr.tr("Power profile")
+                subtext: Tr.tr("Previous goes back to the profile from before unplugging")
+                showRestore: true
+                showUnchanged: true
+                value: root.pm.onCharging.setPowerProfile
+                onProfileChanged: v => root.pm.onCharging.setPowerProfile = v
+            }
+
+            RefreshRateSelector {
+                label: Tr.tr("Refresh rate")
+                showRestore: true
+                showUnchanged: true
+                value: root.pm.onCharging.setRefreshRate
+                onRateChanged: v => root.pm.onCharging.setRefreshRate = v
+            }
+
+            EffectRows {
+                target: root.pm.onCharging
+                lastRow: true
+            }
+
+            // Unplugged
+            SectionHeader {
+                text: Tr.tr("On battery")
+            }
+
+            PowerProfileSelector {
+                first: true
+                label: Tr.tr("Power profile")
+                showUnchanged: true
+                value: root.pm.onUnplugged.setPowerProfile === "restore" ? "" : root.pm.onUnplugged.setPowerProfile
+                onProfileChanged: v => root.pm.onUnplugged.setPowerProfile = v
+            }
+
+            RefreshRateSelector {
+                label: Tr.tr("Refresh rate")
+                showUnchanged: true
+                value: root.pm.onUnplugged.setRefreshRate === "restore" ? "" : root.pm.onUnplugged.setRefreshRate
+                onRateChanged: v => root.pm.onUnplugged.setRefreshRate = v
+            }
+
+            EffectRows {
+                target: root.pm.onUnplugged
+            }
+
+            ToggleRow {
+                last: true
+                text: Tr.tr("Use battery level thresholds")
+                subtext: Tr.tr("Also apply the threshold actions below as the battery drains")
+                checked: root.pm.onUnplugged.evaluateThresholds
+                onToggled: root.pm.onUnplugged.evaluateThresholds = checked
+            }
+
+            // Thresholds
+            SectionHeader {
+                text: Tr.tr("Battery level thresholds")
+            }
+
+            StyledText {
+                Layout.fillWidth: true
+                Layout.bottomMargin: Tokens.spacing.small
+                text: Tr.tr("Actions applied automatically when the battery falls below a level, while on battery power")
+                color: Colours.palette.m3outline
+                font: Tokens.font.label.small
+                wrapMode: Text.WordWrap
+            }
+
+            Repeater {
+                model: root.thresholds
+
+                ThresholdCard {
+                    first: index === 0
+
+                    onThresholdChanged: newData => {
+                        const thresholds = [...root.thresholds];
+                        thresholds[index] = newData;
+                        root.thresholds = thresholds;
+                        root.saveThresholds();
+                    }
+                    onRemoveRequested: {
+                        const thresholds = [...root.thresholds];
+                        thresholds.splice(index, 1);
+                        root.thresholds = thresholds;
+                        root.saveThresholds();
+                    }
+                }
+            }
+
+            AddThresholdButton {
+                first: root.thresholds.length === 0
+                last: true
+
+                onClicked: {
+                    const thresholds = [...root.thresholds,
+                        {
+                            level: 50,
+                            setPowerProfile: "",
+                            setRefreshRate: "auto",
+                            disableAnimations: "",
+                            disableBlur: "",
+                            disableRounding: "",
+                            disableShadows: ""
+                        }
+                    ];
+                    root.thresholds = thresholds;
+                    root.saveThresholds();
+                }
+            }
+
+            // Power profile behaviours
+            SectionHeader {
+                text: Tr.tr("Profile behaviours")
+            }
+
+            StyledText {
+                Layout.fillWidth: true
+                Layout.bottomMargin: Tokens.spacing.small
+                text: Tr.tr("Applied whenever a profile is switched to. The plugged in, battery and threshold settings above take priority over these")
+                color: Colours.palette.m3outline
+                font: Tokens.font.label.small
+                wrapMode: Text.WordWrap
+            }
+
+            SegmentedButtons {
+                Layout.fillWidth: true
+                Layout.bottomMargin: Tokens.spacing.small
+                fillWidth: true
+                value: root.behaviourTab
+                options: [
+                    {
+                        text: Tr.tr("Power Saver"),
+                        icon: "energy_savings_leaf",
+                        value: "powerSaver"
+                    },
+                    {
+                        text: Tr.tr("Balanced"),
+                        icon: "balance",
+                        value: "balanced"
+                    },
+                    {
+                        text: Tr.tr("Performance"),
+                        icon: "speed",
+                        value: "performance"
+                    }
+                ]
+                onPicked: v => root.behaviourTab = v
+            }
+
+            RefreshRateSelector {
+                first: true
+                label: Tr.tr("Refresh rate")
+                showRestore: true
+                showUnchanged: true
+                value: root.pm.profileBehaviors[root.behaviourTab].setRefreshRate
+                onRateChanged: v => root.pm.profileBehaviors[root.behaviourTab].setRefreshRate = v
+            }
+
+            EffectRows {
+                target: root.pm.profileBehaviors[root.behaviourTab]
+                lastRow: true
+            }
+        }
+
         // Screen & lock
         SectionHeader {
-            first: true
             text: Tr.tr("Screen & lock")
         }
 
@@ -126,235 +337,45 @@ PageBase {
             onToggled: GlobalConfig.lock.enableSessionControls = checked
         }
 
-        // General
-        SectionHeader {
-            text: Tr.tr("Power management")
-        }
-
-        ToggleRow {
-            first: true
-            text: Tr.tr("Enable power management")
-            subtext: Tr.tr("Apply power-saving settings automatically")
-            checked: GlobalConfig.general.battery.powerManagement.enabled
-            onToggled: GlobalConfig.general.battery.powerManagement.enabled = checked
-        }
-
-        ToggleRow {
-            last: true
-            text: Tr.tr("Power change notifications")
-            subtext: Tr.tr("Notify when power-saving settings are applied")
-            checked: GlobalConfig.utilities.toasts.lowPowerModeChanged
-            onToggled: GlobalConfig.utilities.toasts.lowPowerModeChanged = checked
-        }
-
-        // Plugged in
-        SectionHeader {
-            text: Tr.tr("When plugged in")
-        }
-
-        SelectRow {
-            first: true
-            label: Tr.tr("Power profile")
-            menuItems: root.profileItems
-            active: root.profileItems.find(item => item.value === GlobalConfig.general.battery.powerManagement.onCharging.setPowerProfile) ?? root.profileItems[0]
-            onSelected: item => GlobalConfig.general.battery.powerManagement.onCharging.setPowerProfile = item.value
-        }
-
-        RefreshRateSelector {
-            label: Tr.tr("Refresh rate")
-            showRestore: true
-            showUnchanged: true
-            value: GlobalConfig.general.battery.powerManagement.onCharging.setRefreshRate
-            onRateChanged: newValue => GlobalConfig.general.battery.powerManagement.onCharging.setRefreshRate = newValue
-        }
-
-        TriStateRow {
-            label: Tr.tr("Animations")
-            value: GlobalConfig.general.battery.powerManagement.onCharging.disableAnimations
-            onTriStateValueChanged: newValue => GlobalConfig.general.battery.powerManagement.onCharging.disableAnimations = newValue
-        }
-
-        TriStateRow {
-            label: Tr.tr("Blur")
-            value: GlobalConfig.general.battery.powerManagement.onCharging.disableBlur
-            onTriStateValueChanged: newValue => GlobalConfig.general.battery.powerManagement.onCharging.disableBlur = newValue
-        }
-
-        TriStateRow {
-            label: Tr.tr("Rounding")
-            value: GlobalConfig.general.battery.powerManagement.onCharging.disableRounding
-            onTriStateValueChanged: newValue => GlobalConfig.general.battery.powerManagement.onCharging.disableRounding = newValue
-        }
-
-        TriStateRow {
-            last: true
-            label: Tr.tr("Shadows")
-            value: GlobalConfig.general.battery.powerManagement.onCharging.disableShadows
-            onTriStateValueChanged: newValue => GlobalConfig.general.battery.powerManagement.onCharging.disableShadows = newValue
-        }
-
-        // Unplugged
-        SectionHeader {
-            text: Tr.tr("On battery")
-        }
-
-        SelectRow {
-            first: true
-            label: Tr.tr("Power profile")
-            menuItems: root.profileItems
-            active: root.profileItems.find(item => item.value === GlobalConfig.general.battery.powerManagement.onUnplugged.setPowerProfile) ?? root.profileItems[0]
-            onSelected: item => GlobalConfig.general.battery.powerManagement.onUnplugged.setPowerProfile = item.value
-        }
-
-        RefreshRateSelector {
-            label: Tr.tr("Refresh rate")
-            showRestore: true
-            showUnchanged: true
-            value: GlobalConfig.general.battery.powerManagement.onUnplugged.setRefreshRate
-            onRateChanged: newValue => GlobalConfig.general.battery.powerManagement.onUnplugged.setRefreshRate = newValue
-        }
-
-        TriStateRow {
-            label: Tr.tr("Animations")
-            value: GlobalConfig.general.battery.powerManagement.onUnplugged.disableAnimations
-            onTriStateValueChanged: newValue => GlobalConfig.general.battery.powerManagement.onUnplugged.disableAnimations = newValue
-        }
-
-        TriStateRow {
-            label: Tr.tr("Blur")
-            value: GlobalConfig.general.battery.powerManagement.onUnplugged.disableBlur
-            onTriStateValueChanged: newValue => GlobalConfig.general.battery.powerManagement.onUnplugged.disableBlur = newValue
-        }
-
-        TriStateRow {
-            label: Tr.tr("Rounding")
-            value: GlobalConfig.general.battery.powerManagement.onUnplugged.disableRounding
-            onTriStateValueChanged: newValue => GlobalConfig.general.battery.powerManagement.onUnplugged.disableRounding = newValue
-        }
-
-        TriStateRow {
-            label: Tr.tr("Shadows")
-            value: GlobalConfig.general.battery.powerManagement.onUnplugged.disableShadows
-            onTriStateValueChanged: newValue => GlobalConfig.general.battery.powerManagement.onUnplugged.disableShadows = newValue
-        }
-
-        ToggleRow {
-            last: true
-            text: Tr.tr("Evaluate battery thresholds")
-            subtext: Tr.tr("Also apply the threshold actions below")
-            checked: GlobalConfig.general.battery.powerManagement.onUnplugged.evaluateThresholds
-            onToggled: GlobalConfig.general.battery.powerManagement.onUnplugged.evaluateThresholds = checked
-        }
-
-        // Thresholds
-        SectionHeader {
-            text: Tr.tr("Battery level thresholds")
-        }
-
-        StyledText {
-            Layout.fillWidth: true
-            text: Tr.tr("Actions to apply automatically when the battery falls below a level, while on battery power")
-            color: Colours.palette.m3outline
-            font: Tokens.font.label.small
-            wrapMode: Text.WordWrap
-        }
-
-        Repeater {
-            model: root.thresholds
-
-            ThresholdCard {
-                first: index === 0
-
-                onThresholdChanged: newData => {
-                    const thresholds = [...root.thresholds];
-                    thresholds[index] = newData;
-                    root.thresholds = thresholds;
-                    root.saveThresholds();
-                }
-                onRemoveRequested: {
-                    const thresholds = [...root.thresholds];
-                    thresholds.splice(index, 1);
-                    root.thresholds = thresholds;
-                    root.saveThresholds();
-                }
-            }
-        }
-
-        AddThresholdButton {
-            first: root.thresholds.length === 0
-            last: true
-
-            onClicked: {
-                const thresholds = [...root.thresholds,
-                    {
-                        level: 50,
-                        setPowerProfile: "",
-                        setRefreshRate: "auto",
-                        disableAnimations: "",
-                        disableBlur: "",
-                        disableRounding: "",
-                        disableShadows: ""
-                    }
-                ];
-                root.thresholds = thresholds;
-                root.saveThresholds();
-            }
-        }
-
-        // Power profile behaviors
-        SectionHeader {
-            text: Tr.tr("Power profile behaviors")
-        }
-
-        StyledText {
-            Layout.fillWidth: true
-            text: Tr.tr("Hyprland settings applied while each power profile is active")
-            color: Colours.palette.m3outline
-            font: Tokens.font.label.small
-            wrapMode: Text.WordWrap
-        }
-
-        RowLayout {
-            Layout.fillWidth: true
-            spacing: Tokens.spacing.extraSmall / 2
-
-            ProfileBehaviorCard {
-                Layout.fillWidth: true
-                first: true
-                last: true
-                profileName: Tr.tr("Power Saver")
-                behavior: GlobalConfig.general.battery.powerManagement.profileBehaviors.powerSaver
-            }
-
-            ProfileBehaviorCard {
-                Layout.fillWidth: true
-                first: true
-                last: true
-                profileName: Tr.tr("Balanced")
-                behavior: GlobalConfig.general.battery.powerManagement.profileBehaviors.balanced
-            }
-        }
-
-        RowLayout {
-            Layout.fillWidth: true
-            spacing: Tokens.spacing.extraSmall / 2
-
-            ProfileBehaviorCard {
-                Layout.fillWidth: true
-                first: true
-                last: true
-                profileName: Tr.tr("Performance")
-                behavior: GlobalConfig.general.battery.powerManagement.profileBehaviors.performance
-            }
-
-            Item {
-                Layout.fillWidth: true
-            }
-        }
-
         Item {
             Layout.fillHeight: true
             Layout.fillWidth: true
+        }
+    }
+
+    // The four visual effect rows shared by the plug states and profile behaviours
+    component EffectRows: ColumnLayout {
+        id: effects
+
+        required property var target
+        property bool lastRow
+
+        Layout.fillWidth: true
+        spacing: Tokens.spacing.extraSmall / 2
+
+        TriStateRow {
+            label: Tr.tr("Animations")
+            value: effects.target.disableAnimations
+            onTriStateValueChanged: v => effects.target.disableAnimations = v
+        }
+
+        TriStateRow {
+            label: Tr.tr("Blur")
+            value: effects.target.disableBlur
+            onTriStateValueChanged: v => effects.target.disableBlur = v
+        }
+
+        TriStateRow {
+            label: Tr.tr("Rounding")
+            value: effects.target.disableRounding
+            onTriStateValueChanged: v => effects.target.disableRounding = v
+        }
+
+        TriStateRow {
+            last: effects.lastRow
+            label: Tr.tr("Shadows")
+            value: effects.target.disableShadows
+            onTriStateValueChanged: v => effects.target.disableShadows = v
         }
     }
 }

@@ -53,6 +53,10 @@ QtObject {
     property bool hasActionIcons
     property list<var> actions
 
+    // NOTE(fork): set while a replacement's changes are arriving, so a message is only kept once
+    // even though its summary, body and image change signals come in separately
+    property bool replacing
+
     readonly property bool hasFullscreen: {
         const monitor = Hypr.focusedMonitor;
         const specialName = monitor?.lastIpcObject.specialWorkspace?.name;
@@ -129,10 +133,12 @@ QtObject {
         }
 
         function onSummaryChanged(): void {
+            notif.beginReplace();
             notif.summary = notif.notification.summary;
         }
 
         function onBodyChanged(): void {
+            notif.beginReplace();
             notif.body = notif.notification.body;
         }
 
@@ -145,6 +151,7 @@ QtObject {
         }
 
         function onImageChanged(): void {
+            notif.beginReplace();
             notif.image = notif.notification.image;
             notif.maybeTriggerDummyImageLoader();
         }
@@ -180,6 +187,39 @@ QtObject {
         }
 
         target: notif.notification
+    }
+
+    // NOTE(fork): a chat app replacing this notification with a new message. Snapshot the old
+    // message before any field changes, then once every change has arrived keep the snapshot as
+    // its own notification and show this one again as a new message.
+    function beginReplace(): void {
+        if (replacing || closed || !Notifs.keepsHistory(appName))
+            return;
+
+        replacing = true;
+        const previous = {
+            time: time,
+            summary: summary,
+            body: body,
+            appIcon: appIcon,
+            appName: appName,
+            // An unsaved image:// pixmap belongs to the live notification and goes with it
+            image: image.startsWith(Paths.notifimagecache) || !image.startsWith("image://") ? image : "",
+            urgency: urgency,
+            expireTimeout: expireTimeout
+        };
+
+        Qt.callLater(() => {
+            replacing = false;
+            if (previous.summary === summary && previous.body === body)
+                return; // Only the image changed, e.g. an avatar finished loading
+
+            Notifs.keepReplaced(notif, previous);
+            time = new Date();
+            updateTimeStr();
+            popup = Notifs.shouldShowPopup();
+            timer.restart();
+        });
     }
 
     function updateTimeStr(): void {

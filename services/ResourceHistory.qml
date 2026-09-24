@@ -8,11 +8,11 @@ import qs.services
 
 // Samples CPU, GPU, memory and network usage in the background for the dashboard's
 // performance graph, so the graph already has recent history when the dashboard opens.
-// Only runs while Graph view is enabled in the dashboard settings.
+// Only runs while Graph view is enabled in the dashboard settings, and pauses in Power Saver.
 Singleton {
     id: root
 
-    readonly property bool enabled: GlobalConfig.dashboard.performance.graphView
+    readonly property bool enabled: GlobalConfig.dashboard.performance.graphView && !PowerSaving.pauseGraph
     readonly property int interval: GlobalConfig.dashboard.resourceUpdateInterval
     readonly property int historySeconds: 120
     readonly property int capacity: Math.ceil(historySeconds * 1000 / interval)

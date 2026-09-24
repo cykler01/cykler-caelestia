@@ -19,14 +19,14 @@ SelectRow {
 
         if (root.showRestore)
             items.push(profileComp.createObject(root, {
-                text: Tr.tr("Restore"),
+                text: Tr.trCtx("Previous", "restore the setting from before the shell changed it"),
                 icon: "refresh",
                 value: "restore"
             }));
 
         if (root.showUnchanged)
             items.push(profileComp.createObject(root, {
-                text: Tr.tr("Unchanged"),
+                text: Tr.trCtx("Keep current", "leave the setting unchanged"),
                 icon: "block",
                 value: ""
             }));

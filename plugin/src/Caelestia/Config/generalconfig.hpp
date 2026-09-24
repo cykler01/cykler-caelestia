@@ -97,6 +97,9 @@ class GeneralPowerManagement : public settings::ObjectNode {
     CONFIG_NODE(GeneralPowerManagement, settings::ObjectNode)
 
     CONFIG_GLOBAL_PROPERTY(bool, enabled, false)
+    // Shell features paused while the Power Saver profile is active
+    CONFIG_GLOBAL_PROPERTY(bool, pauseGraphInPowerSaver, true)
+    CONFIG_GLOBAL_PROPERTY(bool, pauseVisualisersInPowerSaver, true)
     CONFIG_GLOBAL_PROPERTY(QVariantList, thresholds, {})
     CONFIG_GLOBAL_SUBOBJECT(GeneralChargingBehavior, onCharging)
     CONFIG_GLOBAL_SUBOBJECT(GeneralUnpluggedBehavior, onUnplugged)
