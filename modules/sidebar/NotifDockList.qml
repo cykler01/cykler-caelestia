@@ -13,6 +13,7 @@ LazyListView {
     required property Props props
     required property Flickable container
     required property ScreenState screenState
+    property real cardOpacity: 1
 
     anchors.left: parent?.left
     anchors.right: parent?.right
@@ -123,6 +124,7 @@ LazyListView {
                 props: root.props
                 container: root.container
                 screenState: root.screenState
+                cardOpacity: root.cardOpacity
             }
 
             Behavior on y {

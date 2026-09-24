@@ -14,6 +14,7 @@ StyledRect {
     required property Props props
     required property bool expanded
     required property ScreenState screenState
+    property real cardOpacity: 1
 
     readonly property StyledText body: (expandedContent.item as ExpandedBody)?.body ?? null
     readonly property real nonAnimHeight: expanded ? summary.implicitHeight + expandedContent.implicitHeight + expandedContent.anchors.topMargin + Tokens.padding.medium * 2 : summaryHeightMetrics.height
@@ -23,7 +24,7 @@ StyledRect {
     radius: Tokens.rounding.medium
     color: {
         const c = root.modelData?.urgency === "critical" ? Colours.palette.m3secondaryContainer : Colours.layer(Colours.palette.m3surfaceContainerHigh, 2);
-        return expanded ? c : Qt.alpha(c, 0);
+        return expanded ? Qt.alpha(c, c.a * root.cardOpacity) : Qt.alpha(c, 0);
     }
 
     state: expanded ? "expanded" : ""

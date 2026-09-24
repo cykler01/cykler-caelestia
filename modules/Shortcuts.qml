@@ -85,6 +85,25 @@ Scope {
     // qmllint disable unresolved-type
     CustomShortcut {
         // qmllint enable unresolved-type
+        name: "notifPopoutOpen"
+        description: "Open the notification popout"
+        onPressed: {
+            if (!root.hasFullscreen)
+                ShellState.forActive().notifPopout = true;
+        }
+    }
+
+    // qmllint disable unresolved-type
+    CustomShortcut {
+        // qmllint enable unresolved-type
+        name: "notifPopoutClose"
+        description: "Close the notification popout"
+        onPressed: ShellState.forActive().notifPopout = false
+    }
+
+    // qmllint disable unresolved-type
+    CustomShortcut {
+        // qmllint enable unresolved-type
         name: "sidebar"
         description: "Toggle sidebar"
         onPressed: {
