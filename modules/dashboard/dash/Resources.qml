@@ -47,6 +47,7 @@ Item {
         }
 
         Resource {
+            visible: Config.dashboard.performance.showStorage
             icon: "hard_disk"
             value: Storage.percentage
             fgColour: Colours.palette.m3secondary
