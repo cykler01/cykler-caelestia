@@ -18,6 +18,52 @@ Singleton {
 
     // Every track under the music folder, searched over by the UI
     readonly property list<FileSystemEntry> library: allTracks.entries
+
+    // Artist/title/album, read out of the files themselves by taglib through MusicTags. Only
+    // read when something asks for them - the artist grouping and the search - so a session
+    // that never opens the library never pays for the scan.
+    readonly property var tags: MusicTags.tags
+    readonly property bool tagsScanning: MusicTags.scanning
+    property bool tagsWanted
+
+    // The library split into one playlist per artist, sorted by name with the tracks that
+    // carry no artist tag last and each playlist's own tracks in title order. Reads root.tags,
+    // so it fills in as soon as the scan lands.
+    readonly property var artistPlaylists: {
+        const tags = root.tags;
+        const entries = root.library;
+        const groups = new Map();
+
+        for (let i = 0; i < entries.length; i++) {
+            const artist = (tags[entries[i].path]?.artist ?? "").trim();
+            let group = groups.get(artist);
+            if (!group) {
+                group = { name: artist, tracks: [] };
+                groups.set(artist, group);
+            }
+            group.tracks.push(entries[i]);
+        }
+
+        const playlists = Array.from(groups.values());
+        playlists.sort((a, b) => {
+            // The untagged ones are a pile rather than an artist, so they go last
+            if (!a.name !== !b.name)
+                return a.name ? -1 : 1;
+            return a.name.localeCompare(b.name);
+        });
+        for (const playlist of playlists)
+            playlist.tracks.sort((a, b) => root.titleFor(a).localeCompare(root.titleFor(b)));
+        return playlists;
+    }
+
+    // Watched so a change on disk re-reads the tags once something has asked for them
+    readonly property int librarySize: root.library.length
+
+    onLibrarySizeChanged: {
+        if (root.tagsWanted)
+            root.readTags();
+    }
+
     // The folder currently being browsed
     readonly property list<FileSystemEntry> subDirs: browseDirs.entries
     readonly property list<FileSystemEntry> folderTracks: browseTracks.entries
@@ -177,6 +223,40 @@ Singleton {
         if (collage.length === 0)
             return [];
         return collage.length >= 4 ? collage : collage.slice(0, 1);
+    }
+
+    // A track's title, falling back to its file name so a row always has something to show
+    function titleFor(entry: FileSystemEntry): string {
+        return MusicTags.titleOf(entry.path) || entry.baseName;
+    }
+
+    function artistFor(entry: FileSystemEntry): string {
+        return MusicTags.artistOf(entry.path);
+    }
+
+    // The one image to show beside an entry: the track's own art, then whatever its folder has
+    function coverForEntry(entry: FileSystemEntry): string {
+        const own = root.coverFor(entry.parentDir, entry.baseName);
+        if (own)
+            return own;
+
+        const covers = root.folderCoversFor(entry.parentDir);
+        return covers.length > 0 ? covers[0] : "";
+    }
+
+    // Reads every track's tags. Cheap to call as often as you like: asking for a set of files
+    // that has already been read does nothing at all.
+    function ensureTags(): void {
+        root.tagsWanted = true;
+        root.readTags();
+    }
+
+    function readTags(): void {
+        const paths = [];
+        const entries = root.library;
+        for (let i = 0; i < entries.length; i++)
+            paths.push(entries[i].path);
+        MusicTags.scan(paths);
     }
 
     function playQueue(paths: var, index: int): void {

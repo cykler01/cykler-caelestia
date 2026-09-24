@@ -33,7 +33,9 @@ StyledWindow {
     implicitWidth: contentItem.Tokens.sizes.sidebar.width + gap
     WlrLayershell.exclusionMode: ExclusionMode.Ignore
     WlrLayershell.layer: WlrLayer.Top
-    WlrLayershell.keyboardFocus: WlrKeyboardFocus.None
+    // The media library tab has a search field, so that tab has to be able to take the
+    // keyboard; the notification dock needs nothing beyond the mouse
+    WlrLayershell.keyboardFocus: root.open && root.screenState.notifPopoutTab === 1 ? WlrKeyboardFocus.OnDemand : WlrKeyboardFocus.None
 
     anchors.top: true
     anchors.bottom: true

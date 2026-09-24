@@ -104,6 +104,26 @@ Scope {
     // qmllint disable unresolved-type
     CustomShortcut {
         // qmllint enable unresolved-type
+        // What the popout's left swipe does: opening it the first time, then moving
+        // between its tabs on every swipe after that, since a gesture can only carry
+        // one action
+        name: "notifPopoutOpenOrNextTab"
+        description: "Open the notification popout, or switch it to its next tab"
+        onPressed: {
+            const screenState = ShellState.forActive();
+            if (!screenState.notifPopout) {
+                screenState.notifPopout = true;
+                return;
+            }
+
+            // Notifications and the media library, so the next tab is the other one
+            screenState.notifPopoutTab = screenState.notifPopoutTab === 0 ? 1 : 0;
+        }
+    }
+
+    // qmllint disable unresolved-type
+    CustomShortcut {
+        // qmllint enable unresolved-type
         name: "overviewOpen"
         description: "Open the overview"
         onPressed: {

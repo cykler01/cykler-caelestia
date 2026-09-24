@@ -21,7 +21,7 @@ This is my take on the Caelestia shell - upstream's desktop shell with my own fe
 | Game mode | Derived from animation state | Fixed false-trigger; also sets flat mouse accel |
 | Input configuration | Hand-edited Hyprland config | Mouse, scroll and touchpad settings in Nexus |
 | Launcher | Standard actions | Adds OCR (`>ocr`) and Google Lens (`>lens`) region-capture actions |
-| Music player | External players only | In-shell local music player in the dashboard media tab |
+| Music player | External players only | In-shell local music player; library browser in the dashboard media tab and the notification popout, grouped by folder or by artist |
 | To-do list | Fuzzel script in the dotfiles | `>todo` list in the launcher |
 | Window overview | --- | 4-finger swipe up or the top-left hot corner shows every workspace and its windows, click to jump |
 
@@ -124,17 +124,23 @@ This is my take on the Caelestia shell - upstream's desktop shell with my own fe
     straight into the running node, so a tweak is audible immediately, and there are presets for
     different kinds of music (rock, pop, jazz, classical, electronic, hip hop, bass boost,
     vocal, loudness) alongside flat. The curve and preset are remembered between sessions.
--   **Collapsible library** — the library is a drawer under the player, sitting clear of it
-    and growing the tab rather than squeezing the player, and it opens by itself when there is
-    nothing to control. It browses the music
-    folder as a cover gallery, like the wallpaper picker does: folders first, each named under
-    its rounded cover (hovering a name that doesn't fit shows it in full), and opening one
-    shows its tracks the same way. A folder with no cover
-    image of its own shows a collage of its first few tracks' art instead, and anything with
-    no art at all falls back to a rounded folder or music icon. Typing in the search box
-    switches to a flat gallery of every track found under the music folder, and searching
-    matches the whole path, so an album name finds its tracks too. The dashboard now takes
-    keyboard focus on demand, so that search box can actually be typed into.
+-   **Music library** — a list of the music folder, as a drawer under the player in the
+    dashboard and as a tab in the notification popout, and it opens by itself when there is
+    nothing to control. Every row carries that entry's cover art beside the name: a folder's
+    own cover, a track's own art, and an icon on a rounded placeholder when there is none.
+    Folders show how many tracks they hold, the track that is playing is marked, and playing
+    one queues everything else on the list behind it, so a folder plays through instead of
+    stopping after a single song.
+-   **By folder or by artist** — the two buttons next to the breadcrumb switch between the
+    folders as they are on disk and the library sorted into one playlist per artist. Artists
+    come from the files' own tags, read by TagLib in the background, and only when something
+    asks for them, so a session that never opens the library never pays for the scan. A track
+    with no artist tag is listed under **No artist** rather than dropped.
+-   **Search that knows artists** — the search box matches titles, artists and albums across
+    the whole library as well as paths, so an artist brings up everything by them and a folder
+    or album name still finds its tracks. The dashboard now takes keyboard focus on demand,
+    and so does the popout while the library tab is up, so the field can actually be typed
+    into.
 -   **Cover art** — art embedded in the track is shown on the cover next to the controls,
     falling back to an image named after the track (what yt-dlp leaves behind, since opus
     cannot hold one) and then to a `cover`, `folder` or `album` image in the track's folder.
@@ -175,9 +181,12 @@ included, move across with it, and the chain's own output stays wired to the rea
 
 ### Notification popout and gestures
 
-A 4-finger swipe on the trackpad opens a separate notification panel on the right edge: swipe
-**left to open** it, **right to close** it. It sits on its own blurred layer, so it looks blurrier
-than the rest of the shell without changing Hyprland's blur for any other window.
+A 4-finger swipe on the trackpad opens a separate panel on the right edge, with two tabs: the
+notification dock and a browser for the local music library. Swipe **left** to open it, swipe
+**left** again to move between the two tabs, and **right to close** it whichever tab it is on.
+The tab you last looked at is remembered, so reopening the popout comes back to the music library
+if that is where you left it. The panel sits on its own blurred layer, so it looks blurrier than
+the rest of the shell without changing Hyprland's blur for any other window.
 
 There is nothing to set up. The shell registers the swipes with Hyprland itself each time it
 starts and after every Hyprland config reload, so a normal install is enough. It only does this
@@ -196,6 +205,12 @@ Set `gestures` to `false` to stop the shell registering them (they go away on th
 reload), for example if you already bind those swipes yourself. The popout can still be driven
 without a trackpad with `qs -c caelestia ipc call notifPopout open`, `close` or `toggle`, or by
 binding the `caelestia:notifPopoutOpen` / `caelestia:notifPopoutClose` global shortcuts.
+`caelestia:notifPopoutOpenOrNextTab` is the one the left swipe uses: it opens the popout when it
+is closed and moves to the other tab when it is already open.
+
+The music library tab browses the same folder the dashboard's Media tab reads, as a list of
+folders, artists and tracks with a search field, and clicking a track plays it. It is only built
+the first time you open that tab, so the notification side stays as cheap to open as it was.
 
 ### Window overview
 
@@ -494,7 +509,7 @@ Flags:
  
 -   `glibc`, `gcc-libs` (base, usually already installed)
 -   `ddcutil`, `brightnessctl`
--   `networkmanager`, `lm_sensors`, `aubio`, `libpipewire`, `libqalculate`, `power-profiles-daemon`
+-   `networkmanager`, `lm_sensors`, `aubio`, `libpipewire`, `libqalculate`, `taglib`, `power-profiles-daemon`
 -   `qt6-base`, `qt6-declarative`, `qt6-imageformats`, `qt6-multimedia`
 -   `swappy`, `fish`, `bash`, `grim`, `slurp`, `tesseract`, `wl-clipboard`, `libnotify`, `curl`, `jq`, `xdg-utils`
 -   Build deps: `git`, `cmake`, `ninja`, `qt6-shadertools`

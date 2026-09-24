@@ -6,65 +6,91 @@ import Caelestia.Config
 import Caelestia.I18n
 import Caelestia.Models
 import qs.components
+import qs.components.containers
 import qs.components.controls
 import qs.services
 
-// NOTE(fork): the media tab's library drawer. Browsing shows the folders under the music
-// folder as a cover gallery, and opening one shows its tracks the same way, so a file can
-// always be picked without leaving the dashboard.
+// NOTE(fork): the media library. Browsing lists the folders under the music folder, or - with
+// the artist grouping on - one playlist per artist the tracks are tagged with, and every row
+// carries that entry's cover art beside the name. Searching reads titles, artists and albums
+// over the whole library as well as paths, so an artist brings up everything by them. Lists
+// rather than a cover gallery, since what this mostly gets opened in is the sidebar.
 StyledClippingRect {
     id: root
 
+    // Grouping: the folders on disk, or the artists the tracks are tagged with
+    property bool byArtist
+    // The artist whose playlist is open, empty at the list of artists
+    property string artistFilter
+
     readonly property string query: search.text.trim().toLowerCase()
     readonly property bool searching: root.query.length > 0
-    // Covers keep this size instead of being stretched across the drawer, so a folder of a few
-    // entries doesn't end up with posters. It works out to six per row at the default tab width.
-    readonly property real tileTarget: 130
-    readonly property real gap: Tokens.spacing.medium
-    readonly property int maxColumns: Math.max(1, Math.floor(gridArea.width / (root.tileTarget + root.gap)))
-    // Never more columns than there are entries to fill them, so a folder holding five tracks lays
-    // those five out rather than leaving the sixth column empty
-    readonly property int columns: Math.max(1, Math.min(root.maxColumns, root.items.length))
-    // The grid packs each row from the cell width, so the cell is the cover plus the gap to its
-    // neighbour. Spreading the columns over the drawer widens the cells, and the covers keep their
-    // size through it - only the gap grows, and only up to twice the design gap, so a wide drawer
-    // doesn't end up with a couple of covers marooned on their own. A row narrower than the drawer
-    // is centred by the grid being only as wide as its columns.
-    readonly property real cellWidth: gridArea.width > 0 ? Math.min(Math.floor(gridArea.width / root.columns), root.tileTarget + 2 * root.gap) : root.tileTarget + root.gap
-    readonly property real tileSize: Math.max(1, Math.min(root.tileTarget, root.cellWidth - root.gap))
-    // One row of cells: the cover, the name under it, and the subtitle that only searching shows,
-    // plus the space that keeps the rows apart. The label heights are measured off the components
-    // the tiles draw the labels with: a TextMetrics without any text set reports no height at all,
-    // which left the labels sitting on the row of covers underneath.
-    readonly property real cellHeight: root.tileSize + Tokens.spacing.extraSmall + nameLabelMetrics.implicitHeight + (root.searching ? Tokens.spacing.extraSmall + subtitleLabelMetrics.implicitHeight : 0) + Tokens.spacing.medium
-    readonly property string title: Music.relativeDir ? Music.relativeDir.split("/").join(" › ") : Tr.tr("Music")
-    readonly property var browseItems: {
-        const items = [];
+    // Read here so every list below rebuilds once the tag scan lands. A few hundred files is
+    // a fraction of a second, so the artist side is only ever briefly empty.
+    readonly property var tags: Music.tags
+    readonly property bool readingTags: Music.tagsScanning
+
+    // Folders and artists both list their contents, so both navigate the same way
+    readonly property bool atGroupRoot: root.byArtist ? root.artistFilter === "" : Music.atRoot
+    readonly property string title: {
+        if (root.searching)
+            return Tr.tr("Search results");
+        if (root.byArtist)
+            return root.artistFilter === "" ? Tr.tr("Artists") : root.artistLabel(root.artistFilter);
+        return Music.relativeDir ? Music.relativeDir.split("/").join(" › ") : Tr.tr("Music");
+    }
+    readonly property string emptyIcon: root.searching ? "search_off" : root.readingTags && root.byArtist ? "hourglass_empty" : "music_off"
+    readonly property string emptyText: root.searching ? Tr.tr("No matches") : root.readingTags && root.byArtist ? Tr.tr("Reading tags") : Tr.tr("No music here")
+
+    // What the list is showing, one plain object per row so the row doesn't have to care
+    // whether it is looking at a folder, an artist or a track
+    readonly property var items: {
+        const tags = root.tags;
+
+        if (root.searching)
+            return root.searchItems(tags);
+
+        if (root.byArtist) {
+            if (root.artistFilter === "")
+                return Music.artistPlaylists.map(playlist => root.artistRow(playlist));
+
+            const playlist = Music.artistPlaylists.find(playlist => playlist.name === root.artistFilter);
+            return playlist ? playlist.tracks.map(entry => root.trackRow(entry)) : [];
+        }
+
+        const rows = [];
         const dirs = Music.subDirs;
         for (let i = 0; i < dirs.length; i++)
-            items.push(dirs[i]);
-        const files = Music.folderTracks;
-        for (let i = 0; i < files.length; i++)
-            items.push(files[i]);
-        return items;
+            rows.push(root.folderRow(dirs[i]));
+        const tracks = Music.folderTracks;
+        for (let i = 0; i < tracks.length; i++)
+            rows.push(root.trackRow(tracks[i]));
+        return rows;
     }
-    // Searched over the whole path, so an album or folder name finds its tracks too
-    readonly property var searchResults: {
-        if (!root.searching)
-            return [];
-
-        const results = [];
-        const library = Music.library;
-        for (let i = 0; i < library.length; i++)
-            if (library[i].relativePath.toLowerCase().includes(root.query))
-                results.push(library[i]);
-        return results;
-    }
-    readonly property var items: root.searching ? root.searchResults : root.browseItems
 
     signal trackPlayed
 
-    // Path of an entry relative to the music folder, for disambiguating search results
+    // The tags are only read once something opens the library, so a session that never does
+    // pays nothing for them
+    Component.onCompleted: Music.ensureTags()
+
+    onVisibleChanged: {
+        // The sidebar unmaps this as it closes, which drops the search field's focus, so it
+        // is taken back when the library comes round again
+        if (root.visible)
+            search.forceActiveFocus();
+    }
+
+    function countLabel(count: int): string {
+        return Tr.trN("%1 track", "%1 tracks", count).arg(count);
+    }
+
+    // A track with no artist tag would otherwise show a blank line where the artist goes
+    function artistLabel(artist: string): string {
+        return artist === "" ? Tr.tr("No artist") : artist;
+    }
+
+    // Path of an entry relative to the music folder, for telling search results apart
     function relativeDirOf(entry: FileSystemEntry): string {
         const dir = entry.parentDir;
         if (!dir.startsWith(Music.rootDir))
@@ -72,46 +98,113 @@ StyledClippingRect {
         return dir.slice(Music.rootDir.length).replace(/^\//, "");
     }
 
-    // Covers to show for an entry: a track's own art, or a folder's cover and collage
-    function coversFor(entry: FileSystemEntry): var {
-        if (entry.isDir)
-            return Music.folderCoversFor(entry.path);
+    function trackRow(entry: FileSystemEntry): var {
+        const current = entry.path === Music.currentFile;
+        return {
+            kind: "track",
+            name: Music.titleFor(entry),
+            // Where a result lives, when it has no artist to show instead
+            subtitle: Music.artistFor(entry) || (root.searching ? root.relativeDirOf(entry) : ""),
+            cover: Music.coverForEntry(entry),
+            entry: entry,
+            current: current,
+            playing: current && Music.playing
+        };
+    }
 
-        const cover = Music.coverFor(entry.parentDir, entry.baseName);
-        return cover ? [cover] : [];
+    function folderRow(entry: FileSystemEntry): var {
+        return {
+            kind: "folder",
+            name: entry.name,
+            subtitle: root.countLabel(Music.tracksByDir[entry.path]?.length ?? 0),
+            cover: Music.folderCoversFor(entry.path)[0] ?? "",
+            entry: entry,
+            current: false,
+            playing: false
+        };
+    }
+
+    function artistRow(playlist: var): var {
+        return {
+            kind: "artist",
+            name: root.artistLabel(playlist.name),
+            subtitle: root.countLabel(playlist.tracks.length),
+            cover: playlist.tracks.length > 0 ? Music.coverForEntry(playlist.tracks[0]) : "",
+            artist: playlist.name,
+            current: false,
+            playing: false
+        };
+    }
+
+    // Searched over the path, so an album or folder name finds its tracks, and over the tags,
+    // so an artist brings up their songs
+    function matches(entry: FileSystemEntry, tag: var): bool {
+        if (entry.relativePath.toLowerCase().includes(root.query))
+            return true;
+        if (tag === undefined)
+            return false;
+
+        return (tag.title ?? "").toLowerCase().includes(root.query) || (tag.artist ?? "").toLowerCase().includes(root.query) || (tag.album ?? "").toLowerCase().includes(root.query);
+    }
+
+    function searchItems(tags: var): var {
+        const results = [];
+        const library = Music.library;
+        for (let i = 0; i < library.length; i++) {
+            if (root.matches(library[i], tags[library[i].path]))
+                results.push(root.trackRow(library[i]));
+        }
+        return results;
     }
 
     function stopSearching(): void {
         search.text = "";
     }
 
+    // Going up leaves a search behind rather than navigating under it, so the list you land
+    // back on is the one you were looking at
     function goUp(): void {
         root.stopSearching();
+        if (root.byArtist) {
+            root.artistFilter = "";
+            return;
+        }
         Music.cdUp();
     }
 
     function goRoot(): void {
         root.stopSearching();
+        if (root.byArtist) {
+            root.artistFilter = "";
+            return;
+        }
         Music.cdRoot();
     }
 
-    // Plays a library entry, queueing the rest of what's on screen behind it
-    function playEntry(entry: FileSystemEntry): void {
-        if (entry.isDir) {
+    // Playing a track queues whatever else is on the list behind it, so a folder or an
+    // artist's playlist plays through instead of stopping after one song
+    function activate(item: var): void {
+        if (item.kind === "artist") {
             root.stopSearching();
-            Music.cd(entry.path);
+            root.artistFilter = item.artist;
             return;
         }
 
-        const items = root.items;
+        if (item.kind === "folder") {
+            root.stopSearching();
+            Music.cd(item.entry.path);
+            return;
+        }
+
+        const rows = root.items;
         const paths = [];
         let index = -1;
-        for (let i = 0; i < items.length; i++) {
-            if (items[i].isDir)
+        for (let i = 0; i < rows.length; i++) {
+            if (rows[i].kind !== "track")
                 continue;
-            if (items[i].path === entry.path)
+            if (rows[i].entry.path === item.entry.path)
                 index = paths.length;
-            paths.push(items[i].path);
+            paths.push(rows[i].entry.path);
         }
 
         if (index < 0)
@@ -124,25 +217,6 @@ StyledClippingRect {
     clip: true
     color: Colours.tPalette.m3surfaceContainer
     radius: Tokens.rounding.large
-
-    // Off-screen copies of the two label rows a tile draws, kept only to measure them. A single
-    // line's height comes from the font rather than the words in it, so one sample with an ascender
-    // and a descender measures the same as a track name would. They mirror LibraryItem's labels.
-    StyledText {
-        id: nameLabelMetrics
-
-        visible: false
-        text: "Ag"
-        font: Tokens.font.label.builders.small.weight(Font.Medium).build()
-    }
-
-    StyledText {
-        id: subtitleLabelMetrics
-
-        visible: false
-        text: "Ag"
-        font: Tokens.font.label.small
-    }
 
     Item {
         id: body
@@ -162,22 +236,42 @@ StyledClippingRect {
             IconButton {
                 icon: "arrow_upward"
                 type: IconButton.Text
-                disabled: Music.atRoot && !root.searching
+                disabled: root.atGroupRoot && !root.searching
                 onClicked: root.goUp()
             }
 
             StyledText {
                 Layout.fillWidth: true
-                text: root.searching ? Tr.tr("Search results") : root.title
+                text: root.title
                 color: Colours.palette.m3onSurfaceVariant
                 font: Tokens.font.body.medium
                 elide: Text.ElideMiddle
             }
 
+            // Grouped by folder, as the files are on disk
+            IconButton {
+                icon: "folder"
+                isToggle: true
+                checked: !root.byArtist
+                type: root.byArtist ? IconButton.Tonal : IconButton.Filled
+                disabled: root.searching
+                onClicked: root.byArtist = false
+            }
+
+            // Grouped into one playlist per artist, from the tags
+            IconButton {
+                icon: "person"
+                isToggle: true
+                checked: root.byArtist
+                type: root.byArtist ? IconButton.Filled : IconButton.Tonal
+                disabled: root.searching
+                onClicked: root.byArtist = true
+            }
+
             IconButton {
                 icon: "home"
                 type: IconButton.Text
-                disabled: Music.atRoot && !root.searching
+                disabled: root.atGroupRoot && !root.searching
                 onClicked: root.goRoot()
             }
         }
@@ -190,7 +284,10 @@ StyledClippingRect {
             anchors.right: parent.right
             anchors.topMargin: Tokens.spacing.small
 
-            placeholderText: Tr.tr("Search music")
+            // Takes focus whenever the library does, so the field can be typed into without
+            // reaching for it first
+            focus: root.enabled
+            placeholderText: Tr.tr("Search songs and artists")
             font: Tokens.font.body.small
             topPadding: Tokens.padding.small
             bottomPadding: Tokens.padding.small
@@ -203,56 +300,40 @@ StyledClippingRect {
             anchors.left: parent.left
             anchors.right: parent.right
             anchors.topMargin: Tokens.spacing.medium
-            // Clamped so the gallery never gets a negative height while the drawer animates
+            // Clamped so the list never gets a negative height while a drawer animates
             height: Math.max(0, body.height - y)
             clip: true
 
-            Item {
-                id: gridArea
+            // Only the rows on screen are ever built, so a folder of a few thousand tracks
+            // doesn't build a few thousand rows in one go and lock the shell up while it does
+            StyledListView {
+                id: list
 
                 anchors.fill: parent
-                // Gutter for the scrollbar, so the last column doesn't sit under it
+                // Gutter for the scrollbar, so the rows don't sit under it
                 anchors.rightMargin: Tokens.padding.small
+                clip: true
+                spacing: Tokens.spacing.extraSmall / 2
 
-                // Only the tiles on screen are ever built. A delegate is a cover, a shape and a
-                // tooltip, so building one per entry means a folder of a few thousand tracks builds
-                // a few thousand of them in one go, and the shell stops responding while it does.
-                // As wide as its own columns and no wider, so a row that doesn't fill the drawer
-                // ends up centred rather than hanging on the left edge.
-                GridView {
-                    id: grid
+                StyledScrollBar.vertical: StyledScrollBar {
+                    flickable: list
+                }
 
-                    anchors.horizontalCenter: parent.horizontalCenter
-                    width: Math.min(parent.width, root.columns * root.cellWidth)
-                    height: parent.height
-                    cellWidth: root.cellWidth
-                    cellHeight: root.cellHeight
-                    clip: true
+                model: root.items
 
-                    StyledScrollBar.vertical: StyledScrollBar {
-                        flickable: grid
-                    }
+                delegate: LibraryRow {
+                    required property var modelData
 
-                    model: root.items
-
-                    delegate: LibraryItem {
-                        required property FileSystemEntry modelData
-
-                        width: root.tileSize
-                        height: root.cellHeight
-                        entry: modelData
-                        covers: root.coversFor(modelData)
-                        current: !modelData.isDir && modelData.path === Music.currentFile
-                        subtitle: root.searching && !modelData.isDir ? root.relativeDirOf(modelData) : ""
-                        onClicked: root.playEntry(modelData)
-                    }
+                    width: list.width
+                    item: modelData
+                    onClicked: root.activate(modelData)
                 }
             }
 
             ColumnLayout {
                 anchors.centerIn: parent
                 spacing: Tokens.spacing.extraSmall
-                opacity: grid.count === 0 ? 1 : 0
+                opacity: list.count === 0 ? 1 : 0
                 visible: opacity > 0
 
                 Behavior on opacity {
@@ -263,14 +344,14 @@ StyledClippingRect {
 
                 MaterialIcon {
                     Layout.alignment: Qt.AlignHCenter
-                    text: root.searching ? "search_off" : "music_off"
+                    text: root.emptyIcon
                     color: Colours.palette.m3outline
                     fontStyle: Tokens.font.icon.extraLarge
                 }
 
                 StyledText {
                     Layout.alignment: Qt.AlignHCenter
-                    text: root.searching ? Tr.tr("No matches") : Tr.tr("No music here")
+                    text: root.emptyText
                     color: Colours.palette.m3outline
                     font: Tokens.font.body.medium
                 }

@@ -136,7 +136,9 @@ Singleton {
 
                 if (GlobalConfig.notifPopout.gestures) {
                     const fingers = GlobalConfig.notifPopout.gestureFingers;
-                    confs.push(gestureConf(fingers, "left", "notifPopoutOpen"), gestureConf(fingers, "right", "notifPopoutClose"));
+                    // Left opens the popout, or moves it between its tabs once it is open;
+                    // right closes it whichever tab it is showing
+                    confs.push(gestureConf(fingers, "left", "notifPopoutOpenOrNextTab"), gestureConf(fingers, "right", "notifPopoutClose"));
                 }
 
                 if (GlobalConfig.overview.gestures) {
