@@ -129,6 +129,9 @@ LazyListView {
                 expanded: root.expanded
                 screenState: root.screenState
                 cardOpacity: root.cardOpacity
+                // The group header only has room for one picture, so with several messages
+                // each shows its own (e.g. the sender's avatar in chat apps)
+                showImage: root.notifs.length > 1
             }
 
             Behavior on y {
