@@ -116,10 +116,15 @@ Singleton {
         return `eval hl.gesture({ fingers = ${fingers}, direction = "${direction}", action = function() hl.dispatch(hl.dsp.global("caelestia:${shortcut}")) end })`;
     }
 
+    // A reload drops the gestures, and reloadDynamicConfs can run more than once around
+    // one (Hyprland then complains the repeat is shadowed), so register them once per load
+    property bool gesturesRegistered
+
     function reloadDynamicConfs(): void {
         if (usingLua) {
             const confs = ['eval hl.bind("Caps_Lock", hl.dsp.global("caelestia:refreshDevices"), { locked = true, non_consuming = true, ignore_mods = true, release = true })', 'eval hl.bind("Num_Lock", hl.dsp.global("caelestia:refreshDevices"), { locked = true, non_consuming = true, ignore_mods = true, release = true })'];
-            if (GlobalConfig.notifPopout.gestures) {
+            if (GlobalConfig.notifPopout.gestures && !gesturesRegistered) {
+                gesturesRegistered = true;
                 const fingers = GlobalConfig.notifPopout.gestureFingers;
                 confs.push(gestureConf(fingers, "left", "notifPopoutOpen"), gestureConf(fingers, "right", "notifPopoutClose"));
             }
@@ -140,6 +145,7 @@ Singleton {
 
             if (n === "configreloaded") {
                 root.configReloaded();
+                root.gesturesRegistered = false;
                 root.reloadDynamicConfs();
             } else if (["workspace", "moveworkspace", "activespecial", "focusedmon"].includes(n)) {
                 Hyprland.refreshWorkspaces();
