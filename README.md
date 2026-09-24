@@ -196,6 +196,19 @@ reload), for example if you already bind those swipes yourself. The popout can s
 without a trackpad with `qs -c caelestia ipc call notifPopout open`, `close` or `toggle`, or by
 binding the `caelestia:notifPopoutOpen` / `caelestia:notifPopoutClose` global shortcuts.
 
+### Turning special workspaces off
+
+*Settings > Workspaces > Special workspaces* (`bar.workspaces.specialWorkspaces` in `shell.json`) is
+on by default. Switching it off does more than hide them from the bar: the shell closes a special
+workspace the moment it opens and moves its windows to the workspace you are on, whether it was
+opened by a keybind, a gesture or a dispatch, and a window that opens into one is moved out too. It
+works with any Hyprland config, so there is nothing to edit; the price is that the workspace can
+flash open for a moment before it is closed.
+
+If you would rather it never flash, have your own binds check the setting first. The shell's
+`shell.json` is plain JSON, so a Hyprland Lua bind can read `bar.workspaces.specialWorkspaces` and
+skip the toggle, or open the app on the current workspace instead.
+
 ## Feature requests
 
 Any feature requests are welcome - open an [issue](https://github.com/CYKLER01/cykler-caelestia/issues) and I will try to get onto them quickly.

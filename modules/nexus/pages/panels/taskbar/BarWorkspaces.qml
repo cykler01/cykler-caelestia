@@ -69,11 +69,12 @@ PageBase {
         }
 
         // Off means the bar ignores Hyprland's special workspaces completely: no strip in place
-        // of the workspaces, no dimming of them and no toggle on clicking the active one.
-        // Hyprland keeps them either way, so keybinds and dispatches still work
+        // of the workspaces, no dimming of them and no toggle on clicking the active one. The
+        // shell also closes any special workspace the moment it opens and moves its windows to
+        // the current workspace (services/SpecialWorkspaceGuard.qml), whatever opened it
         ToggleRow {
             text: Tr.trCtx("Special workspaces", "bar workspaces")
-            subtext: Tr.tr("Show and switch special workspaces from the bar")
+            subtext: Tr.tr("Show and use special workspaces. Off moves their windows to the current workspace instead")
             checked: Config.bar.workspaces.specialWorkspaces
             onToggled: GlobalConfig.bar.workspaces.specialWorkspaces = checked
         }

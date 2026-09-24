@@ -14,6 +14,7 @@ Scope {
         Players;
         Brightness;
         UpdateChecker;
+        SpecialWorkspaceGuard;
         Weather.reload();
 
         if (GlobalConfig.utilities.vpn.enabled)
