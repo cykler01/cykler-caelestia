@@ -4,10 +4,31 @@ import QtQuick
 import QtQuick.Layouts
 import Caelestia.Config
 import Caelestia.I18n
+import qs.components.controls
 import qs.modules.nexus.common
 
 PageBase {
     id: root
+
+    // Ordered to match config::PerfGraphColours (Scheme, Vibrant, Monochrome, Custom)
+    readonly property list<MenuItem> graphColourItems: [
+        MenuItem {
+            text: Tr.trCtx("Scheme", "performance graph colours")
+            icon: "palette"
+        },
+        MenuItem {
+            text: Tr.trCtx("Vibrant", "performance graph colours")
+            icon: "looks"
+        },
+        MenuItem {
+            text: Tr.trCtx("Monochrome", "performance graph colours")
+            icon: "contrast"
+        },
+        MenuItem {
+            text: Tr.trCtx("Custom", "performance graph colours")
+            icon: "colorize"
+        }
+    ]
 
     title: Tr.tr("Dashboard")
     isSubPage: true
@@ -84,6 +105,56 @@ PageBase {
 
         ToggleRow {
             first: true
+            text: Tr.tr("Graph view")
+            subtext: Tr.tr("One graph with 2 minutes of history. Off uses the original cards")
+            checked: Config.dashboard.performance.graphView
+            onToggled: GlobalConfig.dashboard.performance.graphView = checked
+        }
+
+        SelectRow {
+            label: Tr.tr("Graph colours")
+            subtext: Tr.tr("Scheme uses the current colour scheme; Vibrant uses its terminal colours")
+            menuItems: root.graphColourItems
+            active: root.graphColourItems[GlobalConfig.dashboard.performance.graphColours] ?? root.graphColourItems[0]
+            onSelected: item => GlobalConfig.dashboard.performance.graphColours = root.graphColourItems.indexOf(item)
+        }
+
+        GraphColourRow {
+            visible: GlobalConfig.dashboard.performance.graphColours === PerfGraphColours.Custom
+            label: Tr.tr("CPU colour")
+            value: GlobalConfig.dashboard.performance.cpuColour
+            onPicked: v => GlobalConfig.dashboard.performance.cpuColour = v
+        }
+
+        GraphColourRow {
+            visible: GlobalConfig.dashboard.performance.graphColours === PerfGraphColours.Custom
+            label: Tr.tr("GPU colour")
+            value: GlobalConfig.dashboard.performance.gpuColour
+            onPicked: v => GlobalConfig.dashboard.performance.gpuColour = v
+        }
+
+        GraphColourRow {
+            visible: GlobalConfig.dashboard.performance.graphColours === PerfGraphColours.Custom
+            label: Tr.tr("Memory colour")
+            value: GlobalConfig.dashboard.performance.memoryColour
+            onPicked: v => GlobalConfig.dashboard.performance.memoryColour = v
+        }
+
+        GraphColourRow {
+            visible: GlobalConfig.dashboard.performance.graphColours === PerfGraphColours.Custom
+            label: Tr.tr("Network colour")
+            value: GlobalConfig.dashboard.performance.networkColour
+            onPicked: v => GlobalConfig.dashboard.performance.networkColour = v
+        }
+
+        GraphColourRow {
+            visible: GlobalConfig.dashboard.performance.graphColours === PerfGraphColours.Custom
+            label: Tr.tr("Storage colour")
+            value: GlobalConfig.dashboard.performance.storageColour
+            onPicked: v => GlobalConfig.dashboard.performance.storageColour = v
+        }
+
+        ToggleRow {
             text: Tr.tr("Battery")
             checked: Config.dashboard.performance.showBattery
             onToggled: GlobalConfig.dashboard.performance.showBattery = checked
@@ -109,6 +180,7 @@ PageBase {
 
         ToggleRow {
             text: Tr.tr("Storage")
+            subtext: Tr.tr("Disk usage on the Dashboard and Performance tabs")
             checked: Config.dashboard.performance.showStorage
             onToggled: GlobalConfig.dashboard.performance.showStorage = checked
         }

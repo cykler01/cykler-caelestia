@@ -48,94 +48,125 @@ Item {
         }
     }
 
-    RowLayout {
+    Loader {
         id: content
 
         anchors.left: parent.left
         anchors.right: parent.right
-        spacing: Tokens.spacing.medium
         visible: !placeholder.active
+        sourceComponent: Config.dashboard.performance.graphView ? graphLayout : classicLayout
+    }
 
-        ColumnLayout {
-            id: mainColumn
+    // CPU, GPU, memory, network and storage combined into one graph card
+    Component {
+        id: graphLayout
 
-            Layout.fillWidth: true
+        RowLayout {
             spacing: Tokens.spacing.medium
 
-            RowLayout {
-                spacing: Tokens.spacing.medium
-                visible: cpuCard.active || gpuCard.active
+            WrappedLoader {
+                id: graphCard
 
-                WrappedLoader {
-                    id: cpuCard
-
-                    active: Config.dashboard.performance.showCpu
-
-                    sourceComponent: HeroCard {
-                        icon: "memory"
-                        label: Tr.tr("CPU")
-                        subLabel: Cpu.name
-                        usage: Cpu.percentage
-                        temperature: Cpu.temperature
-                        accent: Colours.palette.m3primary
-
-                        ServiceRef {
-                            service: Cpu
-                        }
-                    }
-                }
-
-                WrappedLoader {
-                    id: gpuCard
-
-                    active: Config.dashboard.performance.showGpu && Gpu.type !== GpuType.None
-
-                    sourceComponent: HeroCard {
-                        icon: "desktop_windows"
-                        label: Tr.tr("GPU")
-                        subLabel: Gpu.name || (Gpu.detecting ? Tr.tr("Detecting GPU...") : Tr.trCtx("None", "GPU name"))
-                        usage: Gpu.percentage
-                        temperature: Gpu.temperature
-                        accent: Colours.palette.m3secondary
-
-                        ServiceRef {
-                            service: Gpu
-                        }
-                    }
-                }
+                active: Config.dashboard.performance.showCpu || (Config.dashboard.performance.showGpu && Gpu.type !== GpuType.None) || Config.dashboard.performance.showMemory || Config.dashboard.performance.showNetwork || Config.dashboard.performance.showStorage
+                sourceComponent: ResourceGraph {}
             }
 
-            RowLayout {
-                spacing: Tokens.spacing.medium
-                visible: storageCard.active || networkCard.active || memoryCard.active
-
-                WrappedLoader {
-                    id: storageCard
-
-                    active: Config.dashboard.performance.showStorage
-                    sourceComponent: StorageCard {}
-                }
-
-                WrappedLoader {
-                    id: networkCard
-
-                    active: Config.dashboard.performance.showNetwork
-                    sourceComponent: NetworkCard {}
-                }
-
-                WrappedLoader {
-                    id: memoryCard
-
-                    active: Config.dashboard.performance.showMemory
-                    sourceComponent: MemoryCard {}
-                }
+            WrappedLoader {
+                Layout.fillWidth: !graphCard.active
+                active: UPower.displayDevice.isLaptopBattery && Config.dashboard.performance.showBattery
+                sourceComponent: BatteryTank {}
             }
         }
+    }
 
-        WrappedLoader {
-            Layout.fillWidth: false
-            active: UPower.displayDevice.isLaptopBattery && Config.dashboard.performance.showBattery
-            sourceComponent: BatteryTank {}
+    // The original Caelestia layout
+    Component {
+        id: classicLayout
+
+        RowLayout {
+            spacing: Tokens.spacing.medium
+
+            ColumnLayout {
+                id: mainColumn
+
+                Layout.fillWidth: true
+                spacing: Tokens.spacing.medium
+
+                RowLayout {
+                    spacing: Tokens.spacing.medium
+                    visible: cpuCard.active || gpuCard.active
+
+                    WrappedLoader {
+                        id: cpuCard
+
+                        active: Config.dashboard.performance.showCpu
+
+                        sourceComponent: HeroCard {
+                            icon: "memory"
+                            label: Tr.tr("CPU")
+                            subLabel: Cpu.name
+                            usage: Cpu.percentage
+                            temperature: Cpu.temperature
+                            accent: Colours.palette.m3primary
+
+                            ServiceRef {
+                                service: Cpu
+                            }
+                        }
+                    }
+
+                    WrappedLoader {
+                        id: gpuCard
+
+                        active: Config.dashboard.performance.showGpu && Gpu.type !== GpuType.None
+
+                        sourceComponent: HeroCard {
+                            icon: "desktop_windows"
+                            label: Tr.tr("GPU")
+                            subLabel: Gpu.name || (Gpu.detecting ? Tr.tr("Detecting GPU...") : Tr.trCtx("None", "GPU name"))
+                            usage: Gpu.percentage
+                            temperature: Gpu.temperature
+                            accent: Colours.palette.m3secondary
+
+                            ServiceRef {
+                                service: Gpu
+                            }
+                        }
+                    }
+                }
+
+                RowLayout {
+                    spacing: Tokens.spacing.medium
+                    visible: storageCard.active || networkCard.active || memoryCard.active
+
+                    WrappedLoader {
+                        id: storageCard
+
+                        active: Config.dashboard.performance.showStorage
+                        sourceComponent: StorageCard {}
+                    }
+
+                    WrappedLoader {
+                        id: networkCard
+
+                        active: Config.dashboard.performance.showNetwork
+                        sourceComponent: NetworkCard {}
+                    }
+
+                    WrappedLoader {
+                        id: memoryCard
+
+                        active: Config.dashboard.performance.showMemory
+                        sourceComponent: MemoryCard {}
+                    }
+                }
+            }
+
+            WrappedLoader {
+                Layout.fillWidth: false
+                active: UPower.displayDevice.isLaptopBattery && Config.dashboard.performance.showBattery
+                sourceComponent: BatteryTank {}
+            }
         }
     }
 

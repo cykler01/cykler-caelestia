@@ -1,9 +1,14 @@
 #pragma once
 
+#include <qstring.h>
+
 #include "settings/objectnode.hpp"
 #include "common.hpp"
+#include "enums.hpp"
 
 namespace caelestia::config {
+
+using Qt::StringLiterals::operator""_s;
 
 class DashboardPerformance : public settings::ObjectNode {
     CONFIG_NODE(DashboardPerformance, settings::ObjectNode)
@@ -14,6 +19,14 @@ class DashboardPerformance : public settings::ObjectNode {
     CONFIG_PROPERTY(bool, showMemory, true)
     CONFIG_PROPERTY(bool, showStorage, true)
     CONFIG_PROPERTY(bool, showNetwork, true)
+    CONFIG_PROPERTY(bool, graphView, true)
+    CONFIG_ENUM_PROPERTY(PerfGraphColours, graphColours, PerfGraphColours::Scheme)
+    // Colours used by the Custom graph scheme: a palette role (e.g. "primary", "term1") or a #rrggbb hex
+    CONFIG_PROPERTY(QString, cpuColour, u"primary"_s)
+    CONFIG_PROPERTY(QString, gpuColour, u"secondary"_s)
+    CONFIG_PROPERTY(QString, memoryColour, u"tertiary"_s)
+    CONFIG_PROPERTY(QString, networkColour, u"success"_s)
+    CONFIG_PROPERTY(QString, storageColour, u"onSurfaceVariant"_s)
 };
 
 class DashboardConfig : public settings::ObjectNode {

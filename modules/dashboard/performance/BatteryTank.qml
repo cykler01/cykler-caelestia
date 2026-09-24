@@ -16,7 +16,15 @@ StyledClippingRect {
     color: Colours.palette.m3secondaryContainer
     radius: Tokens.rounding.large
 
-    implicitWidth: Config.dashboard.performance.showCpu || (Config.dashboard.performance.showGpu && Gpu.type !== GpuType.None) || Config.dashboard.performance.showStorage || Config.dashboard.performance.showMemory ? Tokens.sizes.dashboard.perfBattWidth : Tokens.sizes.dashboard.perfBattWidthSingle
+    implicitWidth: {
+        const perf = Config.dashboard.performance;
+        const hasGpu = perf.showGpu && Gpu.type !== GpuType.None;
+        if (perf.graphView && (perf.showCpu || hasGpu || perf.showStorage || perf.showMemory || perf.showNetwork))
+            return Tokens.sizes.dashboard.perfBattWidth * 1.5;
+        if (perf.showCpu || hasGpu || perf.showStorage || perf.showMemory)
+            return Tokens.sizes.dashboard.perfBattWidth;
+        return Tokens.sizes.dashboard.perfBattWidthSingle;
+    }
     implicitHeight: Tokens.sizes.dashboard.perfBattHeight
 
     Behavior on animPerc {
