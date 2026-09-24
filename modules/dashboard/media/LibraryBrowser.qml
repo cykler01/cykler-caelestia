@@ -2,6 +2,7 @@ pragma ComponentBehavior: Bound
 
 import QtQuick
 import QtQuick.Layouts
+import Caelestia
 import Caelestia.Config
 import Caelestia.I18n
 import Caelestia.Models
@@ -15,6 +16,10 @@ import qs.services
 // carries that entry's cover art beside the name. Searching reads titles, artists and albums
 // over the whole library as well as paths, so an artist brings up everything by them. Lists
 // rather than a cover gallery, since what this mostly gets opened in is the sidebar.
+//
+// Selecting turns taps on tracks into a selection that can be added to the queue in one go,
+// and it survives opening a folder or searching, so a batch can be gathered up from several
+// places before it is queued.
 StyledClippingRect {
     id: root
 
@@ -29,6 +34,22 @@ StyledClippingRect {
     // a fraction of a second, so the artist side is only ever briefly empty.
     readonly property var tags: Music.tags
     readonly property bool readingTags: Music.tagsScanning
+
+    // The selection, kept as paths in the order they were picked so the queue plays back in
+    // the order they were chosen, and by path rather than list position so opening a folder or
+    // typing a search doesn't throw it away
+    property bool selecting
+    property var selected: []
+    readonly property var selectedLookup: {
+        const lookup = {};
+        for (const path of root.selected)
+            lookup[path] = true;
+        return lookup;
+    }
+    readonly property int selectedCount: root.selected.length
+    // The tracks the list is showing, so "select all" means everything on screen
+    readonly property var listedTracks: root.items.filter(item => item.kind === "track")
+    readonly property bool allListedSelected: root.listedTracks.length > 0 && root.listedTracks.every(item => root.selectedLookup[item.path] === true)
 
     // Folders and artists both list their contents, so both navigate the same way
     readonly property bool atGroupRoot: root.byArtist ? root.artistFilter === "" : Music.atRoot
@@ -106,6 +127,7 @@ StyledClippingRect {
             // Where a result lives, when it has no artist to show instead
             subtitle: Music.artistFor(entry) || (root.searching ? root.relativeDirOf(entry) : ""),
             cover: Music.coverForEntry(entry),
+            path: entry.path,
             entry: entry,
             current: current,
             playing: current && Music.playing
@@ -157,6 +179,58 @@ StyledClippingRect {
         return results;
     }
 
+    function isSelected(item: var): bool {
+        return item.kind === "track" && root.selectedLookup[item.path] === true;
+    }
+
+    function toggleSelection(item: var): void {
+        if (root.isSelected(item)) {
+            const keep = [];
+            for (const path of root.selected)
+                if (path !== item.path)
+                    keep.push(path);
+            root.selected = keep;
+            return;
+        }
+
+        root.selected = root.selected.concat([item.path]);
+    }
+
+    // Takes everything on screen, or gives it back once it is all selected - the usual
+    // select all toggle
+    function toggleSelectAll(): void {
+        const listed = root.listedTracks;
+        if (root.allListedSelected) {
+            const listedPaths = listed.map(item => item.path);
+            root.selected = root.selected.filter(path => !listedPaths.includes(path));
+            return;
+        }
+
+        const next = root.selected.slice();
+        for (const item of listed)
+            if (!next.includes(item.path))
+                next.push(item.path);
+        root.selected = next;
+    }
+
+    // Queues the selection in the order it was picked, and leaves selection mode so the queue
+    // is what the controls are on next
+    function addToQueue(): void {
+        const paths = root.selected.slice();
+        if (paths.length === 0)
+            return;
+
+        Music.enqueue(paths);
+        Toaster.toast(Tr.tr("Added to queue"), Tr.trN("%1 song", "%1 songs", paths.length).arg(paths.length), "playlist_add", Toast.Success);
+        root.selecting = false;
+    }
+
+    onSelectingChanged: {
+        // Leaving the mode drops the selection, so coming back to it starts clean
+        if (!root.selecting)
+            root.selected = [];
+    }
+
     function stopSearching(): void {
         search.text = "";
     }
@@ -193,6 +267,13 @@ StyledClippingRect {
         if (item.kind === "folder") {
             root.stopSearching();
             Music.cd(item.entry.path);
+            return;
+        }
+
+        // A track plays, or is collected up while selecting. Folders and artists still open
+        // either way, so a selection can be carried into them.
+        if (root.selecting) {
+            root.toggleSelection(item);
             return;
         }
 
@@ -268,6 +349,16 @@ StyledClippingRect {
                 onClicked: root.byArtist = true
             }
 
+            // Multi-select: tracks collect into a selection instead of playing, so a batch can
+            // be queued up in one go
+            IconButton {
+                icon: "checklist"
+                isToggle: true
+                checked: root.selecting
+                type: root.selecting ? IconButton.Filled : IconButton.Tonal
+                onClicked: root.selecting = !root.selecting
+            }
+
             IconButton {
                 icon: "home"
                 type: IconButton.Text
@@ -300,8 +391,9 @@ StyledClippingRect {
             anchors.left: parent.left
             anchors.right: parent.right
             anchors.topMargin: Tokens.spacing.medium
-            // Clamped so the list never gets a negative height while a drawer animates
-            height: Math.max(0, body.height - y)
+            // Clamped so the list never gets a negative height while a drawer animates, and
+            // shorter while the selection bar is under it
+            height: Math.max(0, body.height - y - (selectionBar.visible ? selectionBar.height + Tokens.spacing.medium : 0))
             clip: true
 
             // Only the rows on screen are ever built, so a folder of a few thousand tracks
@@ -326,6 +418,8 @@ StyledClippingRect {
 
                     width: list.width
                     item: modelData
+                    selecting: root.selecting
+                    selected: root.isSelected(modelData)
                     onClicked: root.activate(modelData)
                 }
             }
@@ -355,6 +449,49 @@ StyledClippingRect {
                     color: Colours.palette.m3outline
                     font: Tokens.font.body.medium
                 }
+            }
+        }
+
+        // What the selection is for. The count comes first, so what has been collected is
+        // legible without working out which buttons are on.
+        RowLayout {
+            id: selectionBar
+
+            anchors.left: parent.left
+            anchors.right: parent.right
+            anchors.bottom: parent.bottom
+            spacing: Tokens.spacing.extraSmall
+            visible: root.selecting
+
+            StyledText {
+                Layout.fillWidth: true
+                text: Tr.tr("%1 selected").arg(root.selectedCount)
+                color: Colours.palette.m3onSurfaceVariant
+                font: Tokens.font.label.medium
+                elide: Text.ElideRight
+            }
+
+            IconButton {
+                icon: "select_all"
+                type: IconButton.Tonal
+                isToggle: true
+                checked: root.allListedSelected
+                disabled: root.listedTracks.length === 0
+                onClicked: root.toggleSelectAll()
+            }
+
+            IconTextButton {
+                icon: "playlist_add"
+                text: Tr.tr("Add to queue")
+                type: IconTextButton.Filled
+                disabled: root.selectedCount === 0
+                onClicked: root.addToQueue()
+            }
+
+            IconButton {
+                icon: "close"
+                type: IconButton.Text
+                onClicked: root.selecting = false
             }
         }
     }

@@ -140,6 +140,16 @@ This is my take on the Caelestia shell - upstream's desktop shell with my own fe
     the whole library as well as paths, so an artist brings up everything by them and a folder
     or album name still finds its tracks. The popout takes keyboard focus on demand while its
     library tab is up, so the field can actually be typed into.
+-   **Add to queue** — the checklist button in the library's header turns taps on tracks into
+    a selection instead of playback, so a batch can be gathered up and queued in one go. The
+    selection is kept by path rather than by list position, so opening a folder, switching to
+    artists or typing a search doesn't throw it away - carry it across as many as you like,
+    then *Add to queue* puts them on the end of the current queue in the order they were
+    picked. The button beside it takes everything the list is showing (tracks on screen, not
+    the whole library) and gives it back again if it is all already selected. Adding never
+    interrupts what is playing, and a toast says how many songs went in; adding to an empty
+    player starts the queue rather than leaving it silent. Playing a track by tapping it
+    still starts a fresh queue from what is on screen, as before.
 -   **Cover art** — art embedded in the track is shown on the cover next to the controls,
     falling back to an image named after the track (what yt-dlp leaves behind, since opus
     cannot hold one) and then to a `cover`, `folder` or `album` image in the track's folder.

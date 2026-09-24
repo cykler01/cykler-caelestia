@@ -225,6 +225,20 @@ Singleton {
         return collage.length >= 4 ? collage : collage.slice(0, 1);
     }
 
+    // Every track by path, so a queued track - which is only a path - can be shown with the
+    // same title, artist and art a library row would use
+    readonly property var entriesByPath: {
+        const index = {};
+        const entries = root.library;
+        for (let i = 0; i < entries.length; i++)
+            index[entries[i].path] = entries[i];
+        return index;
+    }
+
+    function entryFor(path: string): var {
+        return root.entriesByPath[path];
+    }
+
     // A track's title, falling back to its file name so a row always has something to show
     function titleFor(entry: FileSystemEntry): string {
         return MusicTags.titleOf(entry.path) || entry.baseName;
@@ -266,6 +280,80 @@ Singleton {
         root.queue = paths;
         root.queueIndex = Math.max(0, Math.min(index, paths.length - 1));
         root.loadCurrent();
+    }
+
+    // Adds tracks to the end of the queue without disturbing what is playing, so there is no
+    // gap and the current song carries on. Adding to an empty player starts the queue instead
+    // of leaving it silent, which is what adding to nothing would otherwise do.
+    function enqueue(paths: var): void {
+        if (!paths || paths.length === 0)
+            return;
+
+        const next = [];
+        const current = root.queue;
+        for (let i = 0; i < current.length; i++)
+            next.push(current[i]);
+        for (let i = 0; i < paths.length; i++)
+            next.push(paths[i]);
+
+        if (!root.hasTrack) {
+            root.playQueue(next, 0);
+            return;
+        }
+
+        root.queue = next;
+    }
+
+    // Moves a queued track up or down the queue. The song that is playing is followed to
+    // wherever it ends up, so moving songs around never switches what you are hearing.
+    function moveInQueue(from: int, to: int): void {
+        const length = root.queue.length;
+        if (from === to || from < 0 || from >= length || to < 0 || to >= length)
+            return;
+
+        const next = root.queue.slice();
+        const moved = next.splice(from, 1)[0];
+        next.splice(to, 0, moved);
+
+        // Everything between the two positions shifts by one, including the current track
+        if (root.queueIndex === from)
+            root.queueIndex = to;
+        else if (from < root.queueIndex && to >= root.queueIndex)
+            root.queueIndex--;
+        else if (from > root.queueIndex && to <= root.queueIndex)
+            root.queueIndex++;
+
+        root.queue = next;
+    }
+
+    // Takes a track out of the queue. Removing the one that is playing skips to the next (the
+    // last one, if it was the end of the queue), and emptying the queue stops playback rather
+    // than leaving the player pointing at something that is no longer there.
+    function removeFromQueue(index: int): void {
+        if (index < 0 || index >= root.queue.length)
+            return;
+
+        const next = root.queue.slice();
+        next.splice(index, 1);
+        const wasCurrent = index === root.queueIndex;
+
+        if (next.length === 0) {
+            root.queue = next;
+            root.queueIndex = -1;
+            mediaPlayer.stop();
+            mediaPlayer.position = 0;
+            return;
+        }
+
+        root.queue = next;
+
+        if (index < root.queueIndex)
+            root.queueIndex--;
+        else if (wasCurrent)
+            root.queueIndex = Math.min(index, next.length - 1);
+
+        if (wasCurrent)
+            root.loadCurrent();
     }
 
     function loadCurrent(): void {
