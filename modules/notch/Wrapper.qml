@@ -68,7 +68,7 @@ Item {
     // as long as something is playing keeps it warmed up, so a track change shows a visualiser
     // that is already up to level instead of a blank pill that fills in late.
     ServiceRef {
-        service: Config.notch.enabled && Players.active?.isPlaying === true ? Audio.cava : null
+        service: Config.notch.enabled && Players.active?.isPlaying === true && !PowerSaving.pauseVisualisers ? Audio.cava : null
     }
 
     visible: offsetScale < 1

@@ -40,7 +40,7 @@ Item {
     }
 
     ServiceRef {
-        service: Audio.beatTracker
+        service: PowerSaving.pauseVisualisers ? null : Audio.beatTracker
     }
 
     CircularProgress {

@@ -54,7 +54,8 @@ Item {
         anchors.left: parent.left
         anchors.right: parent.right
         visible: !placeholder.active
-        sourceComponent: Config.dashboard.performance.graphView ? graphLayout : classicLayout
+        // ResourceHistory is off when the graph view is disabled or paused by Power Saver
+        sourceComponent: ResourceHistory.enabled ? graphLayout : classicLayout
     }
 
     // CPU, GPU, memory, network and storage combined into one graph card

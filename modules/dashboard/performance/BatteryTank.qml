@@ -19,7 +19,7 @@ StyledClippingRect {
     implicitWidth: {
         const perf = Config.dashboard.performance;
         const hasGpu = perf.showGpu && Gpu.type !== GpuType.None;
-        if (perf.graphView && (perf.showCpu || hasGpu || perf.showStorage || perf.showMemory || perf.showNetwork))
+        if (ResourceHistory.enabled && (perf.showCpu || hasGpu || perf.showStorage || perf.showMemory || perf.showNetwork))
             return Tokens.sizes.dashboard.perfBattWidth * 1.5;
         if (perf.showCpu || hasGpu || perf.showStorage || perf.showMemory)
             return Tokens.sizes.dashboard.perfBattWidth;
