@@ -18,6 +18,8 @@ Item {
 
     required property Props props
     required property ScreenState screenState
+    // Scales the alpha of the notification cards; 1 leaves them as they are
+    property real cardOpacity: 1
     readonly property int notifCount: Notifs.list.reduce((acc, n) => n.closed ? acc : acc + 1, 0)
 
     anchors.fill: parent
@@ -141,6 +143,7 @@ Item {
 
                 props: root.props
                 screenState: root.screenState
+                cardOpacity: root.cardOpacity
                 container: view
             }
         }

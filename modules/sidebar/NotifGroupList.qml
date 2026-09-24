@@ -15,6 +15,7 @@ LazyListView {
     required property bool expanded
     required property Flickable container
     required property ScreenState screenState
+    property real cardOpacity: 1
 
     signal requestToggleExpand(expand: bool)
 
@@ -127,6 +128,7 @@ LazyListView {
                 props: root.props
                 expanded: root.expanded
                 screenState: root.screenState
+                cardOpacity: root.cardOpacity
             }
 
             Behavior on y {

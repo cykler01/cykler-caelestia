@@ -17,6 +17,7 @@ StyledRect {
     required property Props props
     required property Flickable container
     required property ScreenState screenState
+    property real cardOpacity: 1
 
     readonly property list<var> notifs: Notifs.list.filter(n => n.appName === modelData)
     readonly property list<var> activeNotifs: notifs.filter(n => !n.closed)
@@ -58,7 +59,10 @@ StyledRect {
 
     clip: true
     radius: Tokens.rounding.large
-    color: Colours.layer(Colours.palette.m3surfaceContainer, 2)
+    color: {
+        const c = Colours.layer(Colours.palette.m3surfaceContainer, 2);
+        return Qt.alpha(c, c.a * root.cardOpacity);
+    }
 
     Behavior on implicitHeight {
         Anim {}
@@ -241,6 +245,7 @@ StyledRect {
                 expanded: root.expanded
                 container: root.container
                 screenState: root.screenState
+                cardOpacity: root.cardOpacity
                 onRequestToggleExpand: expand => root.toggleExpand(expand)
             }
         }
