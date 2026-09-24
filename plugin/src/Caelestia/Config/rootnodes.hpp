@@ -19,6 +19,7 @@
 #include "notifpopoutconfig.hpp"
 #include "notifsconfig.hpp"
 #include "osdconfig.hpp"
+#include "overviewconfig.hpp"
 #include "serviceconfig.hpp"
 #include "sessionconfig.hpp"
 #include "sidebarconfig.hpp"
@@ -46,6 +47,7 @@ class ConfigRoot : public settings::RootNode {
     CONFIG_SUBOBJECT(NotifPopoutConfig, notifPopout)
     CONFIG_SUBOBJECT(NotifsConfig, notifs)
     CONFIG_SUBOBJECT(OsdConfig, osd)
+    CONFIG_SUBOBJECT(OverviewConfig, overview)
     CONFIG_SUBOBJECT(ServiceConfig, services)
     CONFIG_SUBOBJECT(SessionConfig, session)
     CONFIG_SUBOBJECT(SidebarConfig, sidebar)

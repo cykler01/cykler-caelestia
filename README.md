@@ -23,6 +23,7 @@ This is my take on the Caelestia shell - upstream's desktop shell with my own fe
 | Launcher | Standard actions | Adds OCR (`>ocr`) and Google Lens (`>lens`) region-capture actions |
 | Music player | External players only | In-shell local music player in the dashboard media tab |
 | To-do list | Fuzzel script in the dotfiles | `>todo` list in the launcher |
+| Window overview | --- | 4-finger swipe up or the top-left hot corner shows every workspace and its windows, click to jump |
 
 
 ## Features added on top of upstream
@@ -195,6 +196,43 @@ Set `gestures` to `false` to stop the shell registering them (they go away on th
 reload), for example if you already bind those swipes yourself. The popout can still be driven
 without a trackpad with `qs -c caelestia ipc call notifPopout open`, `close` or `toggle`, or by
 binding the `caelestia:notifPopoutOpen` / `caelestia:notifPopoutClose` global shortcuts.
+
+### Window overview
+
+A full-screen overview of every workspace and the windows on it, so you can see everything at
+glance and jump straight to it. The ten workspaces around the current one are laid out in a
+centred 2×5 grid, each tile a 16:9 representation of that workspace: every window is drawn at the
+position and size Hyprland gives it, scaled down from its monitor. Occupied workspaces are
+brighter than empty ones, all of them are outlined, and the focused one is outlined in the accent
+colour. Clicking a window focuses it and closes the overview; clicking anywhere else on a tile
+switches to that workspace.
+
+Open it either way:
+
+-   **4-finger swipe up** on the trackpad (swipe down closes it). Registered with Hyprland by the
+    shell, the same as the notification popout swipes, so there is nothing to set up.
+-   **Top-left hot corner** — move the pointer into the top-left corner of the screen and hold it
+    there briefly. The bar's logo sits below the corner, so this doesn't get in its way.
+
+It can also be driven without either with `qs -c caelestia ipc call overview open`, `close` or
+`toggle`, or by binding the `caelestia:overviewOpen` / `caelestia:overviewClose` global shortcuts.
+Escape closes it, and number keys `1`–`9` jump to that workspace.
+
+Settings are in `shell.json`:
+
+```json
+"overview": {
+    "enabled": true,
+    "gestures": true,
+    "gestureFingers": 4,
+    "hotCorner": true,
+    "hotCornerSize": 10
+}
+```
+
+Set `gestures` to `false` to stop the shell registering the swipes (they go away on the next
+Hyprland reload), for example if you already bind those swipes yourself, and `hotCorner` to
+`false` to turn the corner off. `hotCornerSize` is the corner's size in pixels.
 
 ### Turning special workspaces off
 

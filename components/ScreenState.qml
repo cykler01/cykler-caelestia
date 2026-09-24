@@ -12,6 +12,7 @@ PersistentProperties {
     property bool utilities
     property bool sidebar
     property bool notifPopout
+    property bool overview
 
     // Dashboard state
     property int dashboardTab

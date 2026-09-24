@@ -53,6 +53,14 @@ Singleton {
         dispatch(usingLua ? `hl.dsp.workspace.toggle_special("${name}")` : `togglespecialworkspace ${name}`);
     }
 
+    // The address as exposed by HyprlandToplevel.address (hex, without the 0x prefix)
+    function focusWindow(address: string): void {
+        if (!address)
+            return;
+
+        dispatch(usingLua ? `hl.dsp.focus({ window = "address:0x${address}" })` : `focuswindow address:0x${address}`);
+    }
+
     function cycleSpecialWorkspace(direction: string): void {
         const openSpecials = workspaces.values.filter(w => w.name.startsWith("special:") && w.lastIpcObject.windows > 0);
 
@@ -123,10 +131,18 @@ Singleton {
     function reloadDynamicConfs(): void {
         if (usingLua) {
             const confs = ['eval hl.bind("Caps_Lock", hl.dsp.global("caelestia:refreshDevices"), { locked = true, non_consuming = true, ignore_mods = true, release = true })', 'eval hl.bind("Num_Lock", hl.dsp.global("caelestia:refreshDevices"), { locked = true, non_consuming = true, ignore_mods = true, release = true })'];
-            if (GlobalConfig.notifPopout.gestures && !gesturesRegistered) {
+            if (!gesturesRegistered) {
                 gesturesRegistered = true;
-                const fingers = GlobalConfig.notifPopout.gestureFingers;
-                confs.push(gestureConf(fingers, "left", "notifPopoutOpen"), gestureConf(fingers, "right", "notifPopoutClose"));
+
+                if (GlobalConfig.notifPopout.gestures) {
+                    const fingers = GlobalConfig.notifPopout.gestureFingers;
+                    confs.push(gestureConf(fingers, "left", "notifPopoutOpen"), gestureConf(fingers, "right", "notifPopoutClose"));
+                }
+
+                if (GlobalConfig.overview.gestures) {
+                    const fingers = GlobalConfig.overview.gestureFingers;
+                    confs.push(gestureConf(fingers, "up", "overviewOpen"), gestureConf(fingers, "down", "overviewClose"));
+                }
             }
             extras.batchMessage(confs);
         } else {

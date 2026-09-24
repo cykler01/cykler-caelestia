@@ -23,6 +23,29 @@ CustomMouseArea {
     property bool osdShortcutActive
     property bool utilitiesShortcutActive
 
+    // Top-left hot corner, opens the window overview (see the overview module)
+    readonly property bool overviewHotCorner: Config.overview.enabled && Config.overview.hotCorner && !fullscreen
+    readonly property int hotCornerSize: GlobalConfig.overview.hotCornerSize
+    property bool inHotCorner
+
+    function updateHotCorner(x: real, y: real): void {
+        if (!root.overviewHotCorner) {
+            root.inHotCorner = false;
+            hotCornerTimer.stop();
+            return;
+        }
+
+        const inCorner = x <= root.hotCornerSize && y <= root.hotCornerSize;
+        if (inCorner === root.inHotCorner)
+            return;
+
+        root.inHotCorner = inCorner;
+        if (inCorner)
+            hotCornerTimer.restart();
+        else
+            hotCornerTimer.stop();
+    }
+
     function withinPanelHeight(panel: Item, x: real, y: real): bool {
         const panelY = root.borderThickness + panel.y;
         return y >= panelY - Config.border.rounding && y <= panelY + panel.height + Config.border.rounding;
@@ -59,6 +82,17 @@ CustomMouseArea {
         }
     }
 
+    // Short dwell so brushing past the corner doesn't open the overview
+    Timer {
+        id: hotCornerTimer
+
+        interval: 150
+        onTriggered: {
+            if (root.inHotCorner)
+                root.screenState.overview = true;
+        }
+    }
+
     anchors.fill: parent
     acceptedButtons: fullscreen ? Qt.NoButton : Qt.AllButtons
     hoverEnabled: true
@@ -66,6 +100,9 @@ CustomMouseArea {
     onPressed: event => dragStart = Qt.point(event.x, event.y)
     onContainsMouseChanged: {
         if (!containsMouse) {
+            root.inHotCorner = false;
+            hotCornerTimer.stop();
+
             // Only hide if not activated by shortcut
             if (!osdShortcutActive) {
                 screenState.osd = false;
@@ -92,6 +129,8 @@ CustomMouseArea {
     }
 
     onPositionChanged: event => {
+        root.updateHotCorner(event.x, event.y);
+
         if (popouts.isDetached)
             return;
 

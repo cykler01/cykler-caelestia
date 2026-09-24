@@ -104,6 +104,38 @@ Scope {
     // qmllint disable unresolved-type
     CustomShortcut {
         // qmllint enable unresolved-type
+        name: "overviewOpen"
+        description: "Open the overview"
+        onPressed: {
+            if (!root.hasFullscreen)
+                ShellState.forActive().overview = true;
+        }
+    }
+
+    // qmllint disable unresolved-type
+    CustomShortcut {
+        // qmllint enable unresolved-type
+        name: "overviewClose"
+        description: "Close the overview"
+        onPressed: ShellState.forActive().overview = false
+    }
+
+    // qmllint disable unresolved-type
+    CustomShortcut {
+        // qmllint enable unresolved-type
+        name: "overview"
+        description: "Toggle the overview"
+        onPressed: {
+            const screenState = ShellState.forActive();
+            if (!screenState.overview && root.hasFullscreen)
+                return;
+            screenState.overview = !screenState.overview;
+        }
+    }
+
+    // qmllint disable unresolved-type
+    CustomShortcut {
+        // qmllint enable unresolved-type
         name: "sidebar"
         description: "Toggle sidebar"
         onPressed: {

@@ -23,6 +23,7 @@ qml_module(caelestia-config
         notifpopoutconfig.hpp
         notifsconfig.hpp
         osdconfig.hpp
+        overviewconfig.hpp
         serviceconfig.hpp
         sessionconfig.hpp
         sidebarconfig.hpp
