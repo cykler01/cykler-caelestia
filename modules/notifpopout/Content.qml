@@ -102,5 +102,19 @@ StyledRect {
                 }
             }
         }
+
+        // Controls for the in-shell player alone, under the library. The media tab's own
+        // controls follow whichever MPRIS player is active; these keep driving the local
+        // queue while you are picking from it, and while anything else is playing.
+        LocalControls {
+            Layout.fillWidth: true
+            // Set in past the list rather than lining up with it, so the round buttons and
+            // the ends of the seek bar sit clear of the panel's edges and rounded corners
+            Layout.topMargin: Tokens.spacing.large
+            Layout.leftMargin: Tokens.padding.extraLarge
+            Layout.rightMargin: Tokens.padding.extraLarge
+            Layout.bottomMargin: Tokens.padding.extraLarge
+            visible: root.tab === 1
+        }
     }
 }

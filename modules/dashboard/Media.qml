@@ -10,8 +10,9 @@ import qs.components.controls
 import qs.services
 
 // NOTE(fork): one media tab for both the external MPRIS players and the in-shell local
-// player. The player keeps the original layout, and the library is a drawer underneath it
-// that opens by itself whenever there is nothing to control.
+// player. The player keeps the original layout: browsing the music and picking what to play
+// lives in the notification popout's library tab, so this tab is only about controlling
+// whatever is playing.
 Item {
     id: root
 
@@ -19,9 +20,7 @@ Item {
 
     // Whether the tab is controlling the in-shell player instead of an MPRIS player
     property bool useLocal
-    // Whether the user opened the library drawer themselves
-    property bool libraryToggled
-    // Whether the user opened the equalizer drawer, which shares the slot under the player
+    // Whether the user opened the equalizer drawer under the player
     property bool eqToggled
 
     readonly property MediaSource localSource: MediaSource {
@@ -34,13 +33,11 @@ Item {
     readonly property bool localActive: root.useLocal || !Players.active
     readonly property MediaSource source: root.localActive ? root.localSource : root.mprisSource
 
-    // The library is the only useful thing to show when there is nothing to control
-    readonly property bool libraryOpen: root.libraryToggled || !root.source.available
     // The equalizer is an opt-in service (Settings > Audio), so the tab only offers it - and only
     // keeps it open - while that option is on
     readonly property bool eqOpen: root.eqToggled && Equalizer.enabled
-    // Only one of them is ever open, so the tab only ever grows by the one drawer
-    readonly property bool drawerOpen: root.libraryOpen || root.eqOpen
+    // The tab grows by the drawer, rather than the drawer eating into the player
+    readonly property bool drawerOpen: root.eqOpen
     // How much the drawer adds to the tab (and so to the dashboard) while it is open
     readonly property real drawerHeight: 320
     // Breathing room between the player and the drawer, on top of the layout's own spacing, so
@@ -114,30 +111,12 @@ Item {
                     spacing: Tokens.spacing.extraSmall
 
                     IconButton {
-                        // The library is the only thing worth showing when there's nothing to control
-                        visible: root.source.available
-                        icon: "library_music"
-                        type: root.libraryOpen ? IconButton.Filled : IconButton.Tonal
-                        isToggle: true
-                        checked: root.libraryOpen
-                        onClicked: {
-                            root.libraryToggled = !root.libraryToggled;
-                            if (root.libraryToggled)
-                                root.eqToggled = false;
-                        }
-                    }
-
-                    IconButton {
                         visible: Equalizer.enabled
                         icon: "equalizer"
                         type: root.eqOpen ? IconButton.Filled : IconButton.Tonal
                         isToggle: true
                         checked: root.eqOpen
-                        onClicked: {
-                            root.eqToggled = !root.eqToggled;
-                            if (root.eqToggled)
-                                root.libraryToggled = false;
-                        }
+                        onClicked: root.eqToggled = !root.eqToggled
                     }
 
                     // Sits just right of the drawer toggles rather than out at the right hand end,
@@ -267,7 +246,7 @@ Item {
                                 }
 
                                 StyledText {
-                                    text: Tr.tr("Pick something to play it here!")
+                                    text: Tr.tr("Pick something in the sidebar to play it here")
                                     color: Colours.palette.m3onSurfaceVariant
                                     font: Tokens.font.body.large
                                 }
@@ -304,7 +283,7 @@ Item {
             }
         }
 
-        // One slot holds either drawer, so the layout only ever has to account for a single one
+        // The drawer under the player, so the tab grows rather than the player shrinking
         Item {
             id: drawer
 
@@ -320,20 +299,6 @@ Item {
 
             Behavior on Layout.preferredHeight {
                 Anim {}
-            }
-
-            LibraryBrowser {
-                anchors.fill: parent
-                opacity: root.libraryOpen ? 1 : 0
-                enabled: root.libraryOpen
-
-                onTrackPlayed: root.useLocal = true
-
-                Behavior on opacity {
-                    Anim {
-                        type: Anim.DefaultEffects
-                    }
-                }
             }
 
             EqualizerPanel {

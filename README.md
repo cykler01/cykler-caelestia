@@ -21,7 +21,7 @@ This is my take on the Caelestia shell - upstream's desktop shell with my own fe
 | Game mode | Derived from animation state | Fixed false-trigger; also sets flat mouse accel |
 | Input configuration | Hand-edited Hyprland config | Mouse, scroll and touchpad settings in Nexus |
 | Launcher | Standard actions | Adds OCR (`>ocr`) and Google Lens (`>lens`) region-capture actions |
-| Music player | External players only | In-shell local music player; library browser in the dashboard media tab and the notification popout, grouped by folder or by artist |
+| Music player | External players only | In-shell local music player, with a library browser in the notification popout grouped by folder or by artist, and local-only transport controls under it |
 | To-do list | Fuzzel script in the dotfiles | `>todo` list in the launcher |
 | Window overview | --- | 4-finger swipe up or the top-left hot corner shows every workspace and its windows, click to jump |
 
@@ -110,23 +110,23 @@ This is my take on the Caelestia shell - upstream's desktop shell with my own fe
 ### Local music player
 
 -   **Unified media tab** — one tab controls whatever is playing, whether that is an
-    external MPRIS player (a browser or music app) or the built in player. When nothing is
-    loaded the library opens so you can pick something to play, otherwise the cover, lyrics
-    and visualiser follow the active source, and the same controls drive it. The source
+    external MPRIS player (a browser or music app) or the built in player. The cover, lyrics
+    and visualiser follow the active source, and the same controls drive it; with nothing to
+    control it says so rather than pretending there is something to play. The source
     picker switches between the open MPRIS players and the built in player, which plays the
     files under `paths.musicDir` (defaults to `~/Music`) in-shell with seek, volume, shuffle
     and repeat (off / all / one).
--   **System-wide equalizer** (opt-in) — a ten band equalizer in the media tab, in the same slot
-    under the player as the library. It is off until you switch it on in Settings > Audio, and
+-   **System-wide equalizer** (opt-in) — a ten band equalizer in the media tab, in a drawer
+    under the player. It is off until you switch it on in Settings > Audio, and
     its one-off PipeWire setup (see **Equalizer** below) is a manual step, so updating the shell
     never changes your audio on its own. It equalizes the whole system rather than just the
     player, because the audio path is a PipeWire filter chain. Moving a slider writes the band
     straight into the running node, so a tweak is audible immediately, and there are presets for
     different kinds of music (rock, pop, jazz, classical, electronic, hip hop, bass boost,
     vocal, loudness) alongside flat. The curve and preset are remembered between sessions.
--   **Music library** — a list of the music folder, as a drawer under the player in the
-    dashboard and as a tab in the notification popout, and it opens by itself when there is
-    nothing to control. Every row carries that entry's cover art beside the name: a folder's
+-   **Music library** — a list of the music folder, in the notification popout's library tab
+    (the dashboard's media tab is only about controlling what is already playing). Every row
+    carries that entry's cover art beside the name: a folder's
     own cover, a track's own art, and an icon on a rounded placeholder when there is none.
     Folders show how many tracks they hold, the track that is playing is marked, and playing
     one queues everything else on the list behind it, so a folder plays through instead of
@@ -138,9 +138,8 @@ This is my take on the Caelestia shell - upstream's desktop shell with my own fe
     with no artist tag is listed under **No artist** rather than dropped.
 -   **Search that knows artists** — the search box matches titles, artists and albums across
     the whole library as well as paths, so an artist brings up everything by them and a folder
-    or album name still finds its tracks. The dashboard now takes keyboard focus on demand,
-    and so does the popout while the library tab is up, so the field can actually be typed
-    into.
+    or album name still finds its tracks. The popout takes keyboard focus on demand while its
+    library tab is up, so the field can actually be typed into.
 -   **Cover art** — art embedded in the track is shown on the cover next to the controls,
     falling back to an image named after the track (what yt-dlp leaves behind, since opus
     cannot hold one) and then to a `cover`, `folder` or `album` image in the track's folder.
@@ -208,9 +207,17 @@ binding the `caelestia:notifPopoutOpen` / `caelestia:notifPopoutClose` global sh
 `caelestia:notifPopoutOpenOrNextTab` is the one the left swipe uses: it opens the popout when it
 is closed and moves to the other tab when it is already open.
 
-The music library tab browses the same folder the dashboard's Media tab reads, as a list of
-folders, artists and tracks with a search field, and clicking a track plays it. It is only built
+The music library tab browses the same music folder the media tab's local player plays, as a list
+of folders, artists and tracks with a search field, and clicking a track plays it. It is only built
 the first time you open that tab, so the notification side stays as cheap to open as it was.
+
+Under the list is a seek bar and a transport bar: shuffle, previous, play/pause, next and repeat.
+The seek bar shows the elapsed and total time either side of a draggable slider, whose position
+follows the song as it plays (and follows the drag while you scrub, seeking when you let go).
+Unlike the media tab's controls, which follow whichever source is active, these are wired to the
+in-shell player alone, so they keep driving the local queue while a browser is the thing that is
+playing. They are disabled rather than hidden while nothing is queued, so the library doesn't
+shift when a queue appears.
 
 ### Window overview
 
