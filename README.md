@@ -202,10 +202,10 @@ binding the `caelestia:notifPopoutOpen` / `caelestia:notifPopoutClose` global sh
 A full-screen overview of every workspace and the windows on it, so you can see everything at
 glance and jump straight to it. The ten workspaces around the current one are laid out in a
 centred 2×5 grid, each tile a 16:9 representation of that workspace: every window is drawn at the
-position and size Hyprland gives it, scaled down from its monitor. Occupied workspaces are
-brighter than empty ones, all of them are outlined, and the focused one is outlined in the accent
-colour. Clicking a window focuses it and closes the overview; clicking anywhere else on a tile
-switches to that workspace.
+position and size Hyprland gives it, scaled down from its monitor, with the app's own icon over the
+middle of it. Occupied workspaces are brighter than empty ones, all of them are outlined, and the
+focused one is outlined in the accent colour. Clicking a window focuses it and closes the overview;
+clicking anywhere else on a tile switches to that workspace.
 
 Open it either way:
 
