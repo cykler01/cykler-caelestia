@@ -178,6 +178,14 @@ QtObject {
             }
         },
         Component {
+            // Layout editor
+            StackPage {
+                Component {
+                    LayoutPage {}
+                }
+            }
+        },
+        Component {
             // Apps
             StackPage {
                 Component {

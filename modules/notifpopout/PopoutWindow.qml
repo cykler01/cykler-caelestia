@@ -18,8 +18,8 @@ StyledWindow {
     readonly property ScreenState screenState: ShellState.forScreen(screen)
     readonly property bool open: screenState.notifPopout
     readonly property real gap: contentItem.Tokens.padding.large
-    // With the bar on the right (and bar.mirrorPanels on) the popout opens from the left edge instead, away from the bar
-    readonly property bool mirrored: ShellState.componentsFor(screen)?.panels?.mirrored ?? false
+    // Which side edge the popout opens from (config notifPopout.side, flipped by bar.mirrorPanels with a right-hand bar)
+    readonly property bool mirrored: ShellState.componentsFor(screen)?.panels?.notifPopoutLeft ?? false
     // Separate from the sidebar's own so expanding cards in one doesn't affect the other
     readonly property var props: Sidebar.Props {
         reloadableId: "notifPopout"

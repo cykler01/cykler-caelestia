@@ -34,22 +34,22 @@ Region {
         id: sessionRegion
 
         panel: root.panels.sessionWrapper
-        x: root.panels.mirrored ? 0 : root.win.width - width
-        width: panel.width * (1 - root.panels.session.offsetScale) + (root.panels.mirrored ? root.bar.insetLeft : root.bar.insetRight) + sidebarRegion.width
+        x: root.panels.sessionLeft ? 0 : root.win.width - width
+        width: panel.width * (1 - root.panels.session.offsetScale) + (root.panels.sessionLeft ? root.bar.insetLeft : root.bar.insetRight) + (root.panels.sessionWithStack ? sidebarRegion.width : 0)
     }
 
     R {
         id: sidebarRegion
 
         panel: root.panels.sidebar
-        x: root.panels.mirrored ? 0 : root.win.width - width
-        width: panel.width * (1 - root.panels.sidebar.offsetScale) + (root.panels.mirrored ? root.bar.insetLeft : root.bar.insetRight)
+        x: root.panels.stackLeft ? 0 : root.win.width - width
+        width: panel.width * (1 - root.panels.sidebar.offsetScale) + (root.panels.stackLeft ? root.bar.insetLeft : root.bar.insetRight)
     }
 
     R {
         panel: root.panels.osdWrapper
-        x: root.panels.mirrored ? 0 : root.win.width - width
-        width: panel.width * (1 - root.panels.osd.offsetScale) + (root.panels.mirrored ? root.bar.insetLeft : root.bar.insetRight) + sessionRegion.width
+        x: root.panels.osdLeft ? 0 : root.win.width - width
+        width: panel.width * (1 - root.panels.osd.offsetScale) + (root.panels.osdLeft ? root.bar.insetLeft : root.bar.insetRight) + (root.panels.osdWithSession ? sessionRegion.width : root.panels.osdWithStack ? sidebarRegion.width : 0)
     }
 
     R {

@@ -71,6 +71,12 @@ QtObject {
             category: "shell"
         },
         {
+            label: Tr.tr("Layout"),
+            icon: "dashboard_customize",
+            description: Tr.tr("Move the bar, panels and widgets"),
+            category: "shell"
+        },
+        {
             label: Tr.tr("Apps"),
             icon: "apps",
             description: Tr.tr("Default apps, favourites, hidden apps"),

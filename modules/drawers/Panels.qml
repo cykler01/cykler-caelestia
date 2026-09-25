@@ -36,9 +36,19 @@ Item {
     readonly property alias toasts: toasts
     readonly property alias sidebar: sidebar
 
-    // With the bar on the right (and bar.mirrorPanels on), the panels that normally open on the right edge open
-    // on the left instead
-    readonly property bool mirrored: bar.onRight && Config.bar.mirrorPanels
+    // Which side edge each group of panels opens from. Every panel has its own setting (right by default); with
+    // the bar on the right and bar.mirrorPanels on, all of them flip to the opposite side.
+    readonly property bool flipSides: bar.onRight && Config.bar.mirrorPanels
+    readonly property bool osdLeft: (Config.osd.side === PanelSide.Left) !== flipSides
+    readonly property bool sessionLeft: (Config.session.side === PanelSide.Left) !== flipSides
+    // The sidebar, notifications, utilities and toasts stack together, so they share one side
+    readonly property bool stackLeft: (Config.sidebar.side === PanelSide.Left) !== flipSides
+    readonly property bool notifPopoutLeft: (GlobalConfig.notifPopout.side === PanelSide.Left) !== flipSides
+
+    // Panels on the same side sit beside each other; panels on different sides don't affect each other
+    readonly property bool osdWithSession: osdLeft === sessionLeft
+    readonly property bool osdWithStack: osdLeft === stackLeft
+    readonly property bool sessionWithStack: sessionLeft === stackLeft
 
     anchors.fill: parent
     anchors.leftMargin: bar.insetLeft
@@ -49,14 +59,14 @@ Item {
     Item {
         id: osdWrapper
 
-        // Flips to the left edge when the bar is on the right, so it never sits under or against the bar
-        LayoutMirroring.enabled: root.mirrored
+        // Opens from the left edge when this panel's side is Left (see the side flags above)
+        LayoutMirroring.enabled: root.osdLeft
         LayoutMirroring.childrenInherit: true
 
         anchors.verticalCenter: parent.verticalCenter
         anchors.right: parent.right
-        anchors.rightMargin: sessionWrapper.anchors.rightMargin + session.width * (1 - session.offsetScale)
-        clip: sidebar.visible || session.visible
+        anchors.rightMargin: (root.osdWithSession ? session.width * (1 - session.offsetScale) : 0) + (root.osdWithStack ? sidebar.width * (1 - sidebar.offsetScale) : 0)
+        clip: (root.osdWithStack && sidebar.visible) || (root.osdWithSession && session.visible)
 
         implicitWidth: osd.implicitWidth * (1 - osd.offsetScale)
         implicitHeight: osd.implicitHeight
@@ -66,7 +76,7 @@ Item {
 
             screen: root.screen
             screenState: root.screenState
-            sidebarOrSessionVisible: sidebar.visible || session.visible
+            sidebarOrSessionVisible: (root.osdWithStack && sidebar.visible) || (root.osdWithSession && session.visible)
 
             anchors.verticalCenter: parent.verticalCenter
             anchors.right: parent.right
@@ -76,8 +86,7 @@ Item {
     Notifications.Wrapper {
         id: notifications
 
-        // Flips to the left edge when the bar is on the right, so it never sits under or against the bar
-        LayoutMirroring.enabled: root.mirrored
+        LayoutMirroring.enabled: root.stackLeft
         LayoutMirroring.childrenInherit: true
 
         screenState: root.screenState
@@ -93,14 +102,13 @@ Item {
     Item {
         id: sessionWrapper
 
-        // Flips to the left edge when the bar is on the right, so it never sits under or against the bar
-        LayoutMirroring.enabled: root.mirrored
+        LayoutMirroring.enabled: root.sessionLeft
         LayoutMirroring.childrenInherit: true
 
         anchors.verticalCenter: parent.verticalCenter
         anchors.right: parent.right
-        anchors.rightMargin: sidebar.width * (1 - sidebar.offsetScale)
-        clip: sidebar.visible
+        anchors.rightMargin: root.sessionWithStack ? sidebar.width * (1 - sidebar.offsetScale) : 0
+        clip: root.sessionWithStack && sidebar.visible
 
         implicitWidth: session.implicitWidth * (1 - session.offsetScale)
         implicitHeight: session.implicitHeight
@@ -109,7 +117,7 @@ Item {
             id: session
 
             screenState: root.screenState
-            sidebarVisible: sidebar.visible
+            sidebarVisible: root.sessionWithStack && sidebar.visible
 
             anchors.verticalCenter: parent.verticalCenter
             anchors.right: parent.right
@@ -148,8 +156,7 @@ Item {
     Utilities.Wrapper {
         id: utilities
 
-        // Flips to the left edge when the bar is on the right, so it never sits under or against the bar
-        LayoutMirroring.enabled: root.mirrored
+        LayoutMirroring.enabled: root.stackLeft
         LayoutMirroring.childrenInherit: true
 
         screenState: root.screenState
@@ -163,7 +170,7 @@ Item {
     Toasts.Toasts {
         id: toasts
 
-        LayoutMirroring.enabled: root.mirrored
+        LayoutMirroring.enabled: root.stackLeft
         LayoutMirroring.childrenInherit: false
 
         anchors.bottom: sidebar.visible ? parent.bottom : utilities.top
@@ -174,8 +181,7 @@ Item {
     Sidebar.Wrapper {
         id: sidebar
 
-        // Flips to the left edge when the bar is on the right, so it never sits under or against the bar
-        LayoutMirroring.enabled: root.mirrored
+        LayoutMirroring.enabled: root.stackLeft
         LayoutMirroring.childrenInherit: true
 
         screenState: root.screenState

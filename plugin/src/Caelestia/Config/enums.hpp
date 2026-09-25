@@ -22,6 +22,8 @@ ENUM(BarPosition, Left, Right, Top, Bottom)
 // Which screen edge a horizontal panel (launcher, dashboard) hangs from, and where along that edge it sits
 ENUM(PanelEdge, Top, Bottom)
 ENUM(PanelAlign, Start, Center, End)
+// Which side edge a panel that opens from the left or right (OSD, session menu, sidebar) comes from
+ENUM(PanelSide, Left, Right)
 ENUM(BarWorkspaceDisplay, Shapes, Text, Icons)
 ENUM(BarWorkspaceCapitalisation, Preserve, Upper, Lower)
 ENUM(LyricsBackend, Auto, Local, LRCLIB, NetEase)

@@ -123,9 +123,9 @@ StyledWindow {
         height: panels.notifications.height
 
         Region {
-            x: panels.mirrored ? 0 : root.width - width
+            x: panels.osdLeft ? 0 : root.width - width
             y: panels.osdWrapper.y + bar.insetTop
-            width: panels.osdWrapper.width * (1 - panels.osd.offsetScale) + (panels.mirrored ? bar.insetLeft : bar.insetRight)
+            width: panels.osdWrapper.width * (1 - panels.osd.offsetScale) + (panels.osdLeft ? bar.insetLeft : bar.insetRight)
             height: panels.osd.height
         }
     }
@@ -269,8 +269,8 @@ StyledWindow {
             implicitHeight: panel.height * (1 / rawDeformMatrix.m22) + 2
             exclude: panels.sidebar.offsetScale > 0.08 ? [] : [utilsBg]
             // The corner where the sidebar meets the utilities panel is on the panels' inner side
-            bottomLeftRadius: panels.mirrored ? radius : Math.max(0, Math.min(1, panels.sidebar.offsetScale / 0.3)) * radius
-            bottomRightRadius: panels.mirrored ? Math.max(0, Math.min(1, panels.sidebar.offsetScale / 0.3)) * radius : radius
+            bottomLeftRadius: panels.stackLeft ? radius : Math.max(0, Math.min(1, panels.sidebar.offsetScale / 0.3)) * radius
+            bottomRightRadius: panels.stackLeft ? Math.max(0, Math.min(1, panels.sidebar.offsetScale / 0.3)) * radius : radius
         }
 
         PanelBg {
@@ -295,8 +295,8 @@ StyledWindow {
             deformAmount: panels.sidebar.visible ? 0.1 : 0.15
             implicitWidth: panels.utilities.offsetScale < 0.999 ? panel.width : 0
             exclude: panels.sidebar.offsetScale > 0.08 ? [] : [sidebarBg]
-            topLeftRadius: panels.mirrored ? radius : Math.max(0, Math.min(1, panels.sidebar.offsetScale / 0.3)) * radius
-            topRightRadius: panels.mirrored ? Math.max(0, Math.min(1, panels.sidebar.offsetScale / 0.3)) * radius : radius
+            topLeftRadius: panels.stackLeft ? radius : Math.max(0, Math.min(1, panels.sidebar.offsetScale / 0.3)) * radius
+            topRightRadius: panels.stackLeft ? Math.max(0, Math.min(1, panels.sidebar.offsetScale / 0.3)) * radius : radius
         }
 
         PanelBg {
