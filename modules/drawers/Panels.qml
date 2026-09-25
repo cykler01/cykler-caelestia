@@ -123,6 +123,7 @@ Item {
     Notch.Wrapper {
         id: notch
 
+        screen: root.screen
         screenState: root.screenState
 
         anchors.horizontalCenter: parent.horizontalCenter

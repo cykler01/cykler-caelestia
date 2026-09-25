@@ -19,6 +19,9 @@ Item {
     // whether what is playing is the in-shell player rather than an MPRIS one
     property bool cavaWarm
     property bool local
+    // What to show: the playing track (cover, title, visualiser) and/or the clock
+    property bool showMedia: true
+    property bool showClock
 
     readonly property int coverSize: Tokens.padding.extraLarge
 
@@ -74,7 +77,47 @@ Item {
         anchors.centerIn: parent
         spacing: Tokens.spacing.medium
 
+        ColumnLayout {
+            visible: root.showClock
+            Layout.alignment: Qt.AlignVCenter
+            spacing: 0
+
+            RowLayout {
+                Layout.alignment: Qt.AlignHCenter
+                spacing: Tokens.spacing.extraSmall
+
+                StyledText {
+                    text: `${Time.hourStr}:${Time.minuteStr}`
+                    color: Colours.palette.m3primary
+                    font: Tokens.font.title.builders.small.weight(Font.DemiBold).build()
+                }
+
+                StyledText {
+                    visible: Units.twelveHourClock
+                    text: Time.amPmStr.toLowerCase()
+                    color: Colours.palette.m3primary
+                    font: Tokens.font.label.small
+                }
+            }
+
+            StyledText {
+                Layout.alignment: Qt.AlignHCenter
+                text: Time.format("ddd d MMM")
+                color: Colours.palette.m3onSurfaceVariant
+                font: Tokens.font.label.small
+            }
+        }
+
+        StyledRect {
+            visible: root.showClock && root.showMedia
+            Layout.alignment: Qt.AlignVCenter
+            Layout.preferredWidth: 1
+            Layout.preferredHeight: root.coverSize
+            color: Colours.palette.m3outlineVariant
+        }
+
         CoverArt {
+            visible: root.showMedia
             Layout.alignment: Qt.AlignVCenter
             Layout.preferredWidth: root.coverSize
             Layout.preferredHeight: root.coverSize
@@ -83,6 +126,7 @@ Item {
         }
 
         StyledText {
+            visible: root.showMedia
             // Grows with the track title (and artist, if shown), elided past
             // this so one long name can't stretch the pill indefinitely
             Layout.alignment: Qt.AlignVCenter
@@ -102,13 +146,14 @@ Item {
 
             // Matches root.coverSize so the cover and visualiser carry the
             // same visual weight either side of the title
+            visible: root.showMedia
             Layout.alignment: Qt.AlignVCenter
             Layout.preferredWidth: root.coverSize
             Layout.preferredHeight: root.coverSize
 
             // Power Saver can pause audio capture; the bars then rest flat (see PowerSaving)
             ServiceRef {
-                service: PowerSaving.pauseVisualisers ? null : Audio.cava
+                service: PowerSaving.pauseVisualisers || !root.showMedia ? null : Audio.cava
             }
 
             VisualiserBars {
@@ -138,12 +183,12 @@ Item {
             }
 
             FrameAnimation {
-                running: !bars.settled
+                running: root.showMedia && !bars.settled
                 onTriggered: bars.advance(frameTime)
             }
 
             FrameAnimation {
-                running: !root.cavaWarm && !PowerSaving.pauseVisualisers
+                running: root.showMedia && !root.cavaWarm && !PowerSaving.pauseVisualisers
                 onTriggered: root.placeholderPhase += frameTime * 4
             }
         }

@@ -31,6 +31,27 @@ PageBase {
             onToggled: GlobalConfig.notch.enabled = checked
         }
 
+        // Empty workspace
+        SectionHeader {
+            text: Tr.tr("Empty workspace")
+        }
+
+        ToggleRow {
+            first: true
+            text: Tr.tr("Show on empty workspace")
+            subtext: Tr.tr("Keep the notch up while no tiled windows are open")
+            checked: Config.notch.showOnEmptyWorkspace
+            onToggled: GlobalConfig.notch.showOnEmptyWorkspace = checked
+        }
+
+        ToggleRow {
+            last: true
+            text: Tr.tr("Show clock")
+            subtext: Tr.tr("Show the time and date in the notch, next to the playing track")
+            checked: Config.notch.showClock
+            onToggled: GlobalConfig.notch.showClock = checked
+        }
+
         // Behaviour
         SectionHeader {
             text: Tr.tr("Behaviour")

@@ -1,6 +1,7 @@
 pragma ComponentBehavior: Bound
 
 import QtQuick
+import Quickshell
 import Caelestia.Config
 import Caelestia.Services
 import qs.components
@@ -19,6 +20,7 @@ import qs.services
 Item {
     id: root
 
+    required property ShellScreen screen
     required property ScreenState screenState
 
     property bool shown
@@ -43,7 +45,16 @@ Item {
     // Stays visible through our own peek (root.peeking) so the pill keeps
     // receiving hover events to detect mouse-away and end the peek; only
     // hides for a dashboard opened some other way (e.g. the user's own keybind)
-    readonly property bool shouldBeActive: Config.notch.enabled && root.playing && (shown || hovered || peeking) && (!screenState.dashboard || root.peeking) && !screenState.launcher
+    // No tiled windows cover this monitor's desktop (floating ones leave it visible), same rule as the desktop widgets
+    readonly property var monitor: Hypr.monitorFor(screen)
+    readonly property bool emptyWorkspace: monitor?.activeWorkspace?.toplevels?.values.every(t => t.lastIpcObject?.floating) ?? true
+
+    // Up for as long as the workspace is empty, as long as there is something to show
+    readonly property bool persistent: Config.notch.showOnEmptyWorkspace && emptyWorkspace && (Config.notch.showClock || root.playing)
+    // The brief pill after a track change, or while hovered/peeking
+    readonly property bool trackActive: root.playing && (shown || hovered || peeking)
+
+    readonly property bool shouldBeActive: Config.notch.enabled && (persistent || trackActive) && (!screenState.dashboard || root.peeking) && !screenState.launcher
     property real offsetScale: shouldBeActive ? 0 : 1
 
     // Media tab is inserted after Dashboard's own tab (if shown), matching the
@@ -183,7 +194,11 @@ Item {
         id: expandTimer
 
         interval: root.Config.notch.hoverExpandDelay
-        onTriggered: root.startPeek()
+        onTriggered: {
+            // Peeking opens the media tab, which is only interesting while something is playing
+            if (root.playing)
+                root.startPeek();
+        }
     }
 
     HoverHandler {
@@ -210,6 +225,8 @@ Item {
         sourceComponent: Pill {
             local: root.local
             cavaWarm: root.cavaWarm
+            showMedia: root.playing && (root.trackActive || root.persistent)
+            showClock: root.persistent && Config.notch.showClock
         }
     }
 }

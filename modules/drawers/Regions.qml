@@ -53,6 +53,11 @@ Region {
     }
 
     R {
+        panel: root.panels.notch
+        height: panel.height * (1 - root.panels.notch.offsetScale)
+    }
+
+    R {
         panel: root.panels.notifications
         y: 0
         height: panel.height + root.bar.insetTop

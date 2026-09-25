@@ -14,6 +14,9 @@ class NotchConfig : public settings::ObjectNode {
     CONFIG_PROPERTY(int, collapseDelay, 400)
     CONFIG_PROPERTY(int, maxTitleWidth, 320)
     CONFIG_PROPERTY(bool, showArtist, true)
+    // Keep the notch up while the workspace has no (tiled) windows, showing the clock and what is playing
+    CONFIG_PROPERTY(bool, showOnEmptyWorkspace, true)
+    CONFIG_PROPERTY(bool, showClock, true)
 };
 
 } // namespace caelestia::config
