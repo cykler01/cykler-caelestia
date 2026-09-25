@@ -10,6 +10,32 @@ import qs.modules.nexus.common
 PageBase {
     id: root
 
+    readonly property list<MenuItem> alignItems: [
+        MenuItem {
+            text: Tr.trCtx("Left", "panel alignment")
+            icon: "align_horizontal_left"
+        },
+        MenuItem {
+            text: Tr.trCtx("Centre", "panel alignment")
+            icon: "align_horizontal_center"
+        },
+        MenuItem {
+            text: Tr.trCtx("Right", "panel alignment")
+            icon: "align_horizontal_right"
+        }
+    ]
+
+    readonly property list<MenuItem> edgeItems: [
+        MenuItem {
+            text: Tr.trCtx("Top", "panel edge")
+            icon: "vertical_align_top"
+        },
+        MenuItem {
+            text: Tr.trCtx("Bottom", "panel edge")
+            icon: "vertical_align_bottom"
+        }
+    ]
+
     // Ordered to match config::PerfGraphColours (Scheme, Vibrant, Monochrome, Custom)
     readonly property list<MenuItem> graphColourItems: [
         MenuItem {
@@ -207,6 +233,30 @@ PageBase {
             to: 200
             stepSize: 5
             onMoved: v => GlobalConfig.dashboard.dragThreshold = v
+        }
+
+        // Position
+        SectionHeader {
+            text: Tr.tr("Position")
+        }
+
+        SelectRow {
+            first: true
+            label: Tr.tr("Screen edge")
+            subtext: Tr.tr("Which edge the panel opens from")
+            menuItems: root.edgeItems
+            active: root.edgeItems[Config.dashboard.edge] ?? root.edgeItems[0]
+            onSelected: item => GlobalConfig.dashboard.edge = root.edgeItems.indexOf(item)
+        }
+
+        SelectRow {
+            
+            last: true
+            label: Tr.tr("Alignment")
+            subtext: Tr.tr("Where along that edge the panel sits")
+            menuItems: root.alignItems
+            active: root.alignItems[Config.dashboard.align] ?? root.alignItems[0]
+            onSelected: item => GlobalConfig.dashboard.align = root.alignItems.indexOf(item)
         }
     }
 }

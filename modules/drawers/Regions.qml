@@ -20,14 +20,14 @@ Region {
 
     R {
         panel: root.panels.dashboard
-        y: 0
-        height: panel.height * (1 - root.panels.dashboard.offsetScale) + root.bar.insetTop
+        y: root.panels.dashboard.atTop ? 0 : root.win.height - height
+        height: panel.height * (1 - root.panels.dashboard.offsetScale) + (root.panels.dashboard.atTop ? root.bar.insetTop : root.bar.insetBottom)
     }
 
     R {
         panel: root.panels.launcher
-        y: root.win.height - height
-        height: panel.height * (1 - root.panels.launcher.offsetScale) + root.bar.insetBottom
+        y: root.panels.launcher.atTop ? 0 : root.win.height - height
+        height: panel.height * (1 - root.panels.launcher.offsetScale) + (root.panels.launcher.atTop ? root.bar.insetTop : root.bar.insetBottom)
     }
 
     R {
@@ -54,7 +54,7 @@ Region {
 
     R {
         panel: root.panels.notch
-        y: panel.y + root.bar.insetTop - root.win.topShift
+        y: panel.y + root.bar.insetTop + root.win.notchShift
         height: panel.height * (1 - root.panels.notch.offsetScale)
     }
 

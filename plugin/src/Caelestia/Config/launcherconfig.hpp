@@ -7,6 +7,7 @@
 #include "settings/objectnode.hpp"
 #include "util/i18n.hpp"
 #include "common.hpp"
+#include "enums.hpp"
 
 namespace caelestia::config {
 
@@ -27,6 +28,8 @@ class LauncherConfig : public settings::ObjectNode {
     CONFIG_NODE(LauncherConfig, settings::ObjectNode)
 
     CONFIG_PROPERTY(bool, enabled, true)
+    CONFIG_ENUM_PROPERTY(PanelEdge, edge, PanelEdge::Bottom)
+    CONFIG_ENUM_PROPERTY(PanelAlign, align, PanelAlign::Center)
     CONFIG_PROPERTY(bool, showOnHover, false)
     CONFIG_PROPERTY(int, maxShown, 7)
     CONFIG_PROPERTY(int, maxWallpapers, 9)

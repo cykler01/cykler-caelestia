@@ -33,6 +33,8 @@ class DashboardConfig : public settings::ObjectNode {
     CONFIG_NODE(DashboardConfig, settings::ObjectNode)
 
     CONFIG_PROPERTY(bool, enabled, true)
+    CONFIG_ENUM_PROPERTY(PanelEdge, edge, PanelEdge::Top)
+    CONFIG_ENUM_PROPERTY(PanelAlign, align, PanelAlign::Center)
     CONFIG_PROPERTY(bool, showOnHover, true)
     CONFIG_PROPERTY(bool, showDashboard, true)
     CONFIG_PROPERTY(bool, showMedia, true)

@@ -15,12 +15,16 @@ Item {
     required property ScreenState screenState
     required property var panels
     required property real maxHeight
+    // Hanging from the top edge: the search bar goes first and the results list below it
+    property bool flipped
 
     readonly property int padding: Tokens.padding.large
     readonly property int rounding: Tokens.rounding.extraLarge
+    // Gap between the search bar and the screen edge it sits next to
+    readonly property real edgeMargin: CUtils.clamp(padding - Config.border.thickness, 0, padding)
 
     implicitWidth: listWrapper.width + padding * 2
-    implicitHeight: search.height + listWrapper.height + padding + search.anchors.bottomMargin
+    implicitHeight: search.height + listWrapper.height + padding + edgeMargin
 
     Item {
         id: listWrapper
@@ -28,9 +32,9 @@ Item {
         implicitWidth: list.width
         implicitHeight: list.height + root.padding
 
-        anchors.horizontalCenter: parent.horizontalCenter
-        anchors.bottom: search.top
-        anchors.bottomMargin: root.padding
+        // Explicit positions rather than anchors so the launcher can change edge live
+        x: (parent.width - width) / 2
+        y: root.flipped ? search.y + search.height + root.padding : search.y - root.padding - height
 
         ContentList {
             id: list
@@ -52,9 +56,9 @@ Item {
 
         anchors.left: parent.left
         anchors.right: parent.right
-        anchors.bottom: parent.bottom
-        anchors.margins: root.padding
-        anchors.bottomMargin: CUtils.clamp(root.padding - Config.border.thickness, 0, root.padding)
+        anchors.leftMargin: root.padding
+        anchors.rightMargin: root.padding
+        y: root.flipped ? root.edgeMargin : root.height - height - root.edgeMargin
 
         topPadding: Math.round((Tokens.padding.medium + Tokens.padding.large) / 2)
         bottomPadding: Math.round((Tokens.padding.medium + Tokens.padding.large) / 2)

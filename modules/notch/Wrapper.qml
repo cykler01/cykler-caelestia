@@ -97,7 +97,9 @@ Item {
     }
 
     visible: offsetScale < 1
-    anchors.topMargin: (-implicitHeight - 5) * offsetScale
+    // Position along the top edge (config notch.align); plain bindings, not anchors, so it can change live
+    x: Config.notch.align === PanelAlign.Start ? 0 : Config.notch.align === PanelAlign.End ? parent.width - width : (parent.width - width) / 2
+    y: (-height - 5) * offsetScale
     implicitWidth: content.implicitWidth
     implicitHeight: content.implicitHeight
     opacity: 1 - offsetScale

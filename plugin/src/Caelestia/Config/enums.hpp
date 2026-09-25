@@ -19,6 +19,9 @@ namespace caelestia::config {
     };
 
 ENUM(BarPosition, Left, Right, Top, Bottom)
+// Which screen edge a horizontal panel (launcher, dashboard) hangs from, and where along that edge it sits
+ENUM(PanelEdge, Top, Bottom)
+ENUM(PanelAlign, Start, Center, End)
 ENUM(BarWorkspaceDisplay, Shapes, Text, Icons)
 ENUM(BarWorkspaceCapitalisation, Preserve, Upper, Lower)
 ENUM(LyricsBackend, Auto, Local, LRCLIB, NetEase)

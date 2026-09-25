@@ -81,6 +81,11 @@ CustomMouseArea {
         return y > height - Math.max(Config.border.minThickness, bar.insetBottom + panelHeight) - (isCorner ? Config.border.rounding : 0) && withinPanelWidth(panel, x, y);
     }
 
+    // Whether the pointer is in the trigger zone of a panel hanging from the top or bottom edge
+    function inEdgePanel(panel: Item, atTop: bool, x: real, y: real, isCorner = false): bool {
+        return atTop ? inTopPanel(panel, x, y) : inBottomPanel(panel, x, y, isCorner);
+    }
+
     function onWheel(event: WheelEvent): void {
         if (fullscreen)
             return;
@@ -245,17 +250,19 @@ CustomMouseArea {
 
         // Show launcher on hover, or show/hide on drag if hover is disabled
         if (Config.launcher.showOnHover) {
-            if (!screenState.launcher && inBottomPanel(panels.launcher, x, y))
+            if (!screenState.launcher && inEdgePanel(panels.launcher, panels.launcher.atTop, x, y))
                 screenState.launcher = true;
-        } else if (pressed && inBottomPanel(panels.launcher, dragStart.x, dragStart.y) && withinPanelWidth(panels.launcher, x, y)) {
-            if (dragY < -Config.launcher.dragThreshold)
+        } else if (pressed && inEdgePanel(panels.launcher, panels.launcher.atTop, dragStart.x, dragStart.y) && withinPanelWidth(panels.launcher, x, y)) {
+            // Dragging away from the edge it hangs from opens it
+            const launcherDrag = panels.launcher.atTop ? dragY : -dragY;
+            if (launcherDrag > Config.launcher.dragThreshold)
                 screenState.launcher = true;
-            else if (dragY > Config.launcher.dragThreshold)
+            else if (launcherDrag < -Config.launcher.dragThreshold)
                 screenState.launcher = false;
         }
 
         // Show dashboard on hover
-        const showDashboard = Config.dashboard.showOnHover && inTopPanel(panels.dashboard, x, y);
+        const showDashboard = Config.dashboard.showOnHover && inEdgePanel(panels.dashboard, panels.dashboard.atTop, x, y);
 
         // Always update visibility based on hover if not in shortcut mode
         if (!dashboardShortcutActive) {
@@ -266,10 +273,11 @@ CustomMouseArea {
         }
 
         // Show/hide dashboard on drag (for touchscreen devices)
-        if (pressed && inTopPanel(panels.dashboard, dragStart.x, dragStart.y) && withinPanelWidth(panels.dashboard, x, y)) {
-            if (dragY > Config.dashboard.dragThreshold)
+        if (pressed && inEdgePanel(panels.dashboard, panels.dashboard.atTop, dragStart.x, dragStart.y) && withinPanelWidth(panels.dashboard, x, y)) {
+            const dashboardDrag = panels.dashboard.atTop ? dragY : -dragY;
+            if (dashboardDrag > Config.dashboard.dragThreshold)
                 screenState.dashboard = true;
-            else if (dragY < -Config.dashboard.dragThreshold)
+            else if (dashboardDrag < -Config.dashboard.dragThreshold)
                 screenState.dashboard = false;
         }
 
@@ -303,7 +311,7 @@ CustomMouseArea {
                 root.utilitiesShortcutActive = false;
 
                 // Also hide dashboard and OSD if they're not being hovered
-                const inDashboardArea = root.inTopPanel(root.panels.dashboard, root.mouseX, root.mouseY);
+                const inDashboardArea = root.inEdgePanel(root.panels.dashboard, root.panels.dashboard.atTop, root.mouseX, root.mouseY);
                 const inOsdArea = root.inRightPanel(root.panels.osdWrapper, root.mouseX, root.mouseY);
 
                 if (!inDashboardArea) {
@@ -319,7 +327,7 @@ CustomMouseArea {
         function onDashboardChanged() {
             if (root.screenState.dashboard) {
                 // Dashboard became visible, immediately check if this should be shortcut mode
-                const inDashboardArea = root.inTopPanel(root.panels.dashboard, root.mouseX, root.mouseY);
+                const inDashboardArea = root.inEdgePanel(root.panels.dashboard, root.panels.dashboard.atTop, root.mouseX, root.mouseY);
                 if (!inDashboardArea) {
                     root.dashboardShortcutActive = true;
                 }

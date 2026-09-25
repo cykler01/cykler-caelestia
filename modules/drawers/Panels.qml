@@ -106,18 +106,12 @@ Item {
         screen: root.screen
         screenState: root.screenState
         panels: root
-
-        anchors.horizontalCenter: parent.horizontalCenter
-        anchors.bottom: parent.bottom
     }
 
     Dashboard.Wrapper {
         id: dashboard
 
         screenState: root.screenState
-
-        anchors.horizontalCenter: parent.horizontalCenter
-        anchors.top: parent.top
     }
 
     Notch.Wrapper {
@@ -125,9 +119,6 @@ Item {
 
         screen: root.screen
         screenState: root.screenState
-
-        anchors.horizontalCenter: parent.horizontalCenter
-        anchors.top: parent.top
     }
 
     BarPopouts.ClipWrapper {

@@ -40,9 +40,23 @@ StyledWindow {
     readonly property bool desktopEmpty: monitor?.activeWorkspace?.toplevels?.values.every(t => t.lastIpcObject?.floating) ?? true
     readonly property bool middleHidden: contentItem.Config.bar.hideMiddleOnDesktop && desktopEmpty && bar.hasMiddle && !hasFullscreen
     property real middleProg: middleHidden ? 1 : 0
-    // How far panels centred on the bar's edge move back towards the screen edge to stay attached to the thin frame
-    readonly property real topShift: bar.onTop ? bar.cutDepth * middleProg : 0
-    readonly property real bottomShift: bar.onBottom ? bar.cutDepth * middleProg : 0
+    // Vertical offset for a panel hanging from the top or bottom edge: while the bar's middle is cut away the
+    // frame is thinner there, so a panel sitting in that stretch moves back towards the screen edge to stay
+    // attached to it. A panel over one of the bar's ends (or overlapping them) stays where it is.
+    function shiftFor(panel: Item, atTop: bool): real {
+        if (!(atTop ? bar.onTop : bar.onBottom))
+            return 0;
+
+        const left = panel.x + bar.insetLeft;
+        if (left < bar.middleStart || left + panel.width > bar.middleEnd)
+            return 0;
+
+        return (atTop ? -1 : 1) * bar.cutDepth * middleProg;
+    }
+
+    readonly property real dashboardShift: shiftFor(panels.dashboard, panels.dashboard.atTop)
+    readonly property real launcherShift: shiftFor(panels.launcher, panels.launcher.atTop)
+    readonly property real notchShift: shiftFor(panels.notch, true)
 
     property real fsTransitionProg: hasFullscreen ? 1 : 0
     readonly property real sdfBorderOffset: 2 * fsTransitionProg // SDFs joins are not exact, so offset by 2px to ensure nothing shows
@@ -216,7 +230,7 @@ StyledWindow {
 
             panel: panels.dashboard
             deformAmount: 0.1
-            y: panels.dashboard.y + bar.insetTop - root.topShift
+            y: panels.dashboard.y + bar.insetTop + root.dashboardShift
         }
 
         PanelBg {
@@ -224,7 +238,7 @@ StyledWindow {
 
             panel: panels.notch
             deformAmount: 0.1
-            y: panels.notch.y + bar.insetTop - root.topShift
+            y: panels.notch.y + bar.insetTop + root.notchShift
         }
 
         PanelBg {
@@ -232,7 +246,7 @@ StyledWindow {
 
             panel: panels.launcher
             deformAmount: 0.1
-            y: panels.launcher.y + bar.insetTop + root.bottomShift
+            y: panels.launcher.y + bar.insetTop + root.launcherShift
         }
 
         PanelBg {
@@ -335,7 +349,7 @@ StyledWindow {
                     matrix: dashBg.deformMatrix
                 },
                 Translate {
-                    y: -root.topShift
+                    y: root.dashboardShift
                 }
             ]
             launcher.transform: [
@@ -343,11 +357,11 @@ StyledWindow {
                     matrix: launcherBg.deformMatrix
                 },
                 Translate {
-                    y: root.bottomShift
+                    y: root.launcherShift
                 }
             ]
             notch.transform: Translate {
-                y: -root.topShift
+                y: root.notchShift
             }
             session.transform: Matrix4x4 {
                 matrix: sessionBg.deformMatrix

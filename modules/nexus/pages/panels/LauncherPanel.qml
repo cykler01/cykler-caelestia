@@ -4,10 +4,37 @@ import QtQuick
 import QtQuick.Layouts
 import Caelestia.Config
 import Caelestia.I18n
+import qs.components.controls
 import qs.modules.nexus.common
 
 PageBase {
     id: root
+
+    readonly property list<MenuItem> alignItems: [
+        MenuItem {
+            text: Tr.trCtx("Left", "panel alignment")
+            icon: "align_horizontal_left"
+        },
+        MenuItem {
+            text: Tr.trCtx("Centre", "panel alignment")
+            icon: "align_horizontal_center"
+        },
+        MenuItem {
+            text: Tr.trCtx("Right", "panel alignment")
+            icon: "align_horizontal_right"
+        }
+    ]
+
+    readonly property list<MenuItem> edgeItems: [
+        MenuItem {
+            text: Tr.trCtx("Top", "panel edge")
+            icon: "vertical_align_top"
+        },
+        MenuItem {
+            text: Tr.trCtx("Bottom", "panel edge")
+            icon: "vertical_align_bottom"
+        }
+    ]
 
     title: Tr.tr("Launcher")
     isSubPage: true
@@ -146,6 +173,30 @@ PageBase {
             text: Tr.tr("Wallpapers")
             checked: GlobalConfig.launcher.useFuzzy.wallpapers
             onToggled: GlobalConfig.launcher.useFuzzy.wallpapers = checked
+        }
+
+        // Position
+        SectionHeader {
+            text: Tr.tr("Position")
+        }
+
+        SelectRow {
+            first: true
+            label: Tr.tr("Screen edge")
+            subtext: Tr.tr("Which edge the panel opens from")
+            menuItems: root.edgeItems
+            active: root.edgeItems[Config.launcher.edge] ?? root.edgeItems[0]
+            onSelected: item => GlobalConfig.launcher.edge = root.edgeItems.indexOf(item)
+        }
+
+        SelectRow {
+            
+            last: true
+            label: Tr.tr("Alignment")
+            subtext: Tr.tr("Where along that edge the panel sits")
+            menuItems: root.alignItems
+            active: root.alignItems[Config.launcher.align] ?? root.alignItems[0]
+            onSelected: item => GlobalConfig.launcher.align = root.alignItems.indexOf(item)
         }
     }
 }
