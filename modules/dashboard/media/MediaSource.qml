@@ -30,7 +30,8 @@ QtObject {
     readonly property bool canGoNext: root.local ? Music.hasTrack : (root.mpris?.canGoNext ?? false)
 
     readonly property bool shuffle: root.local ? Music.shuffle : (root.mpris?.shuffle ?? false)
-    readonly property bool shuffleSupported: root.local ? Music.queue.length > 1 : (root.mpris?.shuffleSupported ?? false)
+    // Shuffling a queue of one does nothing, but shuffle already on has to stay switchable off
+    readonly property bool shuffleSupported: root.local ? (Music.shuffle || Music.queue.length > 1) : (root.mpris?.shuffleSupported ?? false)
     readonly property bool loopSupported: root.local ? true : (root.mpris?.loopSupported ?? false)
     // Exposed as MprisLoopState for both, so the UI only has one enum to reason about
     readonly property int loopState: {

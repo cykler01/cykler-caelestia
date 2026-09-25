@@ -131,25 +131,31 @@ This is my take on the Caelestia shell - upstream's desktop shell with my own fe
     Folders show how many tracks they hold, the track that is playing is marked, and playing
     one queues everything else on the list behind it, so a folder plays through instead of
     stopping after a single song.
--   **By folder or by artist** — the two buttons next to the breadcrumb switch between the
-    folders as they are on disk and the library sorted into one playlist per artist. Artists
-    come from the files' own tags, read by TagLib in the background, and only when something
-    asks for them, so a session that never opens the library never pays for the scan. A track
-    with no artist tag is listed under **No artist** rather than dropped.
+-   **Browse by folder** — the library lists the folders under the music folder as they are on
+    disk, with a breadcrumb beside the up and home buttons for climbing back out.
 -   **Search that knows artists** — the search box matches titles, artists and albums across
     the whole library as well as paths, so an artist brings up everything by them and a folder
-    or album name still finds its tracks. The popout takes keyboard focus on demand while its
-    library tab is up, so the field can actually be typed into.
+    or album name still finds its tracks. Artists come from the files' own tags, read by TagLib
+    in the background, and only when something asks for them, so a session that never searches
+    never pays for the scan. The popout takes keyboard focus on demand while its library tab is
+    up, so the field can actually be typed into.
 -   **Add to queue** — the checklist button in the library's header turns taps on tracks into
     a selection instead of playback, so a batch can be gathered up and queued in one go. The
-    selection is kept by path rather than by list position, so opening a folder, switching to
-    artists or typing a search doesn't throw it away - carry it across as many as you like,
+    selection is kept by path rather than by list position, so opening a folder or typing a
+    search doesn't throw it away - carry it across as many as you like,
     then *Add to queue* puts them on the end of the current queue in the order they were
     picked. The button beside it takes everything the list is showing (tracks on screen, not
     the whole library) and gives it back again if it is all already selected. Adding never
     interrupts what is playing, and a toast says how many songs went in; adding to an empty
     player starts the queue rather than leaving it silent. Playing a track by tapping it
     still starts a fresh queue from what is on screen, as before.
+-   **Shuffle that reorders the queue** — switching shuffle on shuffles what is lined up
+    rather than leaving the list in one order and picking a random song when each ends, so the
+    queue the view shows is the order that plays (and reads as one list rather than as the
+    hand-picked and the rest of the context). Picking an album or a folder while it is on deals
+    that context out in the same random order. Switching it off puts the songs that have not
+    played back in the order they were in, leaving anything added or moved while it was on where
+    it is.
 -   **Cover art** — art embedded in the track is shown on the cover next to the controls,
     falling back to an image named after the track (what yt-dlp leaves behind, since opus
     cannot hold one) and then to a `cover`, `folder` or `album` image in the track's folder.

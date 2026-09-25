@@ -20,41 +20,11 @@ Singleton {
     readonly property list<FileSystemEntry> library: allTracks.entries
 
     // Artist/title/album, read out of the files themselves by taglib through MusicTags. Only
-    // read when something asks for them - the artist grouping and the search - so a session
-    // that never opens the library never pays for the scan.
+    // read when something asks for them - the search and the artist shown beside a track - so a
+    // session that never opens the library never pays for the scan.
     readonly property var tags: MusicTags.tags
     readonly property bool tagsScanning: MusicTags.scanning
     property bool tagsWanted
-
-    // The library split into one playlist per artist, sorted by name with the tracks that
-    // carry no artist tag last and each playlist's own tracks in title order. Reads root.tags,
-    // so it fills in as soon as the scan lands.
-    readonly property var artistPlaylists: {
-        const tags = root.tags;
-        const entries = root.library;
-        const groups = new Map();
-
-        for (let i = 0; i < entries.length; i++) {
-            const artist = (tags[entries[i].path]?.artist ?? "").trim();
-            let group = groups.get(artist);
-            if (!group) {
-                group = { name: artist, tracks: [] };
-                groups.set(artist, group);
-            }
-            group.tracks.push(entries[i]);
-        }
-
-        const playlists = Array.from(groups.values());
-        playlists.sort((a, b) => {
-            // The untagged ones are a pile rather than an artist, so they go last
-            if (!a.name !== !b.name)
-                return a.name ? -1 : 1;
-            return a.name.localeCompare(b.name);
-        });
-        for (const playlist of playlists)
-            playlist.tracks.sort((a, b) => root.titleFor(a).localeCompare(root.titleFor(b)));
-        return playlists;
-    }
 
     // Watched so a change on disk re-reads the tags once something has asked for them
     readonly property int librarySize: root.library.length
@@ -62,6 +32,35 @@ Singleton {
     onLibrarySizeChanged: {
         if (root.tagsWanted)
             root.readTags();
+    }
+
+    // Shuffling changes the queue itself rather than picking a random song when one ends: what
+    // the queue view shows is then what plays, and the order can be read off it. Switching off
+    // puts the songs that have not played back in the order they were in, leaving anything added
+    // or moved while shuffled (which that order has nothing to say about) where it is.
+    onShuffleChanged: {
+        if (root.shuffle) {
+            root.unshuffledQueue = root.queue.slice();
+            root.queue = root.shuffled(root.queue);
+            return;
+        }
+
+        const saved = root.unshuffledQueue;
+        root.unshuffledQueue = [];
+        if (saved.length === 0)
+            return;
+
+        const current = root.queue;
+        const restored = [];
+        for (const entry of saved) {
+            if (current.indexOf(entry) >= 0)
+                restored.push(entry);
+        }
+        for (const entry of current) {
+            if (!restored.includes(entry))
+                restored.push(entry);
+        }
+        root.queue = restored;
     }
 
     // The folder currently being browsed
@@ -80,6 +79,10 @@ Singleton {
     property var current: null
     property var queue: []
     property bool shuffle: false
+    // The order the upcoming queue was in before shuffle was switched on, so switching it off
+    // can put it back. Holds the very entries the queue held, so a song that has since been
+    // added, moved or played out can be told apart from the ones the saved order knows about.
+    property var unshuffledQueue: []
     // "off" | "all" | "one"
     property string repeatMode: "off"
     property real volume: 1
@@ -248,17 +251,50 @@ Singleton {
         return root.entriesByPath[path];
     }
 
+    // What a row shows for a track - its title, its artist and its art - kept per path. Every
+    // list in the media UI asks for all three of these for every row it builds, and the queue
+    // lists are rebuilt whenever the player touches the queue, so looking each one up per row
+    // per rebuild is what makes a library of a few thousand tracks crawl: the title and the
+    // artist each cross into C++ for the tags, and the art walks the folder indexes. The map is
+    // remade - which empties it - only when the tags, the library or the art on disk change,
+    // which is the whole of what can change an answer.
+    readonly property var rowFacts: {
+        root.tags;
+        root.library;
+        root.artEntries;
+        return {};
+    }
+
+    function factsFor(entry: FileSystemEntry): var {
+        const path = entry.path;
+        let facts = root.rowFacts[path];
+        if (facts !== undefined)
+            return facts;
+
+        facts = {
+            title: MusicTags.titleOf(path) || entry.baseName,
+            artist: MusicTags.artistOf(path),
+            cover: root.coverForTrack(entry)
+        };
+        root.rowFacts[path] = facts;
+        return facts;
+    }
+
     // A track's title, falling back to its file name so a row always has something to show
     function titleFor(entry: FileSystemEntry): string {
-        return MusicTags.titleOf(entry.path) || entry.baseName;
+        return root.factsFor(entry).title;
     }
 
     function artistFor(entry: FileSystemEntry): string {
-        return MusicTags.artistOf(entry.path);
+        return root.factsFor(entry).artist;
     }
 
-    // The one image to show beside an entry: the track's own art, then whatever its folder has
     function coverForEntry(entry: FileSystemEntry): string {
+        return root.factsFor(entry).cover;
+    }
+
+    // The one image to show beside a track: the track's own art, then whatever its folder has
+    function coverForTrack(entry: FileSystemEntry): string {
         const own = root.coverFor(entry.parentDir, entry.baseName);
         if (own)
             return own;
@@ -289,9 +325,25 @@ Singleton {
         const at = Math.max(0, Math.min(index, paths.length - 1));
         const entries = paths.map(path => ({ path: path, origin: "auto" }));
 
+        // Shuffling deals the rest of the context out in a random order, which is the order it
+        // plays in and the order the queue view shows. Everything the context put before the
+        // song picked is dealt out with it rather than counted as played, since under shuffle
+        // there is no "before" - the whole context is one pool. The order it would have played
+        // in is kept so switching shuffle off can restore it.
+        if (root.shuffle) {
+            const rest = entries.filter((_, i) => i !== at);
+            root.unshuffledQueue = rest.slice();
+            root.played = [];
+            root.current = entries[at];
+            root.queue = root.shuffled(rest);
+            root.loadCurrent();
+            return;
+        }
+
         // A context replaces whatever came before it, so the history starts again. What the
         // context puts before the chosen song counts as played, so previous() walks back into
         // it the same way it walks back through anything else.
+        root.unshuffledQueue = [];
         root.played = entries.slice(0, at);
         root.current = entries[at];
         root.queue = entries.slice(at + 1);
@@ -396,6 +448,19 @@ Singleton {
         return entries.length > root.playedLimit ? entries.slice(entries.length - root.playedLimit) : entries;
     }
 
+    // The queue in a random order, one song at a time: Fisher-Yates, so every order is equally
+    // likely, which a sort with a random comparator would not be
+    function shuffled(entries: var): var {
+        const out = entries.slice();
+        for (let i = out.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            const tmp = out[i];
+            out[i] = out[j];
+            out[j] = tmp;
+        }
+        return out;
+    }
+
     function loadCurrent(): void {
         if (!root.hasTrack)
             return;
@@ -424,16 +489,14 @@ Singleton {
         const finished = root.trimPlayed(root.played.concat([root.current]));
 
         if (root.queue.length > 0) {
-            let at = 0;
-            if (root.shuffle && root.queue.length > 1)
-                at = Math.floor(Math.random() * root.queue.length);
-
+            // The queue is already in the order shuffle wants it played - it is shuffled when
+            // shuffle is switched on, and again when a context is picked under it - so a track
+            // finishing just takes the front of it. Shuffle no longer picks at random here, and
+            // the queue view and what is heard stay the same list in the same order.
             const queue = root.queue;
             root.played = finished;
-            // In shuffle the songs that were skipped go to the back rather than into the
-            // history, so the history stays what has actually played
-            root.queue = queue.slice(at + 1).concat(queue.slice(0, at));
-            root.current = queue[at];
+            root.current = queue[0];
+            root.queue = queue.slice(1);
             root.loadCurrent();
             return;
         }
