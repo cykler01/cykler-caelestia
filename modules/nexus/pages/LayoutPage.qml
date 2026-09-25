@@ -471,7 +471,7 @@ PageBase {
                     y: rest.y + (dragging ? dragDY : 0)
                     width: rest.width
                     height: rest.height
-                    z: dragging ? 100 : (active ? 20 + index + (elementId === "notifs" || elementId === "toasts" ? 15 : 0) : modelData.kind === "desktop" ? 2 : 5 + index)
+                    z: dragging ? 100 : (active ? 20 + index + (elementId === "notch" ? 40 : elementId === "notifs" || elementId === "toasts" ? 15 : 0) : modelData.kind === "desktop" ? 2 : 5 + index + (elementId === "notch" ? 40 : 0))
 
                     Behavior on x {
                         enabled: !tile.dragging
