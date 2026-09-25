@@ -239,7 +239,11 @@ QtObject {
             }
         },
         Component {
-            PlaceholderComp {}
+            StackPage {
+                Component {
+                    UpdatesPage {}
+                }
+            }
         },
         Component {
             PlaceholderComp {}
