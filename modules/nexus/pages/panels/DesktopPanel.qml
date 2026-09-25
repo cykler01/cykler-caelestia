@@ -267,7 +267,7 @@ PageBase {
         }
 
         SectionHeader {
-            text: Tr.tr("Layout")
+            text: Tr.tr("Widget grid")
         }
 
         StepperRow {
@@ -283,7 +283,7 @@ PageBase {
         }
 
         SectionHeader {
-            text: Tr.tr("Widgets (drag to reorder)")
+            text: Tr.tr("Widget order (drag to reorder)")
         }
 
         ListEditor {

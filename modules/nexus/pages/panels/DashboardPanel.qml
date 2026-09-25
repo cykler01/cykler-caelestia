@@ -93,6 +93,30 @@ PageBase {
             onToggled: GlobalConfig.dashboard.showClockSeconds = checked
         }
 
+        // Position
+        SectionHeader {
+            text: Tr.tr("Position")
+        }
+
+        SelectRow {
+            first: true
+            label: Tr.tr("Screen edge")
+            subtext: Tr.tr("Which edge the panel opens from")
+            menuItems: root.edgeItems
+            active: root.edgeItems[Config.dashboard.edge] ?? root.edgeItems[0]
+            onSelected: item => GlobalConfig.dashboard.edge = root.edgeItems.indexOf(item)
+        }
+
+        SelectRow {
+            
+            last: true
+            label: Tr.tr("Alignment")
+            subtext: Tr.tr("Where along that edge the panel sits")
+            menuItems: root.alignItems
+            active: root.alignItems[Config.dashboard.align] ?? root.alignItems[0]
+            onSelected: item => GlobalConfig.dashboard.align = root.alignItems.indexOf(item)
+        }
+
         // Tabs
         SectionHeader {
             text: Tr.tr("Tabs")
@@ -235,28 +259,5 @@ PageBase {
             onMoved: v => GlobalConfig.dashboard.dragThreshold = v
         }
 
-        // Position
-        SectionHeader {
-            text: Tr.tr("Position")
-        }
-
-        SelectRow {
-            first: true
-            label: Tr.tr("Screen edge")
-            subtext: Tr.tr("Which edge the panel opens from")
-            menuItems: root.edgeItems
-            active: root.edgeItems[Config.dashboard.edge] ?? root.edgeItems[0]
-            onSelected: item => GlobalConfig.dashboard.edge = root.edgeItems.indexOf(item)
-        }
-
-        SelectRow {
-            
-            last: true
-            label: Tr.tr("Alignment")
-            subtext: Tr.tr("Where along that edge the panel sits")
-            menuItems: root.alignItems
-            active: root.alignItems[Config.dashboard.align] ?? root.alignItems[0]
-            onSelected: item => GlobalConfig.dashboard.align = root.alignItems.indexOf(item)
-        }
     }
 }

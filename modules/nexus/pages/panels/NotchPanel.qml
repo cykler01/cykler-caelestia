@@ -47,6 +47,21 @@ PageBase {
             onToggled: GlobalConfig.notch.enabled = checked
         }
 
+        // Position
+        SectionHeader {
+            text: Tr.tr("Position")
+        }
+
+        SelectRow {
+            first: true
+            last: true
+            label: Tr.tr("Alignment")
+            subtext: Tr.tr("Where along that edge the panel sits")
+            menuItems: root.alignItems
+            active: root.alignItems[Config.notch.align] ?? root.alignItems[0]
+            onSelected: item => GlobalConfig.notch.align = root.alignItems.indexOf(item)
+        }
+
         // Standing notch
         SectionHeader {
             text: Tr.tr("Standing notch")
@@ -147,19 +162,5 @@ PageBase {
             onMoved: v => GlobalConfig.notch.maxTitleWidth = Math.round(v)
         }
 
-        // Position
-        SectionHeader {
-            text: Tr.tr("Position")
-        }
-
-        SelectRow {
-            first: true
-            last: true
-            label: Tr.tr("Alignment")
-            subtext: Tr.tr("Where along that edge the panel sits")
-            menuItems: root.alignItems
-            active: root.alignItems[Config.notch.align] ?? root.alignItems[0]
-            onSelected: item => GlobalConfig.notch.align = root.alignItems.indexOf(item)
-        }
     }
 }

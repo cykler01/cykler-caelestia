@@ -87,6 +87,30 @@ PageBase {
             }
         }
 
+        // Position
+        SectionHeader {
+            text: Tr.tr("Position")
+        }
+
+        SelectRow {
+            first: true
+            label: Tr.tr("Screen edge")
+            subtext: Tr.tr("Which edge the panel opens from")
+            menuItems: root.edgeItems
+            active: root.edgeItems[Config.launcher.edge] ?? root.edgeItems[0]
+            onSelected: item => GlobalConfig.launcher.edge = root.edgeItems.indexOf(item)
+        }
+
+        SelectRow {
+            
+            last: true
+            label: Tr.tr("Alignment")
+            subtext: Tr.tr("Where along that edge the panel sits")
+            menuItems: root.alignItems
+            active: root.alignItems[Config.launcher.align] ?? root.alignItems[0]
+            onSelected: item => GlobalConfig.launcher.align = root.alignItems.indexOf(item)
+        }
+
         // Display
         SectionHeader {
             text: Tr.tr("Display")
@@ -175,28 +199,5 @@ PageBase {
             onToggled: GlobalConfig.launcher.useFuzzy.wallpapers = checked
         }
 
-        // Position
-        SectionHeader {
-            text: Tr.tr("Position")
-        }
-
-        SelectRow {
-            first: true
-            label: Tr.tr("Screen edge")
-            subtext: Tr.tr("Which edge the panel opens from")
-            menuItems: root.edgeItems
-            active: root.edgeItems[Config.launcher.edge] ?? root.edgeItems[0]
-            onSelected: item => GlobalConfig.launcher.edge = root.edgeItems.indexOf(item)
-        }
-
-        SelectRow {
-            
-            last: true
-            label: Tr.tr("Alignment")
-            subtext: Tr.tr("Where along that edge the panel sits")
-            menuItems: root.alignItems
-            active: root.alignItems[Config.launcher.align] ?? root.alignItems[0]
-            onSelected: item => GlobalConfig.launcher.align = root.alignItems.indexOf(item)
-        }
     }
 }

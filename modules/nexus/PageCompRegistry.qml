@@ -22,7 +22,7 @@ QtObject {
     id: root
 
     readonly property list<Component> pageComps: [
-        // Appearance
+        // Look & feel
         Component {
             // Wallpaper & style
             StackPage {
@@ -48,80 +48,8 @@ QtObject {
                 }
             }
         },
-        Component {
-            //Display / Monitors
-            StackPage {
-                Component {
-                    MonitorsPane {}
-                }
-                Component {
-                    MonitorDetail {}
-                }
-            }
-        },
 
-        // Connectivity
-        Component {
-            // Network
-            StackPage {
-                Component {
-                    NetworkPage {}
-                }
-                Component {
-                    EthernetDetailPage {}
-                }
-                Component {
-                    AddNetworkPage {}
-                }
-                Component {
-                    NetworkDetailPage {}
-                }
-                Component {
-                    AddVpnPage {}
-                }
-                Component {
-                    AllNetworksPage {}
-                }
-                Component {
-                    SavedNetworksPage {}
-                }
-            }
-        },
-        Component {
-            // Bluetooth
-            StackPage {
-                Component {
-                    BluetoothPage {}
-                }
-                Component {
-                    BtDeviceInfo {}
-                }
-                Component {
-                    BluetoothPairing {}
-                }
-            }
-        },
-        Component {
-            // Audio
-            StackPage {
-                Component {
-                    AudioPage {}
-                }
-                Component {
-                    AppVolumes {}
-                }
-            }
-        },
-
-        // System
-        Component {
-            PlaceholderComp {}
-        },
-        Component {
-            PlaceholderComp {}
-        },
-
-        // Shell
+        // The shell itself
         Component {
             // Panels
             StackPage {
@@ -210,11 +138,69 @@ QtObject {
                 }
             }
         },
+
+        // Connections
         Component {
-            // NOTE(fork): Power & battery
+            // Network
             StackPage {
                 Component {
-                    BatteryPage {}
+                    NetworkPage {}
+                }
+                Component {
+                    EthernetDetailPage {}
+                }
+                Component {
+                    AddNetworkPage {}
+                }
+                Component {
+                    NetworkDetailPage {}
+                }
+                Component {
+                    AddVpnPage {}
+                }
+                Component {
+                    AllNetworksPage {}
+                }
+                Component {
+                    SavedNetworksPage {}
+                }
+            }
+        },
+        Component {
+            // Bluetooth
+            StackPage {
+                Component {
+                    BluetoothPage {}
+                }
+                Component {
+                    BtDeviceInfo {}
+                }
+                Component {
+                    BluetoothPairing {}
+                }
+            }
+        },
+
+        // Hardware
+        Component {
+            //Display / Monitors
+            StackPage {
+                Component {
+                    MonitorsPane {}
+                }
+                Component {
+                    MonitorDetail {}
+                }
+            }
+        },
+        Component {
+            // Audio
+            StackPage {
+                Component {
+                    AudioPage {}
+                }
+                Component {
+                    AppVolumes {}
                 }
             }
         },
@@ -235,12 +221,28 @@ QtObject {
             }
         },
         Component {
+            // NOTE(fork): Power & battery
+            StackPage {
+                Component {
+                    BatteryPage {}
+                }
+            }
+        },
+
+        // System
+        Component {
             // Language & region
             StackPage {
                 Component {
                     LanguageAndRegion {}
                 }
             }
+        },
+        Component {
+            PlaceholderComp {}
+        },
+        Component {
+            PlaceholderComp {}
         },
 
         // About
@@ -250,7 +252,7 @@ QtObject {
                     AboutPage {}
                 }
             }
-        }
+        },
     ]
 
     readonly property Component placeholderComp: Component {

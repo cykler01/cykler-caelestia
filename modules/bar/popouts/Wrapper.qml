@@ -144,7 +144,8 @@ Item {
                 anchors.fill: parent
                 nState.screen: root.screen
                 nState.animatingContainer: nexus.opacity < 1
-                nState.currentPageIdx: ["appearance", "network", "bluetooth", "audio"].indexOf(root.queuedMode)
+                // Opened by name, so it lands on the right page however the settings sidebar is ordered
+                nState.currentPageIdx: Math.max(0, PageRegistry.indexOfKey(root.queuedMode === "appearance" ? "wallpaper" : root.queuedMode))
                 onClose: root.close()
             }
         }
