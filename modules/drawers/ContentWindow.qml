@@ -239,6 +239,8 @@ StyledWindow {
             panel: panels.notch
             deformAmount: 0.1
             y: panels.notch.y + bar.insetTop + root.notchShift
+            // No background of its own while it sits inside the bar as an inset pill
+            implicitHeight: panels.notch.height * (1 - panels.notch.inBarProg)
         }
 
         PanelBg {

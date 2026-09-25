@@ -100,16 +100,40 @@ Item {
         service: Config.notch.enabled && root.playing && !PowerSaving.pauseVisualisers ? Audio.cava : null
     }
 
+    // With windows open and a horizontal bar, the notch sits inside the bar (where the active window's title used to
+    // be) as an inset pill, instead of hanging below it
+    readonly property var barRef: ShellState.componentsFor(screen)?.bar
+    readonly property bool inBar: !!barRef && (barRef.onTop || barRef.onBottom) && !emptyWorkspace
+    property real inBarProg: inBar ? 1 : 0
+
+    Behavior on inBarProg {
+        Anim {
+            type: Anim.DefaultEffects
+        }
+    }
+
+    // Where it rests inside the bar band, centred across the band's thickness
+    readonly property real barY: !barRef ? 0 : barRef.onBottom ? parent.height + (barRef.insetBottom - height) / 2 : -(barRef.insetTop + height) / 2
+
     visible: offsetScale < 1
     // Position along the top edge (config notch.align); plain bindings, not anchors, so it can change live
     x: Config.notch.align === PanelAlign.Start ? 0 : Config.notch.align === PanelAlign.End ? parent.width - width : (parent.width - width) / 2
-    y: (-height - 5) * offsetScale
+    y: (-height - 5) * offsetScale * (1 - inBarProg) + barY * inBarProg
     implicitWidth: content.implicitWidth
     implicitHeight: content.implicitHeight
     opacity: 1 - offsetScale
 
     Behavior on offsetScale {
         Anim {}
+    }
+
+    // The inset pill behind the content while it sits inside the bar, in the same style as the bar's own pills
+    StyledRect {
+        anchors.fill: parent
+        radius: Tokens.rounding.full
+        color: Colours.tPalette.m3surfaceContainer
+        opacity: root.inBarProg
+        visible: opacity > 0
     }
 
     // Fluidly resize (rather than snap) when the track title's length changes
