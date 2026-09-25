@@ -148,6 +148,8 @@ StyledWindow {
                 LayoutMirroring.enabled: false
                 LayoutMirroring.childrenInherit: true
 
+                shown: root.wanted
+
                 screenState: root.screenState
                 props: root.props
             }

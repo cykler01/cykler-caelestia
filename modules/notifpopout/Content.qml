@@ -18,6 +18,9 @@ StyledRect {
 
     required property ScreenState screenState
     required property var props
+    // Whether the popout is on screen (or animating out): the local player controls, which follow the playback
+    // position many times a second, are only built then
+    property bool shown: true
 
     readonly property real tintOpacity: 0.4
     readonly property real cardOpacity: 0.5
@@ -106,7 +109,9 @@ StyledRect {
         // Controls for the in-shell player alone, under the library. The media tab's own
         // controls follow whichever MPRIS player is active; these keep driving the local
         // queue while you are picking from it, and while anything else is playing.
-        LocalControls {
+        Loader {
+            id: localControls
+
             Layout.fillWidth: true
             // Set in past the list rather than lining up with it, so the round buttons and
             // the ends of the seek bar sit clear of the panel's edges and rounded corners
@@ -115,6 +120,11 @@ StyledRect {
             Layout.rightMargin: Tokens.padding.extraLarge
             Layout.bottomMargin: Tokens.padding.extraLarge
             visible: root.tab === 1
+            active: root.shown && root.tab === 1
+            // Keeps its height while unloaded so the panel doesn't jump when it comes back
+            Layout.preferredHeight: item ? item.implicitHeight : 64
+
+            sourceComponent: LocalControls {}
         }
     }
 }

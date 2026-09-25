@@ -13,6 +13,11 @@ Slider {
 
     property bool wavy
     property bool animateWave
+    // Whether the filled part eases towards a new value. Sliders that follow a steady stream of updates (playback
+    // position) turn this off: restarting the ease on every update keeps it permanently animating, which keeps
+    // the whole surface redrawing at full frame rate for a change of about a pixel a second.
+    property bool smoothValue: true
+    property bool dragSuppressed
     property real waveFrequency: 6
     property int waveDuration: 1000
     property int radius: Tokens.rounding.medium
@@ -167,7 +172,7 @@ Slider {
         implicitHeight: handle.implicitHeight
 
         onPressed: e => {
-            widthBehavior.enabled = false;
+            root.dragSuppressed = true;
             pressStartX = e.x;
             pressStartPos = root.visualPosition;
         }
@@ -180,13 +185,15 @@ Slider {
             const clickPos = e.x / width;
             const finalPos = mouse.dragMovement !== 0 ? posBinding.value : CUtils.clamp(clickPos, 0, 1);
             root.interaction(finalPos);
-            widthBehavior.enabled = true;
+            root.dragSuppressed = false;
             dragMovement = 0;
         }
     }
 
     Behavior on filledWidth {
         id: widthBehavior
+
+        enabled: root.smoothValue && !root.dragSuppressed
 
         Anim {}
     }

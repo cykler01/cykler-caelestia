@@ -67,7 +67,8 @@ ColumnLayout {
             value: root.seekable ? Music.position / root.length : 0
             enabled: root.seekable
             wavy: true
-            animateWave: Music.playing
+            smoothValue: false
+            animateWave: Music.playing && PowerSaving.animations && !PowerSaving.onBattery
             waveFrequency: 5
             waveDuration: 2000
             interactionOnMove: false

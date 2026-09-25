@@ -38,10 +38,19 @@ Item {
         DriftingShape {}
     }
 
-    FrameAnimation {
-        running: root.visible && root.width > 0 && root.height > 0 && root.playing
+    // Stepped at the shared decorative rate (see PowerSaving.fps) instead of every screen refresh
+    Timer {
+        property real last
+
+        interval: PowerSaving.frameMs
+        repeat: true
+        // Frozen on battery: 14 drifting layered shapes are pure decoration
+        running: root.visible && root.width > 0 && root.height > 0 && root.playing && PowerSaving.animations && !PowerSaving.onBattery
+        onRunningChanged: last = Date.now()
         onTriggered: {
-            const dt = frameTime;
+            const now = Date.now();
+            const dt = Math.min(0.25, (now - last) / 1000);
+            last = now;
             for (let i = 0; i < shapes.count; i++) {
                 const s = shapes.itemAt(i) as DriftingShape;
                 if (!s)

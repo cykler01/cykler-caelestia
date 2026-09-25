@@ -21,7 +21,45 @@ Item {
     readonly property real maxMagnitude: (implicitWidth - cover.implicitWidth) / 2 - spacing
 
     ServiceRef {
-        service: PowerSaving.pauseVisualisers ? null : Audio.cava
+        service: PowerSaving.pauseVisualisers || !PowerSaving.animations ? null : Audio.cava
+    }
+
+    readonly property int barCount: GlobalConfig.services.visualiserBars
+    // The bars read these snapshots rather than the analyser and the cover's rotation directly. Reading those
+    // straight made every bar recompute (and the whole ring be rebuilt) on each analyser update and on every frame
+    // of the cover's spin; the timer refreshes the levels at the shared decorative rate, and the edge distances only
+    // when the cover has turned far enough for them to differ.
+    property var levels: Array(barCount).fill(1e-2)
+    property var edges: Array(barCount).fill(0)
+    property real edgesAt: -1000
+
+    function refreshEdges(): void {
+        const rot = cover.shape.rotation;
+        if (Math.abs(rot - edgesAt) < 3 && edges.length === barCount)
+            return;
+
+        edgesAt = rot;
+        const next = new Array(barCount);
+        for (let i = 0; i < barCount; i++)
+            next[i] = cover.shape.distanceAtAngle(i * 360 / barCount + 90) + spacing + (360 / barCount - root.Tokens.spacing.small / 4) / 2;
+        edges = next;
+    }
+
+    Timer {
+        interval: PowerSaving.frameMs
+        repeat: true
+        triggeredOnStart: true
+        running: root.visible
+        onTriggered: {
+            root.refreshEdges();
+
+            const live = !PowerSaving.pauseVisualisers && PowerSaving.animations;
+            const values = Audio.cava.values;
+            const next = new Array(root.barCount);
+            for (let i = 0; i < root.barCount; i++)
+                next[i] = live ? Math.max(1e-2, Math.min(1, values[i] ?? 0)) : 1e-2;
+            root.levels = next;
+        }
     }
 
     Shape {
@@ -42,15 +80,11 @@ Item {
             id: bar
 
             required property int modelData
-            readonly property real value: PowerSaving.pauseVisualisers ? 1e-2 : Math.max(1e-2, Math.min(1, Audio.cava.values[modelData]))
+            readonly property real value: root.levels[modelData] ?? 1e-2
 
             readonly property real angle: modelData * 2 * Math.PI / GlobalConfig.services.visualiserBars
             readonly property real dist: shapeEdgeDist + value * root.maxMagnitude
-            readonly property real shapeEdgeDist: {
-                cover.shape.rotation; // Update when shape rotation changes
-                const sDist = cover.shape.distanceAtAngle(modelData * 360 / GlobalConfig.services.visualiserBars + 90);
-                return sDist + root.spacing + strokeWidth / 2;
-            }
+            readonly property real shapeEdgeDist: root.edges[modelData] ?? 0
             readonly property real cos: Math.cos(angle)
             readonly property real sin: Math.sin(angle)
 

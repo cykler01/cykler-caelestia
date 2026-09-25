@@ -26,6 +26,11 @@ Singleton {
     readonly property bool tagsScanning: MusicTags.scanning
     property bool tagsWanted
 
+    // Whether anything needs the music folder scanned: the library being opened, or something loaded in the
+    // player (its queue shows covers from the folder indexes). Until then nothing is scanned or watched, so a
+    // session that never plays local music pays nothing for the folder, however big it is.
+    readonly property bool scanLibrary: tagsWanted || current !== null || queue.length > 0 || played.length > 0
+
     // Watched so a change on disk re-reads the tags once something has asked for them
     readonly property int librarySize: root.library.length
 
@@ -599,9 +604,9 @@ Singleton {
     FileSystemModel {
         id: allTracks
 
-        path: root.rootDir
+        path: root.scanLibrary ? root.rootDir : ""
         recursive: true
-        watchChanges: true
+        watchChanges: root.scanLibrary
         filter: FileSystemModel.Files
         nameFilters: root.audioFilters
     }
@@ -609,18 +614,18 @@ Singleton {
     FileSystemModel {
         id: browseDirs
 
-        path: root.currentDir
+        path: root.scanLibrary ? root.currentDir : ""
         recursive: false
-        watchChanges: true
+        watchChanges: root.scanLibrary
         filter: FileSystemModel.Dirs
     }
 
     FileSystemModel {
         id: browseTracks
 
-        path: root.currentDir
+        path: root.scanLibrary ? root.currentDir : ""
         recursive: false
-        watchChanges: true
+        watchChanges: root.scanLibrary
         filter: FileSystemModel.Files
         nameFilters: root.audioFilters
     }
@@ -628,7 +633,7 @@ Singleton {
     FileSystemModel {
         id: trackArt
 
-        path: root.trackDir || root.rootDir
+        path: root.trackDir || (root.scanLibrary ? root.rootDir : "")
         recursive: false
         filter: FileSystemModel.Images
     }
@@ -636,9 +641,9 @@ Singleton {
     FileSystemModel {
         id: allArt
 
-        path: root.rootDir
+        path: root.scanLibrary ? root.rootDir : ""
         recursive: true
-        watchChanges: true
+        watchChanges: root.scanLibrary
         filter: FileSystemModel.Images
     }
 }

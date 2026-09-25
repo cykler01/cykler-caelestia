@@ -48,14 +48,21 @@ Item {
             shape: MaterialShape.Cookie12Sided
             color: Qt.alpha(root.fallbackColour, 1)
 
-            Anim on rotation {
-                running: true
-                paused: !root.spinning
-                from: 360
-                to: 0
-                duration: 23500
-                easing.type: Easing.Linear
-                loops: Animation.Infinite
+        }
+
+        // One turn every 23.5 s, stepped at the shared decorative rate rather than animated at the screen's refresh
+        // rate. It also holds still when animations are off in Power & battery, or while it isn't on screen.
+        Timer {
+            property real last
+
+            interval: PowerSaving.frameMs
+            repeat: true
+            running: root.spinning && PowerSaving.animations && !PowerSaving.onBattery && root.visible
+            onRunningChanged: last = Date.now()
+            onTriggered: {
+                const now = Date.now();
+                shape.rotation = (shape.rotation - (now - last) / 23500 * 360) % 360;
+                last = now;
             }
         }
     }
@@ -80,7 +87,9 @@ Item {
     Loader {
         anchors.centerIn: parent
         asynchronous: true
-        active: opacity > 0
+        // Not while animations are off in Power & battery: the indicator loops for as long as a cover is loading, and
+        // a cover that never arrives (offline) would otherwise keep the screen redrawing indefinitely
+        active: opacity > 0 && PowerSaving.animations
         opacity: image.status === Image.Loading ? 1 : 0
 
         sourceComponent: LoadingIndicator {

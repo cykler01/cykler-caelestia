@@ -40,11 +40,13 @@ Item {
     }
 
     // Whether the visualiser moves at all: not while Power & battery has visualisers paused or animations off
-    readonly property bool live: !PowerSaving.pauseVisualisers && PowerSaving.animations
-    // Time collected since the visualiser was last stepped; it is stepped about 20 times a second rather than on
-    // every screen refresh, which is plenty for a bar chart this small and saves a redraw per refresh
-    property real barsAcc
-    property real phaseAcc
+    // Set by the wrapper: false for a standing pill on battery
+    property bool allowLive: true
+    readonly property bool live: allowLive && !PowerSaving.pauseVisualisers && PowerSaving.animations
+
+    // What the bars show, refreshed at the shared decorative rate by the timer below. It used to be a binding on the
+    // analyser's output, which re-ran the grouping (and allocated a list) on every one of its ~85 updates a second.
+    property var spectrum: Array(barCount).fill(0.2)
 
     // Sitting inside the bar rather than hanging from it: smaller everything, one line, no date
     property bool compact
@@ -162,7 +164,9 @@ Item {
             Layout.preferredWidth: root.coverSize
             Layout.preferredHeight: root.coverSize
             source: root.local ? Music.coverPath : Players.getArtUrl(Players.active)
-            spinning: root.local ? Music.playing : (Players.active?.isPlaying ?? false)
+            // Turns only while the pill is allowed to animate (the same rule as the visualiser): a rotating shape
+            // inside two effect layers redraws every frame, which was most of what music cost in the notch
+            spinning: root.live && (root.local ? Music.playing : (Players.active?.isPlaying ?? false))
         }
 
         StyledText {
@@ -208,11 +212,7 @@ Item {
                 // (see mirrored/singleRow in plugin/src/Caelestia/Components/visualiserbars.hpp)
                 mirrored: true
                 singleRow: true
-                values: {
-                    if (!root.live)
-                        return Array(root.barCount).fill(0.2);
-                    return root.cavaWarm ? root.sampleSpectrum(Audio.cava.values, root.barCount) : root.placeholderSpectrum(root.barCount);
-                }
+                values: root.spectrum
                 primaryColor: Colours.palette.m3primary
                 secondaryColor: Colours.palette.m3inversePrimary
                 rounding: Tokens.rounding.small
@@ -222,26 +222,49 @@ Item {
                 animationDuration: Tokens.anim.durations.normal
             }
 
-            FrameAnimation {
-                running: root.showMedia && root.live && !bars.settled
+            // The one thing that moves the visualiser, at the shared decorative rate (PowerSaving.fps). It replaces
+            // frame-driven animations: those ask for a redraw on every screen refresh for as long as they run, which
+            // kept the whole shell window redrawing at full rate (and most of its power) for a few small bars. When
+            // the pill is at rest (not live) nothing runs at all.
+            Timer {
+                property real last
+
+                interval: PowerSaving.frameMs
+                repeat: true
+                triggeredOnStart: true
+                running: root.showMedia && root.live
+                onRunningChanged: last = Date.now()
                 onTriggered: {
-                    root.barsAcc += frameTime;
-                    if (root.barsAcc >= 0.05) {
-                        bars.advance(root.barsAcc);
-                        root.barsAcc = 0;
-                    }
+                    const now = Date.now();
+                    const dt = Math.min(0.25, (now - last) / 1000);
+                    last = now;
+
+                    if (!root.cavaWarm)
+                        root.placeholderPhase += dt * 4;
+                    root.spectrum = root.cavaWarm ? root.sampleSpectrum(Audio.cava.values, root.barCount) : root.placeholderSpectrum(root.barCount);
+                    if (!bars.settled)
+                        bars.advance(dt);
                 }
             }
 
-            FrameAnimation {
-                running: root.showMedia && root.live && !root.cavaWarm
-                onTriggered: {
-                    root.phaseAcc += frameTime;
-                    if (root.phaseAcc >= 0.05) {
-                        root.placeholderPhase += root.phaseAcc * 4;
-                        root.phaseAcc = 0;
-                    }
+            // Not live: the bars come to rest flat and stay there, without anything running
+            function rest(): void {
+                root.spectrum = Array(root.barCount).fill(0.2);
+                Qt.callLater(() => bars.advance(1));
+            }
+
+            Connections {
+                function onLiveChanged(): void {
+                    if (!root.live)
+                        visualiserWrapper.rest();
                 }
+
+                target: root
+            }
+
+            Component.onCompleted: {
+                if (!root.live)
+                    rest();
             }
         }
     }

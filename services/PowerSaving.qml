@@ -11,6 +11,8 @@ Singleton {
     id: root
 
     readonly property var pm: GlobalConfig.general.battery.powerManagement
+    // Unplugged. One place for the whole shell to ask, so the decorative-motion rules all agree.
+    readonly property bool onBattery: UPower.onBattery
     readonly property bool powerSaver: PowerProfiles.profile === PowerProfile.PowerSaver
 
     // Stops the performance graph's background recording; the dashboard shows the original cards
@@ -23,6 +25,12 @@ Singleton {
     // animations, blur and shadows follow them, so a "no blur / no animations" battery setting also applies to the
     // shell and not just to windows. Rounding is deliberately not among them: it only ever affects windows. Everything
     // defaults to on.
+    // How often decorative motion (spinning covers, drifting shapes, the visualiser ring) is redrawn. These are slow
+    // movements, so nothing is lost at 30 a second, and each redraw of a layered shape is what it costs; on battery
+    // it drops to 15.
+    readonly property int fps: onBattery ? 15 : 30
+    readonly property int frameMs: Math.round(1000 / fps)
+
     property bool animations: true
     property bool blur: true
     property bool shadows: true

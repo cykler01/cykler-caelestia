@@ -96,9 +96,18 @@ Item {
     // to a visible height, and that is most of the pill's brief time on screen. Holding a ref for
     // as long as something is playing keeps it warmed up, so a track change shows a visualiser
     // that is already up to level instead of a blank pill that fills in late.
+    //
+    // The analyser is the most expensive thing the notch does (it runs a transform about 85 times a second for
+    // as long as it is held), so it is only held this way on mains power. On battery the pill's own placeholder
+    // pattern covers the first moments, and the analyser starts when a pill with a visualiser actually appears.
     ServiceRef {
-        service: Config.notch.enabled && root.playing && !PowerSaving.pauseVisualisers && PowerSaving.animations ? Audio.cava : null
+        service: Config.notch.enabled && root.playing && !PowerSaving.onBattery && !PowerSaving.pauseVisualisers && PowerSaving.animations ? Audio.cava : null
     }
+
+    // Whether the pill's visualiser is allowed to run: the brief pill after a track change always, the standing
+    // one (clock plus music, kept up as long as there is something playing) only on mains power, so a track playing
+    // in the background on battery doesn't keep an analyser and a redraw loop going for nobody's benefit
+    readonly property bool visualiserLive: trackActive || !PowerSaving.onBattery
 
     // With windows open the notch sits inside the bar (where the active window's title used to be) instead of
     // hanging below the top edge: as a flat pill on a horizontal bar, rotated to read along it on a vertical one
@@ -176,6 +185,9 @@ Item {
                 }
             }
         }
+
+        // Nothing to watch for once warm (the call per update is what it costs)
+        enabled: !root.cavaWarm
 
         target: Audio.cava
     }
@@ -279,6 +291,7 @@ Item {
         sourceComponent: Pill {
             local: root.local
             cavaWarm: root.cavaWarm
+            allowLive: root.visualiserLive
             showMedia: root.playing && (root.trackActive || (root.persistent && Config.notch.showMusic))
             showClock: root.persistent && Config.notch.showClock
             compact: root.inBarProg > 0.5

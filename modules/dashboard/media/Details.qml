@@ -93,7 +93,9 @@ ColumnLayout {
             value: root.source.length > 0 ? root.source.position / root.source.length : 0
             enabled: root.source.canSeek && !root.hasUnknownLength
             wavy: true
-            animateWave: root.source.isPlaying
+            smoothValue: false
+            // The wave scrolls at the screen's refresh rate for as long as it plays, so it holds still on battery
+            animateWave: root.source.isPlaying && PowerSaving.animations && !PowerSaving.onBattery
             waveFrequency: 5
             waveDuration: 2000
             interactionOnMove: false
