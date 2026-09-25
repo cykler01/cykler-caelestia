@@ -103,8 +103,9 @@ ColumnLayout {
             shapeMorph: true
             checked: Music.shuffle
             font: Tokens.font.icon.builders.medium.weight(Font.Medium).build()
-            // Shuffling a queue with one track in it does nothing, so the button says so
-            disabled: Music.queue.length <= 1
+            // Shuffling a queue with one track in it does nothing, so the button says so -
+            // but shuffle already on has to stay switchable off
+            disabled: !Music.shuffle && Music.queue.length <= 1
             onClicked: Music.shuffle = !Music.shuffle
             implicitWidth: Math.round(implicitHeight * 0.9)
         }

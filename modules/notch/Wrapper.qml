@@ -11,6 +11,11 @@ import qs.services
 // visualiser plus cover/title. Hovering it peeks the Dashboard's Media tab
 // (rather than duplicating that UI here) and restores whatever dashboard
 // state was there before the peek once the cursor leaves.
+//
+// It follows whatever has something to say about what is playing - an MPRIS
+// player, or the in-shell player - by the same rule the media tab uses to pick
+// its source: with no external player open, the local player is what the pill
+// is there for.
 Item {
     id: root
 
@@ -29,10 +34,16 @@ Item {
     // mistaken for a cold start on a later pill.
     property bool cavaWarm: false
 
+    // Whether the pill is showing the in-shell player rather than an MPRIS one. An open MPRIS
+    // player wins, matching the media tab: the local player is what there is to control when
+    // nothing external is open.
+    readonly property bool local: !Players.active && Music.hasTrack
+    readonly property bool playing: root.local ? Music.playing : Players.active?.isPlaying === true
+
     // Stays visible through our own peek (root.peeking) so the pill keeps
     // receiving hover events to detect mouse-away and end the peek; only
     // hides for a dashboard opened some other way (e.g. the user's own keybind)
-    readonly property bool shouldBeActive: Config.notch.enabled && Players.active?.isPlaying === true && (shown || hovered || peeking) && (!screenState.dashboard || root.peeking) && !screenState.launcher
+    readonly property bool shouldBeActive: Config.notch.enabled && root.playing && (shown || hovered || peeking) && (!screenState.dashboard || root.peeking) && !screenState.launcher
     property real offsetScale: shouldBeActive ? 0 : 1
 
     // Media tab is inserted after Dashboard's own tab (if shown), matching the
@@ -68,7 +79,7 @@ Item {
     // as long as something is playing keeps it warmed up, so a track change shows a visualiser
     // that is already up to level instead of a blank pill that fills in late.
     ServiceRef {
-        service: Config.notch.enabled && Players.active?.isPlaying === true && !PowerSaving.pauseVisualisers ? Audio.cava : null
+        service: Config.notch.enabled && root.playing && !PowerSaving.pauseVisualisers ? Audio.cava : null
     }
 
     visible: offsetScale < 1
@@ -142,6 +153,25 @@ Item {
         target: Players.active
     }
 
+    // The in-shell player has no MPRIS trackChanged to lean on, so its own track changes and
+    // playback are what bring the pill up and take it back down
+    Connections {
+        function onCurrentFileChanged(): void {
+            if (!root.local)
+                return;
+
+            root.shown = true;
+            showTimer.restart();
+        }
+
+        function onPlayingChanged(): void {
+            if (root.local && !Music.playing)
+                root.shown = false;
+        }
+
+        target: Music
+    }
+
     Timer {
         id: collapseTimer
 
@@ -178,6 +208,7 @@ Item {
         active: root.shouldBeActive || root.visible
 
         sourceComponent: Pill {
+            local: root.local
             cavaWarm: root.cavaWarm
         }
     }

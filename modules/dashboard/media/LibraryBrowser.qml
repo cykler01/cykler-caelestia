@@ -11,11 +11,11 @@ import qs.components.containers
 import qs.components.controls
 import qs.services
 
-// NOTE(fork): the media library. Browsing lists the folders under the music folder, or - with
-// the artist grouping on - one playlist per artist the tracks are tagged with, and every row
-// carries that entry's cover art beside the name. Searching reads titles, artists and albums
-// over the whole library as well as paths, so an artist brings up everything by them. Lists
-// rather than a cover gallery, since what this mostly gets opened in is the sidebar.
+// NOTE(fork): the media library. Browsing lists the folders under the music folder, one row
+// per folder or track, and every row carries that entry's cover art beside the name. Searching
+// reads titles, artists and albums over the whole library as well as paths, so an artist brings
+// up everything by them. Lists rather than a cover gallery, since what this mostly gets opened
+// in is the sidebar.
 //
 // Selecting turns taps on tracks into a selection that can be added to the queue in one go,
 // and it survives opening a folder or searching, so a batch can be gathered up from several
@@ -26,19 +26,11 @@ import qs.services
 StyledClippingRect {
     id: root
 
-    // Grouping: the folders on disk, or the artists the tracks are tagged with
-    property bool byArtist
-    // The artist whose playlist is open, empty at the list of artists
-    property string artistFilter
     // Showing the queue rather than the library
     property bool onQueue
 
     readonly property string query: search.text.trim().toLowerCase()
     readonly property bool searching: root.query.length > 0
-    // Read here so every list below rebuilds once the tag scan lands. A few hundred files is
-    // a fraction of a second, so the artist side is only ever briefly empty.
-    readonly property var tags: Music.tags
-    readonly property bool readingTags: Music.tagsScanning
 
     // The selection, kept as paths in the order they were picked so the queue plays back in
     // the order they were chosen, and by path rather than list position so opening a folder or
@@ -56,15 +48,12 @@ StyledClippingRect {
     readonly property var listedTracks: root.items.filter(item => item.kind === "track")
     readonly property bool allListedSelected: root.listedTracks.length > 0 && root.listedTracks.every(item => root.selectedLookup[item.path] === true)
 
-    // Folders and artists both list their contents, so both navigate the same way
-    readonly property bool atGroupRoot: root.byArtist ? root.artistFilter === "" : Music.atRoot
+    readonly property bool atRoot: Music.atRoot
     readonly property string title: {
         if (root.onQueue)
             return Tr.tr("Queue");
         if (root.searching)
             return Tr.tr("Search results");
-        if (root.byArtist)
-            return root.artistFilter === "" ? Tr.tr("Artists") : root.artistLabel(root.artistFilter);
         return Music.relativeDir ? Music.relativeDir.split("/").join(" › ") : Tr.tr("Music");
     }
     readonly property string emptyIcon: {
@@ -72,33 +61,24 @@ StyledClippingRect {
             return "queue_music";
         if (root.searching)
             return "search_off";
-        return root.readingTags && root.byArtist ? "hourglass_empty" : "music_off";
+        return "music_off";
     }
     readonly property string emptyText: {
         if (root.onQueue)
             return Tr.tr("Nothing queued");
         if (root.searching)
             return Tr.tr("No matches");
-        return root.readingTags && root.byArtist ? Tr.tr("Reading tags") : Tr.tr("No music here");
+        return Tr.tr("No music here");
     }
     // Rows whichever list is showing, so the empty state covers both of them
     readonly property int visibleRows: root.onQueue ? queue.rows.length : list.count
 
     // What the list is showing, one plain object per row so the row doesn't have to care
-    // whether it is looking at a folder, an artist or a track
+    // whether it is looking at a folder or a track. The tags are only touched when a search
+    // needs them, so a library list is not rebuilt every time the tag scan lands.
     readonly property var items: {
-        const tags = root.tags;
-
         if (root.searching)
-            return root.searchItems(tags);
-
-        if (root.byArtist) {
-            if (root.artistFilter === "")
-                return Music.artistPlaylists.map(playlist => root.artistRow(playlist));
-
-            const playlist = Music.artistPlaylists.find(playlist => playlist.name === root.artistFilter);
-            return playlist ? playlist.tracks.map(entry => root.trackRow(entry)) : [];
-        }
+            return root.searchItems();
 
         const rows = [];
         const dirs = Music.subDirs;
@@ -127,11 +107,6 @@ StyledClippingRect {
         return Tr.trN("%1 track", "%1 tracks", count).arg(count);
     }
 
-    // A track with no artist tag would otherwise show a blank line where the artist goes
-    function artistLabel(artist: string): string {
-        return artist === "" ? Tr.tr("No artist") : artist;
-    }
-
     // Path of an entry relative to the music folder, for telling search results apart
     function relativeDirOf(entry: FileSystemEntry): string {
         const dir = entry.parentDir;
@@ -141,7 +116,6 @@ StyledClippingRect {
     }
 
     function trackRow(entry: FileSystemEntry): var {
-        const current = entry.path === Music.currentFile;
         return {
             kind: "track",
             name: Music.titleFor(entry),
@@ -149,9 +123,7 @@ StyledClippingRect {
             subtitle: Music.artistFor(entry) || (root.searching ? root.relativeDirOf(entry) : ""),
             cover: Music.coverForEntry(entry),
             path: entry.path,
-            entry: entry,
-            current: current,
-            playing: current && Music.playing
+            entry: entry
         };
     }
 
@@ -161,21 +133,7 @@ StyledClippingRect {
             name: entry.name,
             subtitle: root.countLabel(Music.tracksByDir[entry.path]?.length ?? 0),
             cover: Music.folderCoversFor(entry.path)[0] ?? "",
-            entry: entry,
-            current: false,
-            playing: false
-        };
-    }
-
-    function artistRow(playlist: var): var {
-        return {
-            kind: "artist",
-            name: root.artistLabel(playlist.name),
-            subtitle: root.countLabel(playlist.tracks.length),
-            cover: playlist.tracks.length > 0 ? Music.coverForEntry(playlist.tracks[0]) : "",
-            artist: playlist.name,
-            current: false,
-            playing: false
+            entry: entry
         };
     }
 
@@ -190,8 +148,9 @@ StyledClippingRect {
         return (tag.title ?? "").toLowerCase().includes(root.query) || (tag.artist ?? "").toLowerCase().includes(root.query) || (tag.album ?? "").toLowerCase().includes(root.query);
     }
 
-    function searchItems(tags: var): var {
+    function searchItems(): var {
         const results = [];
+        const tags = Music.tags;
         const library = Music.library;
         for (let i = 0; i < library.length; i++) {
             if (root.matches(library[i], tags[library[i].path]))
@@ -260,37 +219,23 @@ StyledClippingRect {
     // back on is the one you were looking at
     function goUp(): void {
         root.stopSearching();
-        if (root.byArtist) {
-            root.artistFilter = "";
-            return;
-        }
         Music.cdUp();
     }
 
     function goRoot(): void {
         root.stopSearching();
-        if (root.byArtist) {
-            root.artistFilter = "";
-            return;
-        }
         Music.cdRoot();
     }
 
     function activate(item: var): void {
-        if (item.kind === "artist") {
-            root.stopSearching();
-            root.artistFilter = item.artist;
-            return;
-        }
-
         if (item.kind === "folder") {
             root.stopSearching();
             Music.cd(item.entry.path);
             return;
         }
 
-        // A track plays, or is collected up while selecting. Folders and artists still open
-        // either way, so a selection can be carried into them.
+        // A track plays, or is collected up while selecting. Folders still open either way,
+        // so a selection can be carried into them.
         if (root.selecting) {
             root.toggleSelection(item);
             return;
@@ -299,8 +244,8 @@ StyledClippingRect {
         root.playItem(item);
     }
 
-    // Playing a track queues whatever else is on the list behind it, so a folder or an
-    // artist's playlist plays through instead of stopping after one song
+    // Playing a track queues whatever else is on the list behind it, so a folder plays through
+    // instead of stopping after one song
     function playItem(item: var): void {
         if (item.kind !== "track")
             return;
@@ -355,12 +300,12 @@ StyledClippingRect {
             anchors.right: parent.right
             spacing: Tokens.spacing.extraSmall
 
-            // Browsing only - the queue has no folders or artists to climb out of
+            // Browsing only - the queue has no folders to climb out of
             IconButton {
                 icon: "arrow_upward"
                 type: IconButton.Text
                 visible: !root.onQueue
-                disabled: root.atGroupRoot && !root.searching
+                disabled: root.atRoot && !root.searching
                 onClicked: root.goUp()
             }
 
@@ -370,28 +315,6 @@ StyledClippingRect {
                 color: Colours.palette.m3onSurfaceVariant
                 font: Tokens.font.body.medium
                 elide: Text.ElideMiddle
-            }
-
-            // Grouped by folder, as the files are on disk
-            IconButton {
-                icon: "folder"
-                isToggle: true
-                visible: !root.onQueue
-                checked: !root.byArtist
-                type: root.byArtist ? IconButton.Tonal : IconButton.Filled
-                disabled: root.searching
-                onClicked: root.byArtist = false
-            }
-
-            // Grouped into one playlist per artist, from the tags
-            IconButton {
-                icon: "person"
-                isToggle: true
-                visible: !root.onQueue
-                checked: root.byArtist
-                type: root.byArtist ? IconButton.Filled : IconButton.Tonal
-                disabled: root.searching
-                onClicked: root.byArtist = true
             }
 
             // Multi-select: tracks collect into a selection instead of playing, so a batch can
@@ -409,7 +332,7 @@ StyledClippingRect {
                 icon: "home"
                 type: IconButton.Text
                 visible: !root.onQueue
-                disabled: root.atGroupRoot && !root.searching
+                disabled: root.atRoot && !root.searching
                 onClicked: root.goRoot()
             }
 
@@ -478,6 +401,12 @@ StyledClippingRect {
 
                     width: list.width
                     item: modelData
+                    // Followed live rather than baked into the row above, so a song finishing or
+                    // playback being paused only revisits the rows on screen instead of making
+                    // the whole list again - which, with every row's title, artist and art read
+                    // out of the library, is what a folder of a few hundred tracks feels like
+                    current: modelData.path === Music.currentFile
+                    playing: modelData.path === Music.currentFile && Music.playing
                     selecting: root.selecting
                     selected: root.isSelected(modelData)
                     onClicked: root.activate(modelData)

@@ -15,8 +15,10 @@ import qs.services
 Item {
     id: root
 
-    // Set by the Wrapper: whether cava has a real level to draw yet (see cavaWarm there)
+    // Set by the Wrapper: whether cava has a real level to draw yet (see cavaWarm there), and
+    // whether what is playing is the in-shell player rather than an MPRIS one
     property bool cavaWarm
+    property bool local
 
     readonly property int coverSize: Tokens.padding.extraLarge
 
@@ -76,6 +78,8 @@ Item {
             Layout.alignment: Qt.AlignVCenter
             Layout.preferredWidth: root.coverSize
             Layout.preferredHeight: root.coverSize
+            source: root.local ? Music.coverPath : Players.getArtUrl(Players.active)
+            spinning: root.local ? Music.playing : (Players.active?.isPlaying ?? false)
         }
 
         StyledText {
@@ -84,8 +88,8 @@ Item {
             Layout.alignment: Qt.AlignVCenter
             Layout.maximumWidth: Config.notch.maxTitleWidth
             text: {
-                const title = Players.active?.trackTitle ?? "";
-                const artist = Players.active?.trackArtist ?? "";
+                const title = root.local ? Music.title : Players.active?.trackTitle ?? "";
+                const artist = root.local ? Music.artist : Players.active?.trackArtist ?? "";
                 return Config.notch.showArtist && artist ? Tr.trCtx("%1 - %2", "track artist and title").arg(artist).arg(title) : title;
             }
             color: Colours.palette.m3onSurface

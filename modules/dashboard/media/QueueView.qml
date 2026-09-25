@@ -2,6 +2,7 @@ pragma ComponentBehavior: Bound
 
 import QtQuick
 import QtQuick.Layouts
+import Quickshell
 import Caelestia.Config
 import Caelestia.I18n
 import qs.components
@@ -15,14 +16,20 @@ import qs.services
 // ones in the order they were added, then the rest of the context - and every song that
 // finishes moves up into the history behind the playhead (see Music.next).
 //
-// Songs in the two upcoming sections are dragged to reorder them, and each section is dragged
-// on its own: the hand-picked songs are ahead of the context by definition, so a drag cannot
-// move one across into the other. Everything else is a button: the delete on a song row takes
-// it out of the queue, or out of the history if it has already played, and a tap plays a song
-// straight from wherever it is.
+// Songs in the upcoming sections are dragged to reorder them, and each section is dragged on
+// its own: the hand-picked songs are ahead of the context by definition, so a drag cannot move
+// one across into the other. While shuffle is on there is only the one section, since the queue
+// is then in the random order it plays in rather than in two halves. Everything else is a
+// button: the delete on a song row takes it out of the queue, or out of the history if it has
+// already played, and a tap plays a song straight from wherever it is.
 //
 // The queue holds paths, so each row's title, artist and art come from the library entry for
 // that path, falling back to the file name for anything that has since gone from disk.
+//
+// Nothing of that is built until the queue is actually the pane on screen. Every one of the
+// player's actions - playing something, skipping, queueing, moving a song - changes the queue,
+// and the rows follow it, so building them while the library or the notifications are the thing
+// being looked at is work spent on a list nobody can see. See showing.
 StyledListView {
     id: root
 
@@ -38,10 +45,20 @@ StyledListView {
     // been moved and where it would land
     readonly property int rowHeight: 40 + Tokens.padding.small * 2 + Tokens.spacing.extraSmall / 2
 
+    // Whether the queue is the pane on screen: what the header button switched to, and not on a
+    // window that is put away. The rows below are held back until it is, so the player moving
+    // through the queue while the library is the pane up front costs nothing at all.
+    readonly property bool showing: root.visible && ((QsWindow.window as QsWindow)?.visible ?? true)
+
+    readonly property var rows: root.showing ? root.buildRows() : []
+
+    // The row showing the song that is playing, so the view can keep it in sight
+    readonly property int currentRow: root.rows.findIndex(row => row.kind === "track" && row.section === "current")
+
     // The rows of the list: a header, or a song. index is the song's place in the list it
     // belongs to - the history, or the queue - and ordinal its place within its section, which
     // is what a drag moves it around by.
-    readonly property var rows: {
+    function buildRows(): var {
         const list = [];
         const played = Music.played;
         const queue = Music.queue;
@@ -57,7 +74,20 @@ StyledListView {
             list.push(root.trackRow(Music.current.path, "current", 0, 0, true));
         }
 
-        // The queue, split by where each song came from
+        // Shuffled, the queue is in the order it will play and no longer in two halves worth
+        // telling apart, so it is listed as one run rather than as sections that would not
+        // match the order it plays in
+        if (Music.shuffle) {
+            if (queue.length > 0) {
+                list.push({ kind: "header", section: "shuffled", text: Tr.tr("Queue"), count: queue.length });
+                for (let i = 0; i < queue.length; i++)
+                    list.push(root.trackRow(queue[i].path, "shuffled", i, i, false));
+            }
+
+            return list;
+        }
+
+        // Otherwise split by where each song came from
         const user = [];
         const auto = [];
         for (let i = 0; i < queue.length; i++) {
@@ -82,9 +112,6 @@ StyledListView {
         return list;
     }
 
-    // The row showing the song that is playing, so the view can keep it in sight
-    readonly property int currentRow: root.rows.findIndex(row => row.kind === "track" && row.section === "current")
-
     function trackRow(path: string, section: string, index: int, ordinal: int, current: bool): var {
         const entry = Music.entryFor(path);
         return {
@@ -96,13 +123,13 @@ StyledListView {
             subtitle: entry ? Music.artistFor(entry) : "",
             cover: entry ? Music.coverForEntry(entry) : "",
             current: current,
-            playing: current && Music.playing
+            playing: current
         };
     }
 
     // Whether a row can be dragged: only a song still to come has anywhere to go
     function reorderable(row: var): bool {
-        return row.kind === "track" && (row.section === "user" || row.section === "auto");
+        return row.kind === "track" && (row.section === "user" || row.section === "auto" || row.section === "shuffled");
     }
 
     // Whether a row can be taken out of the list: anything but the one playing, which is not
@@ -243,6 +270,9 @@ StyledListView {
                 // The history is behind us, so it sits back a little
                 opacity: holder.modelData.section === "played" ? 0.6 : 1
                 item: holder.modelData
+                // Followed live rather than baked into the row above, so playback being toggled
+                // only revisits the row on screen rather than making the whole list again
+                playing: holder.modelData.playing === true && Music.playing
                 reorderable: holder.draggable
                 removable: root.removable(holder.modelData)
                 onClicked: {
