@@ -223,6 +223,16 @@ Item {
         anchors.horizontalCenter: parent.horizontalCenter
         anchors.top: parent.top
 
+        // While peeking, the dashboard opens underneath this and would have the pill drawn across its tab row;
+        // the pill stays in place (invisible) so it still sees the hover that keeps the peek open
+        opacity: root.peeking ? 0 : 1
+
+        Behavior on opacity {
+            Anim {
+                type: Anim.DefaultEffects
+            }
+        }
+
         active: root.shouldBeActive || root.visible
 
         sourceComponent: Pill {

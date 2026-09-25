@@ -44,6 +44,15 @@ PageBase {
         }
     ]
 
+    readonly property var widgetNames: ({
+            calendar: Tr.tr("Calendar"),
+            weather: Tr.tr("Weather"),
+            pomodoro: Tr.tr("Focus timer"),
+            resources: Tr.tr("System resources"),
+            media: Tr.tr("Now playing"),
+            battery: Tr.tr("Battery")
+        })
+
     function positionItem(value: string): MenuItem {
         return positionItems.find(i => i.value === value) ?? positionItems[0];
     }
@@ -258,51 +267,63 @@ PageBase {
         }
 
         SectionHeader {
-            text: Tr.tr("Visible widgets")
+            text: Tr.tr("Layout")
         }
 
-        ToggleRow {
+        StepperRow {
             first: true
-            text: Tr.tr("Calendar")
-            subtext: Tr.tr("Month view with today highlighted")
-            checked: root.widgetsConfig.calendar
-            onToggled: GlobalConfig.background.desktopWidgets.calendar = checked
-        }
-
-        ToggleRow {
-            text: Tr.tr("Weather")
-            subtext: Tr.tr("Current conditions and a 5 day forecast")
-            checked: root.widgetsConfig.weather
-            onToggled: GlobalConfig.background.desktopWidgets.weather = checked
-        }
-
-        ToggleRow {
-            text: Tr.tr("Focus timer")
-            subtext: Tr.tr("Pomodoro-style countdown")
-            checked: root.widgetsConfig.pomodoro
-            onToggled: GlobalConfig.background.desktopWidgets.pomodoro = checked
-        }
-
-        ToggleRow {
-            text: Tr.tr("System resources")
-            subtext: Tr.tr("CPU, memory and disk usage")
-            checked: root.widgetsConfig.resources
-            onToggled: GlobalConfig.background.desktopWidgets.resources = checked
-        }
-
-        ToggleRow {
-            text: Tr.tr("Now playing")
-            subtext: Tr.tr("Current track with playback controls")
-            checked: root.widgetsConfig.media
-            onToggled: GlobalConfig.background.desktopWidgets.media = checked
-        }
-
-        ToggleRow {
             last: true
-            text: Tr.tr("Battery")
-            subtext: Tr.tr("Charge level (laptops only)")
-            checked: root.widgetsConfig.battery
-            onToggled: GlobalConfig.background.desktopWidgets.battery = checked
+            label: Tr.tr("Columns")
+            subtext: Tr.tr("How many columns the widgets are arranged in; rows stretch to an even height")
+            value: root.widgetsConfig.columns
+            from: 1
+            to: 4
+            stepSize: 1
+            onMoved: v => GlobalConfig.background.desktopWidgets.columns = Math.round(v)
+        }
+
+        SectionHeader {
+            text: Tr.tr("Widgets (drag to reorder)")
+        }
+
+        ListEditor {
+            function labelFor(item: var): string {
+                return root.widgetNames[item.id] ?? item.id;
+            }
+
+            function toggledFor(item: var): bool {
+                return item.enabled;
+            }
+
+            z: 1
+            first: true
+            values: root.widgetsConfig.entries.values
+            onItemMoved: (from, to) => GlobalConfig.background.desktopWidgets.entries.move(from, to)
+            onItemRemoved: index => GlobalConfig.background.desktopWidgets.entries.remove(index)
+            onItemToggled: (index, checked) => GlobalConfig.background.desktopWidgets.entries.at(index).enabled = checked
+        }
+
+        DialogSelectButton {
+            rootParent: root.flickable
+            icon: "add"
+            label: Tr.tr("Add widget")
+            header: Tr.tr("Add a widget")
+            acceptLabel: Tr.trCtx("Add", "button")
+
+            // Only widgets that aren't in the list already
+            model: Object.keys(root.widgetNames).filter(id => !root.widgetsConfig.entries.values.some(e => e.id === id)).map(id => ({
+                        id: id,
+                        label: root.widgetNames[id]
+                    }))
+
+            onAccepted: {
+                if (!selectedItem)
+                    return;
+                GlobalConfig.background.desktopWidgets.entries.insert({
+                    id: selectedItem,
+                    enabled: true
+                });
+            }
         }
     }
 }

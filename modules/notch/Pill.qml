@@ -23,6 +23,22 @@ Item {
     property bool showMedia: true
     property bool showClock
 
+    // Eased 0..1 versions of the above so the clock (and its divider) grow in and out instead of snapping
+    property real clockProg: showClock ? 1 : 0
+    property real dividerProg: showClock && showMedia ? 1 : 0
+
+    Behavior on clockProg {
+        Anim {
+            type: Anim.DefaultEffects
+        }
+    }
+
+    Behavior on dividerProg {
+        Anim {
+            type: Anim.DefaultEffects
+        }
+    }
+
     readonly property int coverSize: Tokens.padding.extraLarge
 
     // Drives the placeholder pattern below; only ticks while that pattern is actually on screen
@@ -77,42 +93,55 @@ Item {
         anchors.centerIn: parent
         spacing: Tokens.spacing.medium
 
-        ColumnLayout {
-            visible: root.showClock
+        // Grows and fades in rather than popping; the box's width follows the clock's own
+        Item {
+            visible: root.clockProg > 0
             Layout.alignment: Qt.AlignVCenter
-            spacing: 0
+            implicitWidth: clockColumn.implicitWidth * root.clockProg
+            implicitHeight: clockColumn.implicitHeight
+            opacity: root.clockProg
+            clip: true
 
-            RowLayout {
-                Layout.alignment: Qt.AlignHCenter
-                spacing: Tokens.spacing.extraSmall
+            ColumnLayout {
+                id: clockColumn
 
-                StyledText {
-                    text: `${Time.hourStr}:${Time.minuteStr}`
-                    color: Colours.palette.m3primary
-                    font: Tokens.font.title.builders.small.weight(Font.DemiBold).build()
+                anchors.verticalCenter: parent.verticalCenter
+                anchors.horizontalCenter: parent.horizontalCenter
+                spacing: 0
+
+                RowLayout {
+                    Layout.alignment: Qt.AlignHCenter
+                    spacing: Tokens.spacing.extraSmall
+
+                    StyledText {
+                        text: `${Time.hourStr}:${Time.minuteStr}`
+                        color: Colours.palette.m3primary
+                        font: Tokens.font.title.builders.small.weight(Font.DemiBold).build()
+                    }
+
+                    StyledText {
+                        visible: Units.twelveHourClock
+                        text: Time.amPmStr.toLowerCase()
+                        color: Colours.palette.m3primary
+                        font: Tokens.font.label.small
+                    }
                 }
 
                 StyledText {
-                    visible: Units.twelveHourClock
-                    text: Time.amPmStr.toLowerCase()
-                    color: Colours.palette.m3primary
+                    Layout.alignment: Qt.AlignHCenter
+                    text: Time.format("ddd d MMM")
+                    color: Colours.palette.m3onSurfaceVariant
                     font: Tokens.font.label.small
                 }
-            }
-
-            StyledText {
-                Layout.alignment: Qt.AlignHCenter
-                text: Time.format("ddd d MMM")
-                color: Colours.palette.m3onSurfaceVariant
-                font: Tokens.font.label.small
             }
         }
 
         StyledRect {
-            visible: root.showClock && root.showMedia
+            visible: root.dividerProg > 0
             Layout.alignment: Qt.AlignVCenter
-            Layout.preferredWidth: 1
+            Layout.preferredWidth: root.dividerProg
             Layout.preferredHeight: root.coverSize
+            opacity: root.dividerProg
             color: Colours.palette.m3outlineVariant
         }
 

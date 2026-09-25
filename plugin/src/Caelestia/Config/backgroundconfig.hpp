@@ -65,12 +65,18 @@ class DesktopWidgets : public settings::ObjectNode {
 
     CONFIG_PROPERTY(bool, enabled, false)
     CONFIG_PROPERTY(QString, position, u"top-right"_s)
-    CONFIG_PROPERTY(bool, calendar, true)
-    CONFIG_PROPERTY(bool, weather, true)
-    CONFIG_PROPERTY(bool, pomodoro, true)
-    CONFIG_PROPERTY(bool, resources, true)
-    CONFIG_PROPERTY(bool, media, true)
-    CONFIG_PROPERTY(bool, battery, true)
+    // Number of columns in the widget grid; the widgets flow into it in the order given below
+    CONFIG_PROPERTY(int, columns, 2)
+    // Which widgets show and in what order (ids: calendar, weather, pomodoro, resources, media, battery)
+    CONFIG_LIST(EntryList, entries,
+        DEFAULT_ARG({
+            LIST_ENTRY(calendar, true),
+            LIST_ENTRY(weather, true),
+            LIST_ENTRY(pomodoro, true),
+            LIST_ENTRY(resources, true),
+            LIST_ENTRY(media, true),
+            LIST_ENTRY(battery, true),
+        }))
     CONFIG_PROPERTY(bool, hideWithWindows, true)
     CONFIG_PROPERTY(qreal, opacity, 0.7)
     CONFIG_PROPERTY(bool, blur, true)

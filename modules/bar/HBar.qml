@@ -193,7 +193,7 @@ RowLayout {
             DelegateChoice {
                 roleValue: "clock"
                 delegate: EntryWrapper {
-                    visible: !root.clockHidden
+                    shown: !root.clockHidden
                     HClock {
                         objectName: "taskbarClock"
                     }
@@ -229,8 +229,22 @@ RowLayout {
         Layout.rightMargin: index === repeater.count - 1 ? root.hPadding : 0
         Layout.alignment: Qt.AlignVCenter
 
-        implicitWidth: item?.implicitWidth ?? 0
+        // Entries can be shown/hidden with a smooth grow/fade (the clock steps aside for the notch's)
+        property bool shown: true
+        property real presence: shown ? 1 : 0
+
+        visible: presence > 0
+        opacity: presence
+        clip: presence < 1
+
+        implicitWidth: (item?.implicitWidth ?? 0) * presence
         implicitHeight: item?.implicitHeight ?? 0
+
+        Behavior on presence {
+            Anim {
+                type: Anim.DefaultEffects
+            }
+        }
 
         onXChanged: middleTimer.restart()
         onWidthChanged: middleTimer.restart()

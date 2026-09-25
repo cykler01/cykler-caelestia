@@ -237,7 +237,6 @@ Variants {
             transform: Translate {
                 x: (widgetsLoader.pos.endsWith("right") ? 1 : -1) * 32 * (1 - widgetsLoader.reveal)
             }
-            height: parent.height - marginTop - marginBottom
 
             // Plain x/y bindings rather than anchors, so changing the position live can't leave stale anchors
             readonly property real marginLeft: Tokens.padding.extraLargeIncreased + insets.barLeft
@@ -248,8 +247,6 @@ Variants {
             y: pos.startsWith("bottom") ? parent.height - height - marginBottom : marginTop
 
             sourceComponent: DesktopWidgets {
-                height: widgetsLoader.height
-                layoutDirection: widgetsLoader.pos.endsWith("right") ? Qt.RightToLeft : Qt.LeftToRight
                 wallpaper: behindClock
             }
         }
