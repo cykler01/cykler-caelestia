@@ -55,7 +55,8 @@ Region {
     R {
         panel: root.panels.notch
         y: panel.y + root.bar.insetTop + root.win.notchShift
-        height: panel.height * (1 - root.panels.notch.offsetScale)
+        // (no input area of its own while it sits rotated inside a vertical bar: its unrotated box would be in the wrong place)
+        height: root.panels.notch.onVerticalBar && root.panels.notch.inBarProg > 0.001 ? 0 : panel.height * (1 - root.panels.notch.offsetScale)
     }
 
     R {

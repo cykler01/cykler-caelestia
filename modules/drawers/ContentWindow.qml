@@ -252,7 +252,7 @@ StyledWindow {
 
             panel: panels.notch
             deformAmount: 0.1
-            y: panels.notch.y + bar.insetTop + root.notchShift
+            y: panels.notch.bgY + bar.insetTop + root.notchShift
             // No background of its own once it sits inside the bar. It slides up into the band at full size first
             // (shrinking it on the way makes the blob renderer smooth it into a wedge under the bar)
             implicitHeight: panels.notch.inBarProg > 0.999 ? 0 : panels.notch.height

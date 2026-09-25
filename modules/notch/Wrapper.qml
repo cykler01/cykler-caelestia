@@ -100,22 +100,36 @@ Item {
         service: Config.notch.enabled && root.playing && !PowerSaving.pauseVisualisers ? Audio.cava : null
     }
 
-    // With windows open and a horizontal bar, the notch sits inside the bar (where the active window's title used to
-    // be) as an inset pill, instead of hanging below it
+    // With windows open the notch sits inside the bar (where the active window's title used to be) instead of
+    // hanging below the top edge: as a flat pill on a horizontal bar, rotated to read along it on a vertical one
     readonly property var barRef: ShellState.componentsFor(screen)?.bar
     // 1 once the workspace is empty, 0 with windows: one animated value owned by the drawers window, shared with the
     // bar's cut-away so the notch, the bar and the content all move on the same curve
     property real morph: 1
-    readonly property real inBarProg: (barRef && (barRef.onTop || barRef.onBottom)) ? 1 - morph : 0
+    readonly property real inBarProg: barRef ? 1 - morph : 0
     readonly property bool morphing: inBarProg > 0.001 && inBarProg < 0.999
+    readonly property bool onVerticalBar: !!barRef && barRef.vertical
 
-    // Where it rests inside the bar band, centred across the band's thickness
+    // Where it rests inside the bar band, centred across the band's thickness (horizontal bars)
     readonly property real barY: !barRef ? 0 : barRef.onBottom ? parent.height + (barRef.insetBottom - height) / 2 : -(barRef.insetTop + height) / 2
 
+    // Where it hangs (or rests, in the bar) in the panel area's coordinates
+    readonly property real hangX: Config.notch.align === PanelAlign.Start ? 0 : Config.notch.align === PanelAlign.End ? parent.width - width : (parent.width - width) / 2
+    readonly property real hangY: (-height - 5) * offsetScale
+    // Centre of the bar band on a vertical bar: across its thickness, and halfway along the screen
+    readonly property real barCx: !barRef ? 0 : barRef.onLeft ? -barRef.insetLeft / 2 : parent.width + barRef.insetRight / 2
+    readonly property real barCy: !barRef ? 0 : (parent.height + barRef.insetBottom - barRef.insetTop) / 2
+
+    // The background blob's own y: on a vertical bar it retreats up out of sight instead of following the (rotated)
+    // content into the band
+    readonly property real bgY: onVerticalBar ? (-height - 5) * (1 - (1 - offsetScale) * (1 - inBarProg)) : y
+
     visible: offsetScale < 1
-    // Position along the top edge (config notch.align); plain bindings, not anchors, so it can change live
-    x: Config.notch.align === PanelAlign.Start ? 0 : Config.notch.align === PanelAlign.End ? parent.width - width : (parent.width - width) / 2
-    y: (-height - 5) * offsetScale * (1 - inBarProg) + barY * inBarProg
+    // Plain bindings rather than anchors, so the position can change live
+    x: onVerticalBar ? (hangX + width / 2) * (1 - inBarProg) + barCx * inBarProg - width / 2 : hangX
+    y: onVerticalBar ? (hangY + height / 2) * (1 - inBarProg) + barCy * inBarProg - height / 2 : hangY * (1 - inBarProg) + barY * inBarProg
+    // The turn happens half way, while the content is faded out
+    rotation: onVerticalBar && inBarProg > 0.5 ? (barRef.onLeft ? -90 : 90) : 0
     implicitWidth: content.implicitWidth
     implicitHeight: content.implicitHeight
     opacity: 1 - offsetScale
