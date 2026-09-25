@@ -207,16 +207,15 @@ Variants {
             transform: Translate {
                 x: (iconsLoader.pos.endsWith("right") ? 1 : -1) * 32 * (1 - iconsLoader.reveal)
             }
-            height: parent.height - anchors.topMargin - anchors.bottomMargin
+            height: parent.height - marginTop - marginBottom
 
-            anchors.leftMargin: Tokens.padding.extraLargeIncreased + insets.barLeft
-            anchors.rightMargin: Tokens.padding.extraLargeIncreased + insets.barRight
-            anchors.topMargin: Tokens.padding.extraLargeIncreased + insets.barTop
-            anchors.bottomMargin: Tokens.padding.extraLargeIncreased + insets.barBottom
-            anchors.top: pos.startsWith("top") ? parent.top : undefined
-            anchors.bottom: pos.startsWith("bottom") ? parent.bottom : undefined
-            anchors.left: pos.endsWith("left") ? parent.left : undefined
-            anchors.right: pos.endsWith("right") ? parent.right : undefined
+            // Plain x/y bindings rather than anchors, so changing the position live can't leave stale anchors
+            readonly property real marginLeft: Tokens.padding.extraLargeIncreased + insets.barLeft
+            readonly property real marginRight: Tokens.padding.extraLargeIncreased + insets.barRight
+            readonly property real marginTop: Tokens.padding.extraLargeIncreased + insets.barTop
+            readonly property real marginBottom: Tokens.padding.extraLargeIncreased + insets.barBottom
+            x: pos.endsWith("right") ? parent.width - width - marginRight : marginLeft
+            y: pos.startsWith("bottom") ? parent.height - height - marginBottom : marginTop
 
             sourceComponent: DesktopIcons {
                 height: iconsLoader.height
@@ -238,16 +237,15 @@ Variants {
             transform: Translate {
                 x: (widgetsLoader.pos.endsWith("right") ? 1 : -1) * 32 * (1 - widgetsLoader.reveal)
             }
-            height: parent.height - anchors.topMargin - anchors.bottomMargin
+            height: parent.height - marginTop - marginBottom
 
-            anchors.leftMargin: Tokens.padding.extraLargeIncreased + insets.barLeft
-            anchors.rightMargin: Tokens.padding.extraLargeIncreased + insets.barRight
-            anchors.topMargin: Tokens.padding.extraLargeIncreased + insets.barTop
-            anchors.bottomMargin: Tokens.padding.extraLargeIncreased + insets.barBottom
-            anchors.top: pos.startsWith("top") ? parent.top : undefined
-            anchors.bottom: pos.startsWith("bottom") ? parent.bottom : undefined
-            anchors.left: pos.endsWith("left") ? parent.left : undefined
-            anchors.right: pos.endsWith("right") ? parent.right : undefined
+            // Plain x/y bindings rather than anchors, so changing the position live can't leave stale anchors
+            readonly property real marginLeft: Tokens.padding.extraLargeIncreased + insets.barLeft
+            readonly property real marginRight: Tokens.padding.extraLargeIncreased + insets.barRight
+            readonly property real marginTop: Tokens.padding.extraLargeIncreased + insets.barTop
+            readonly property real marginBottom: Tokens.padding.extraLargeIncreased + insets.barBottom
+            x: pos.endsWith("right") ? parent.width - width - marginRight : marginLeft
+            y: pos.startsWith("bottom") ? parent.height - height - marginBottom : marginTop
 
             sourceComponent: DesktopWidgets {
                 height: widgetsLoader.height

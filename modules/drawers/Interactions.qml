@@ -287,7 +287,7 @@ CustomMouseArea {
         // Show popouts on hover
         if (bar.isOver(x, y, width, height)) {
             bar.checkPopout(bar.vertical ? y : x);
-        } else if ((!popouts.currentName.startsWith("traymenu") || ((popouts.current as StackView)?.depth ?? 0) <= 1) && !(bar.onRight ? inRightPanel(panels.popoutsWrapper, x, y) : inLeftPanel(panels.popoutsWrapper, x, y))) {
+        } else if ((!popouts.currentName.startsWith("traymenu") || ((popouts.current as StackView)?.depth ?? 0) <= 1) && !(bar.onLeft ? inLeftPanel(panels.popoutsWrapper, x, y) : bar.onRight ? inRightPanel(panels.popoutsWrapper, x, y) : bar.onTop ? inTopPanel(panels.popoutsWrapper, x, y) : inBottomPanel(panels.popoutsWrapper, x, y))) {
             popouts.hasCurrent = false;
             bar.closeTray();
         }

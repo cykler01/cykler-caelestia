@@ -133,8 +133,8 @@ Item {
         id: popoutsWrapper
 
         screen: root.screen
-        borderThickness: root.bar.insetTop
-        barOnRight: root.bar.onRight
+        alongInset: root.bar.vertical ? root.bar.insetTop : root.bar.insetLeft
+        barPosition: root.bar.position
     }
 
     Utilities.Wrapper {

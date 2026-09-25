@@ -18,6 +18,14 @@ PageBase {
         MenuItem {
             text: Tr.trCtx("Right", "bar position")
             icon: "align_horizontal_right"
+        },
+        MenuItem {
+            text: Tr.trCtx("Top", "bar position")
+            icon: "vertical_align_top"
+        },
+        MenuItem {
+            text: Tr.trCtx("Bottom", "bar position")
+            icon: "vertical_align_bottom"
         }
     ]
 

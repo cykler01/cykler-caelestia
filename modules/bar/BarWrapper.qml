@@ -47,17 +47,18 @@ Item {
     readonly property real clampedInsetTop: onTop ? clampedThickness : Config.border.clampedThickness
     readonly property real clampedInsetBottom: onBottom ? clampedThickness : Config.border.clampedThickness
 
+    // The loaded item is a Bar (vertical) or an HBar (horizontal); both expose the same functions
     function closeTray(): void {
-        (content.item as Bar)?.closeTray();
+        content.item?.closeTray();
     }
 
     // pos is the coordinate along the bar's long axis (y for vertical bars, x for horizontal ones)
     function checkPopout(pos: real): void {
-        (content.item as Bar)?.checkPopout(pos);
+        content.item?.checkPopout(pos);
     }
 
     function handleWheel(pos: real, angleDelta: point): void {
-        (content.item as Bar)?.handleWheel(pos, angleDelta);
+        content.item?.handleWheel(pos, angleDelta);
     }
 
     // Whether a point (in drawers window coordinates) is over the bar strip
@@ -72,10 +73,8 @@ Item {
         return y > winHeight - t;
     }
 
-    clip: true
-    visible: thickness > Config.border.thickness
-    implicitWidth: vertical ? thickness : 0
-    implicitHeight: vertical ? 0 : thickness
+    // The wrapper spans the whole frame (the parent sets anchors.fill) and the visible strip is placed
+    // with plain bindings below. Conditional anchors don't reset reliably when the edge changes live.
 
     states: State {
         name: "visible"
@@ -108,19 +107,48 @@ Item {
         }
     ]
 
-    Loader {
-        id: content
+    // The strip is the part of the bar currently revealed; it grows from the border thickness to the full bar
+    Item {
+        id: strip
 
-        // Stay flush against the inner edge of the frame while the wrapper clips the bar in and out
-        anchors.top: root.onLeft || root.onRight || root.onBottom ? parent.top : undefined
-        anchors.bottom: root.onLeft || root.onRight || root.onTop ? parent.bottom : undefined
-        anchors.left: root.onRight || !root.vertical ? parent.left : undefined
-        anchors.right: root.onLeft || !root.vertical ? parent.right : undefined
+        clip: true
+        visible: root.thickness > Config.border.thickness
 
-        active: root.shouldBeVisible
+        x: root.onRight ? root.width - root.thickness : 0
+        y: root.onBottom ? root.height - root.thickness : 0
+        width: root.vertical ? root.thickness : root.width
+        height: root.vertical ? root.height : root.thickness
 
-        sourceComponent: Bar {
-            width: root.vertical ? root.contentThickness : parent.width
+        Loader {
+            id: content
+
+            // Stay flush against the inner edge of the frame while the strip clips the bar in and out
+            x: root.onLeft ? strip.width - width : 0
+            y: root.onTop ? strip.height - height : 0
+            width: root.vertical ? root.contentThickness : strip.width
+            height: root.vertical ? strip.height : root.contentThickness
+
+            active: root.shouldBeVisible
+
+            sourceComponent: root.vertical ? verticalBar : horizontalBar
+        }
+    }
+
+    Component {
+        id: verticalBar
+
+        Bar {
+            screen: root.screen
+            screenState: root.screenState
+            popouts: root.popouts // qmllint disable incompatible-type
+            fullscreen: root.fullscreen
+        }
+    }
+
+    Component {
+        id: horizontalBar
+
+        HBar {
             screen: root.screen
             screenState: root.screenState
             popouts: root.popouts // qmllint disable incompatible-type

@@ -58,9 +58,14 @@ Item {
                 VisualiserBars {
                     id: bars
 
+                    readonly property var barRef: ShellState.componentsFor(root.screen)?.bar
+
                     anchors.fill: parent
                     anchors.margins: Config.border.thickness
-                    anchors.leftMargin: (ShellState.componentsFor(root.screen)?.bar?.exclusiveZone ?? 0) + Tokens.spacing.small * Config.background.visualiser.spacing
+                    anchors.leftMargin: (barRef?.onLeft ? barRef.exclusiveZone : Config.border.thickness) + Tokens.spacing.small * Config.background.visualiser.spacing
+                    anchors.rightMargin: barRef?.onRight ? barRef.exclusiveZone : Config.border.thickness
+                    anchors.topMargin: barRef?.onTop ? barRef.exclusiveZone : Config.border.thickness
+                    anchors.bottomMargin: barRef?.onBottom ? barRef.exclusiveZone : Config.border.thickness
 
                     values: Audio.cava.values
                     primaryColor: Qt.alpha(Colours.palette.m3primary, 0.7)

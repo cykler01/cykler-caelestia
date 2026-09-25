@@ -245,13 +245,15 @@ StyledWindow {
 
             // Extra width to prevent vertical movement deformation partially detaching panel from bar
             property real extraWidth: panels.popouts.isDetached ? 0 : 0.2
-            // The extra width is tucked under the bar, so it grows towards the bar's side
-            readonly property real extraOffset: bar.onRight && !panels.popouts.isDetached ? 0 : panels.popouts.width * extraWidth
+            // The extra size is tucked under the bar, so it grows towards the bar's side
+            readonly property real extraOffset: (bar.onRight || bar.onBottom) && !panels.popouts.isDetached ? 0 : (bar.vertical ? panels.popouts.width : panels.popouts.height) * extraWidth
 
             panel: panels.popoutsWrapper
             deformAmount: panels.popouts.isDetached ? 0.05 : panels.popouts.hasCurrent ? 0.15 : 0.1
-            x: panels.popoutsWrapper.x + panels.popouts.x + bar.insetLeft - extraOffset
-            implicitWidth: panels.popouts.width * (1 + extraWidth)
+            x: bar.vertical ? panels.popoutsWrapper.x + panels.popouts.x + bar.insetLeft - extraOffset : panels.popoutsWrapper.x + bar.insetLeft
+            y: bar.vertical ? panels.popoutsWrapper.y + bar.insetTop : panels.popoutsWrapper.y + panels.popouts.y + bar.insetTop - extraOffset
+            implicitWidth: bar.vertical ? panels.popouts.width * (1 + extraWidth) : panels.popoutsWrapper.width
+            implicitHeight: bar.vertical ? panels.popoutsWrapper.height : panels.popouts.height * (1 + extraWidth)
 
             Behavior on extraWidth {
                 Anim {}
@@ -310,11 +312,8 @@ StyledWindow {
         BarWrapper {
             id: bar
 
-            // Pinned to the configured edge, spanning that edge's full length
-            anchors.top: onLeft || onRight || onTop ? parent.top : undefined
-            anchors.bottom: onLeft || onRight || onBottom ? parent.bottom : undefined
-            anchors.left: onLeft || onTop || onBottom ? parent.left : undefined
-            anchors.right: onRight || onTop || onBottom ? parent.right : undefined
+            // Spans the frame; the bar positions its own strip on the configured edge
+            anchors.fill: parent
 
             screen: root.screen
             screenState: root.screenState
