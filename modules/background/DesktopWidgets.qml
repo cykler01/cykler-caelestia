@@ -218,6 +218,8 @@ GridLayout {
                 anchors.fill: parent
                 anchors.margins: Tokens.padding.small
                 spacing: 0
+                // Equal-width columns however wide each day's text is
+                uniformCellSizes: true
 
                 Repeater {
                     model: Weather.forecast.slice(0, 5)
@@ -231,6 +233,7 @@ GridLayout {
                         Layout.fillWidth: true
                         Layout.preferredWidth: 1
                         Layout.minimumWidth: 0
+                        Layout.maximumWidth: Number.POSITIVE_INFINITY
                         spacing: 2
 
                         StyledText {
@@ -315,7 +318,10 @@ GridLayout {
 
         RowLayout {
             Layout.fillWidth: true
-            spacing: Tokens.spacing.small
+            Layout.maximumWidth: Number.POSITIVE_INFINITY
+            spacing: 0
+            // Three equal columns spread across the card, rather than bunched at the left
+            uniformCellSizes: true
 
             Meter {
                 label: "CPU"
@@ -542,6 +548,7 @@ GridLayout {
         property color colour
 
         Layout.fillWidth: true
+        Layout.maximumWidth: Number.POSITIVE_INFINITY
         spacing: Tokens.spacing.extraSmall
 
         CircularProgress {

@@ -36,15 +36,18 @@ RowLayout {
 
     ColumnLayout {
         Layout.fillWidth: true
+        Layout.maximumWidth: Number.POSITIVE_INFINITY
         spacing: Tokens.spacing.small
 
         StyledText {
+            Layout.alignment: Qt.AlignHCenter
             text: FocusTimer.remaining <= 0 ? Tr.tr("Session complete") : FocusTimer.running ? Tr.tr("Focusing") : Tr.tr("Ready to focus")
             color: Colours.palette.m3onSurfaceVariant
             font: Tokens.font.label.medium
         }
 
         RowLayout {
+            Layout.alignment: Qt.AlignHCenter
             spacing: Tokens.spacing.small
 
             IconButton {
@@ -61,6 +64,7 @@ RowLayout {
         }
 
         RowLayout {
+            Layout.alignment: Qt.AlignHCenter
             spacing: Tokens.spacing.small
 
             IconButton {
