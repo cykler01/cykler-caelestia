@@ -14,6 +14,10 @@ Item {
     anchors.bottom: parent.bottom
     implicitWidth: Tokens.sizes.dashboard.dateTimeWidth
 
+    // This card shows seconds, so the shared clock has to tick every second for as long as it exists
+    Component.onCompleted: Time.secondsUsers++
+    Component.onDestruction: Time.secondsUsers--
+
     ColumnLayout {
         anchors.left: parent.left
         anchors.right: parent.right

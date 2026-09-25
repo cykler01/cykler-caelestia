@@ -152,7 +152,11 @@ GridLayout {
     component WeatherCard: GridCard {
         title: Weather.city || Tr.tr("Weather")
         icon: "location_on"
-        Component.onCompleted: Weather.reload()
+        // The card is created again each time the desktop is uncovered, so only fetch when there is nothing to show
+        Component.onCompleted: {
+            if (!Weather.cc)
+                Weather.reload();
+        }
 
         RowLayout {
             Layout.fillWidth: true
@@ -273,6 +277,8 @@ GridLayout {
 
     // --- System resources ---
     component SystemCard: GridCard {
+        id: sys
+
         title: Tr.tr("System")
         icon: "monitoring"
 
@@ -288,6 +294,25 @@ GridLayout {
             service: Storage
         }
 
+        // The rings show a reading taken every few seconds rather than following the live value: a ring that
+        // restarts an animation on every tick keeps the whole desktop redrawing, and that was the shell's
+        // biggest single power cost while idle.
+        property real cpu
+        property real memory
+        property real disk
+
+        Timer {
+            interval: 3000
+            running: true
+            repeat: true
+            triggeredOnStart: true
+            onTriggered: {
+                sys.cpu = Cpu.percentage;
+                sys.memory = Memory.percentage;
+                sys.disk = Storage.percentage;
+            }
+        }
+
         RowLayout {
             Layout.fillWidth: true
             spacing: Tokens.spacing.small
@@ -295,21 +320,21 @@ GridLayout {
             Meter {
                 label: "CPU"
                 icon: "memory"
-                value: Cpu.percentage
+                value: sys.cpu
                 colour: Colours.palette.m3primary
             }
 
             Meter {
                 label: "RAM"
                 icon: "memory_alt"
-                value: Memory.percentage
+                value: sys.memory
                 colour: Colours.palette.m3tertiary
             }
 
             Meter {
                 label: Tr.tr("Disk")
                 icon: "hard_disk"
-                value: Storage.percentage
+                value: sys.disk
                 colour: Colours.palette.m3secondary
             }
         }
@@ -527,8 +552,11 @@ GridLayout {
             fgColour: meter.colour
             bgColour: Colours.palette.m3surfaceContainerHighest
 
+            // Short and without overshoot: it only ever runs once every few seconds
             Behavior on clampedVal {
-                Anim {}
+                Anim {
+                    type: Anim.FastEffects
+                }
             }
 
             MaterialIcon {

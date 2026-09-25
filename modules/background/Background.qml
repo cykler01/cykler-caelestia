@@ -199,7 +199,8 @@ Variants {
             readonly property string pos: Config.background.desktopIcons.position
             readonly property real reveal: insets.revealFor(Config.background.desktopIcons.hideWithWindows)
 
-            active: Config.background.desktopIcons.enabled
+            // Unloaded outright while hidden behind windows, so it costs nothing (no timers, no services, no redraws)
+            active: Config.background.desktopIcons.enabled && reveal > 0
             visible: reveal > 0
             opacity: reveal
             scale: 0.94 + 0.06 * reveal
@@ -229,7 +230,9 @@ Variants {
             readonly property string pos: Config.background.desktopWidgets.position
             readonly property real reveal: insets.revealFor(Config.background.desktopWidgets.hideWithWindows)
 
-            active: Config.background.desktopWidgets.enabled
+            // Unloaded outright while hidden behind windows: the cards keep timers and system readings running,
+            // and with windows open (most of the time) nobody can see them
+            active: Config.background.desktopWidgets.enabled && reveal > 0
             visible: reveal > 0
             opacity: reveal
             scale: 0.94 + 0.06 * reveal

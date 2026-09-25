@@ -61,8 +61,10 @@ Scope {
 
     // NOTE(fork): apply hyprland visual effect options based on a power action schema
     function applyVisualEffects(settings): void {
-        const options = {};
+        // The shell's own effects follow the same switches as Hyprland's
+        PowerSaving.applyEffects(settings);
 
+        const options = {};
         if (settings.disableAnimations === "disable")
             options["animations:enabled"] = 0;
         else if (settings.disableAnimations === "enable")

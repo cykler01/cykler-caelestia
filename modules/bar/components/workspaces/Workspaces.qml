@@ -80,7 +80,7 @@ StyledClippingRect {
         opacity: root.onSpecial ? 0.5 : 1
         visible: !root.fullscreen
 
-        layer.enabled: root.blur > 0
+        layer.enabled: root.blur > 0 && PowerSaving.blur
         layer.effect: MultiEffect {
             blurEnabled: true
             blur: root.blur

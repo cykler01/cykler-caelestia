@@ -83,7 +83,8 @@ StyledWindow {
     StyledWindow {
         name: "notifpopout-blur"
         screen: root.screen
-        visible: root.wanted
+        // A whole extra translucent layer just to blur harder: not worth it with blur switched off
+        visible: root.wanted && PowerSaving.blur
         implicitWidth: root.implicitWidth
         WlrLayershell.exclusionMode: ExclusionMode.Ignore
         WlrLayershell.layer: WlrLayer.Top

@@ -2,9 +2,16 @@ pragma Singleton
 
 import QtQuick
 import Quickshell
+import Caelestia.Config
 import Caelestia.I18n
 
 Singleton {
+    id: root
+
+    // Things that show seconds (the dashboard's clock card) hold a count here while they exist. With none of those
+    // and no seconds in the bar's clock, the clock only ticks once a minute, which keeps the shell asleep in between.
+    property int secondsUsers
+
     property alias enabled: clock.enabled
     readonly property date date: clock.date
     readonly property int hours: clock.hours
@@ -24,6 +31,6 @@ Singleton {
     SystemClock {
         id: clock
 
-        precision: SystemClock.Seconds
+        precision: root.secondsUsers > 0 || GlobalConfig.bar.clock.showSeconds ? SystemClock.Seconds : SystemClock.Minutes
     }
 }

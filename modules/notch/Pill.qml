@@ -39,6 +39,13 @@ Item {
         }
     }
 
+    // Whether the visualiser moves at all: not while Power & battery has visualisers paused or animations off
+    readonly property bool live: !PowerSaving.pauseVisualisers && PowerSaving.animations
+    // Time collected since the visualiser was last stepped; it is stepped about 20 times a second rather than on
+    // every screen refresh, which is plenty for a bar chart this small and saves a redraw per refresh
+    property real barsAcc
+    property real phaseAcc
+
     // Sitting inside the bar rather than hanging from it: smaller everything, one line, no date
     property bool compact
 
@@ -186,7 +193,7 @@ Item {
 
             // Power Saver can pause audio capture; the bars then rest flat (see PowerSaving)
             ServiceRef {
-                service: PowerSaving.pauseVisualisers || !root.showMedia ? null : Audio.cava
+                service: !root.live || !root.showMedia ? null : Audio.cava
             }
 
             VisualiserBars {
@@ -202,7 +209,7 @@ Item {
                 mirrored: true
                 singleRow: true
                 values: {
-                    if (PowerSaving.pauseVisualisers)
+                    if (!root.live)
                         return Array(root.barCount).fill(0.2);
                     return root.cavaWarm ? root.sampleSpectrum(Audio.cava.values, root.barCount) : root.placeholderSpectrum(root.barCount);
                 }
@@ -216,13 +223,25 @@ Item {
             }
 
             FrameAnimation {
-                running: root.showMedia && !bars.settled
-                onTriggered: bars.advance(frameTime)
+                running: root.showMedia && root.live && !bars.settled
+                onTriggered: {
+                    root.barsAcc += frameTime;
+                    if (root.barsAcc >= 0.05) {
+                        bars.advance(root.barsAcc);
+                        root.barsAcc = 0;
+                    }
+                }
             }
 
             FrameAnimation {
-                running: root.showMedia && !root.cavaWarm && !PowerSaving.pauseVisualisers
-                onTriggered: root.placeholderPhase += frameTime * 4
+                running: root.showMedia && root.live && !root.cavaWarm
+                onTriggered: {
+                    root.phaseAcc += frameTime;
+                    if (root.phaseAcc >= 0.05) {
+                        root.placeholderPhase += root.phaseAcc * 4;
+                        root.phaseAcc = 0;
+                    }
+                }
             }
         }
     }

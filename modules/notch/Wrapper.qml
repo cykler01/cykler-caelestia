@@ -97,7 +97,7 @@ Item {
     // as long as something is playing keeps it warmed up, so a track change shows a visualiser
     // that is already up to level instead of a blank pill that fills in late.
     ServiceRef {
-        service: Config.notch.enabled && root.playing && !PowerSaving.pauseVisualisers ? Audio.cava : null
+        service: Config.notch.enabled && root.playing && !PowerSaving.pauseVisualisers && PowerSaving.animations ? Audio.cava : null
     }
 
     // With windows open the notch sits inside the bar (where the active window's title used to be) instead of

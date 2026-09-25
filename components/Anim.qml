@@ -1,5 +1,6 @@
 import QtQuick
 import Caelestia.Config
+import qs.services
 
 NumberAnimation {
     enum Type {
@@ -22,6 +23,10 @@ NumberAnimation {
     property int type: Anim.DefaultSpatial
 
     duration: {
+        // Animations switched off in Power & battery: jump straight to the end value (and stop the redraws)
+        if (!PowerSaving.animations)
+            return 0;
+
         if (type < Anim.StandardSmall || type > Anim.SlowEffects)
             return Tokens.anim.durations.normal;
 

@@ -61,7 +61,7 @@ StyledWindow {
     property real fsTransitionProg: hasFullscreen ? 1 : 0
     readonly property real sdfBorderOffset: 2 * fsTransitionProg // SDFs joins are not exact, so offset by 2px to ensure nothing shows
     readonly property real borderThickness: contentItem.Config.border.thickness * (1 - fsTransitionProg)
-    readonly property real borderRounding: contentItem.Config.border.rounding * (1 - fsTransitionProg)
+    readonly property real borderRounding: PowerSaving.rounding ? contentItem.Config.border.rounding * (1 - fsTransitionProg) : 0
     readonly property real shadowOpacity: 0.7 * (1 - fsTransitionProg)
     readonly property real borderLayoutThickness: hasFullscreen ? 0 : contentItem.Config.border.thickness
 
@@ -192,7 +192,8 @@ StyledWindow {
     Item {
         anchors.fill: parent
         opacity: root.surfaceColour.a
-        layer.enabled: true
+        // The frame's drop shadow is a full-screen shader pass; it goes when shadows are switched off
+        layer.enabled: PowerSaving.shadows
         layer.effect: MultiEffect {
             shadowEnabled: true
             blurMax: 15
@@ -223,7 +224,7 @@ StyledWindow {
         // corners are rounded, and they join the thin frame like any other hanging panel.
         BlobRect {
             group: blobGroup
-            radius: Tokens.rounding.extraLarge
+            radius: PowerSaving.rounding ? Tokens.rounding.extraLarge : 0
             x: bar.vertical ? (bar.onLeft ? -radius : root.width - bar.thickness) : -radius
             y: bar.vertical ? -radius : (bar.onTop ? -radius : root.height - bar.thickness)
             implicitWidth: root.middleProg <= 0.01 ? 0 : bar.vertical ? bar.thickness + radius : bar.middleStart + radius
@@ -232,7 +233,7 @@ StyledWindow {
 
         BlobRect {
             group: blobGroup
-            radius: Tokens.rounding.extraLarge
+            radius: PowerSaving.rounding ? Tokens.rounding.extraLarge : 0
             x: bar.vertical ? (bar.onLeft ? -radius : root.width - bar.thickness) : bar.middleEnd
             y: bar.vertical ? bar.middleEnd : (bar.onTop ? -radius : root.height - bar.thickness)
             implicitWidth: root.middleProg <= 0.01 ? 0 : bar.vertical ? bar.thickness + radius : root.width - bar.middleEnd + radius
@@ -452,7 +453,7 @@ StyledWindow {
         y: panel.y + bar.insetTop
         implicitWidth: panel.width
         implicitHeight: panel.height
-        radius: Tokens.rounding.extraLarge
+        radius: PowerSaving.rounding ? Tokens.rounding.extraLarge : 0
         deformScale: (deformAmount * Config.appearance.deformScale) / 10000
     }
 }

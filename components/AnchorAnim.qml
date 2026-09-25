@@ -1,5 +1,6 @@
 import QtQuick
 import Caelestia.Config
+import qs.services
 
 AnchorAnimation {
     enum Type {
@@ -19,6 +20,9 @@ AnchorAnimation {
     property int type: AnchorAnim.DefaultSpatial
 
     duration: {
+        if (!PowerSaving.animations)
+            return 0;
+
         if (type < AnchorAnim.StandardSmall || type > AnchorAnim.SlowSpatial)
             return Tokens.anim.durations.expressiveDefaultSpatial;
 

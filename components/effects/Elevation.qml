@@ -4,6 +4,9 @@ import qs.components
 import qs.services
 
 RectangularShadow {
+    // No shadow at all when shadows are switched off in Power & battery
+    visible: PowerSaving.shadows
+
     property int level
     property real dp: [0, 1, 3, 6, 8, 12][level]
 

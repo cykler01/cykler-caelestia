@@ -23,7 +23,7 @@ Item {
     Loader {
         asynchronous: true
         anchors.fill: parent
-        active: root.opacity > 0 && Config.background.visualiser.blur
+        active: root.opacity > 0 && Config.background.visualiser.blur && PowerSaving.blur
 
         sourceComponent: MultiEffect {
             source: root.wallpaper

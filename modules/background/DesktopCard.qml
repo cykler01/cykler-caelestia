@@ -15,8 +15,9 @@ Item {
     property string title
     property string icon
     property real plateOpacity: Config.background.desktopWidgets.opacity
-    property bool blur: Config.background.desktopWidgets.blur && !GameMode.enabled
-    property real radius: Tokens.rounding.extraLarge
+    // Blur, shadow and rounding follow the Power & battery settings as well as the widget's own
+    property bool blur: Config.background.desktopWidgets.blur && !GameMode.enabled && PowerSaving.blur
+    property real radius: PowerSaving.rounding ? Tokens.rounding.extraLarge : 0
     property real padding: Tokens.padding.largeIncreased
     default property alias content: col.data
 
@@ -37,7 +38,7 @@ Item {
     onParentChanged: updateOrigin()
     Component.onCompleted: updateOrigin()
 
-    layer.enabled: true
+    layer.enabled: PowerSaving.shadows
     layer.effect: MultiEffect {
         shadowEnabled: true
         shadowColor: Colours.palette.m3shadow
