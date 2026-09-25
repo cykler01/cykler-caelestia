@@ -25,6 +25,9 @@ Singleton {
         FloatingWindow {
             id: win
 
+            // Key of the settings page to open on (see PageRegistry), e.g. "updates"; empty for the default page
+            property string startPage
+
             color: Colours.tPalette.m3surface
             surfaceFormat.opaque: false
 
@@ -43,6 +46,11 @@ Singleton {
             contentItem.Tokens.screen: screen.name
 
             title: Tr.tr("Nexus — %1").arg(PageRegistry.pages[nexus.nState.currentPageIdx].label)
+
+            Component.onCompleted: {
+                if (startPage)
+                    nexus.nState.currentPageIdx = Math.max(0, PageRegistry.indexOfKey(startPage));
+            }
 
             Nexus {
                 id: nexus

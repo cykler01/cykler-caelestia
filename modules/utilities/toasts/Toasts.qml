@@ -6,6 +6,7 @@ import Caelestia
 import Caelestia.Config
 import qs.components
 import qs.services
+import qs.modules.nexus
 
 Item {
     id: root
@@ -102,7 +103,14 @@ Item {
         implicitHeight: toastInner.implicitHeight
 
         acceptedButtons: Qt.LeftButton | Qt.MiddleButton | Qt.RightButton
-        onClicked: modelData.close()
+        onClicked: {
+            // The repo update toast opens the Updates page; every toast is dismissed by a click
+            if (modelData.title === UpdateChecker.toastTitle)
+                WindowFactory.create(null, {
+                    startPage: "updates"
+                });
+            modelData.close();
+        }
 
         Component.onCompleted: modelData.lock(this)
 

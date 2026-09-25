@@ -16,6 +16,9 @@ Singleton {
     readonly property string repo: "cykler01/cykler-caelestia"
     readonly property string branch: "main"
 
+    // Title of the "new commit" toast; the toast list recognises it to open the Updates page when it is clicked
+    readonly property string toastTitle: Tr.tr("Update available")
+
     property string lastSeenSha
     property bool loaded: false
     property bool checkPending: false
@@ -49,7 +52,8 @@ Singleton {
 
             if (root.loaded && root.lastSeenSha && sha !== root.lastSeenSha && GlobalConfig.utilities.toasts.repoUpdateAvailable) {
                 const summary = json.commit?.message?.split("\n")[0] ?? "";
-                Toaster.toast(Tr.tr("Update available"), summary ? Tr.tr("New commit on %1: %2").arg(root.repo).arg(summary) : Tr.tr("New commit on %1").arg(root.repo), "update", Toast.Info, 10000);
+                const what = summary ? Tr.tr("New commit on %1: %2").arg(root.repo).arg(summary) : Tr.tr("New commit on %1").arg(root.repo);
+                Toaster.toast(root.toastTitle, `${what}\n${Tr.tr("Click to open Settings > Updates")}`, "update", Toast.Info, 10000);
             }
 
             root.lastSeenSha = sha;
