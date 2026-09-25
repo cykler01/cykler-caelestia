@@ -12,7 +12,8 @@ Singleton {
     id: root
 
     readonly property list<MprisPlayer> list: Mpris.players.values
-    readonly property MprisPlayer active: props.manualActive ?? list.find(p => getIdentity(p) === GlobalConfig.services.defaultPlayer) ?? list[0] ?? null
+    // A player that is actually playing beats the default/first one when nothing was picked by hand
+    readonly property MprisPlayer active: props.manualActive ?? list.find(p => p.isPlaying) ?? list.find(p => getIdentity(p) === GlobalConfig.services.defaultPlayer) ?? list[0] ?? null
     property alias manualActive: props.manualActive
 
     // Dedup key for progressive metadata (e.g. mpv-mpris/yt-dlp player fills title then artist later).
@@ -21,6 +22,31 @@ Singleton {
     // Fired once per unique track (deduped per track below), e.g. the notch
     // uses this to trigger its own transient display of what's playing.
     signal trackChanged(title: string, artist: string)
+
+    // Fired when the active player was switched automatically to whatever started playing, so that
+    // views which can also show the in-shell player know to come back to the MPRIS one
+    signal autoSwitched(player: MprisPlayer)
+
+    // Follows the audio: a player that starts playing becomes the active one, and if the active one
+    // stops while another is still playing, that one takes over. Picking a player by hand still works,
+    // it just stays until something else starts playing.
+    function followPlayback(player: MprisPlayer): void {
+        if (!player)
+            return;
+
+        if (player.isPlaying) {
+            if (root.active !== player || props.manualActive !== player) {
+                props.manualActive = player;
+                root.autoSwitched(player);
+            }
+        } else if (player === root.active) {
+            const other = list.find(p => p !== player && p.isPlaying);
+            if (other) {
+                props.manualActive = other;
+                root.autoSwitched(other);
+            }
+        }
+    }
 
     function getIdentity(player: MprisPlayer): string {
         if (!player)
@@ -81,6 +107,20 @@ Singleton {
         }
 
         target: root.active
+    }
+
+    Instantiator {
+        model: root.list
+
+        Connections {
+            required property MprisPlayer modelData
+
+            function onIsPlayingChanged(): void {
+                root.followPlayback(target);
+            }
+
+            target: modelData
+        }
     }
 
     PersistentProperties {

@@ -66,6 +66,15 @@ Item {
         return options;
     }
 
+    // The tab follows the audio: when the active player switches on its own, leave the local player
+    Connections {
+        function onAutoSwitched(): void {
+            root.useLocal = false;
+        }
+
+        target: Players
+    }
+
     function selectSource(option): void {
         if (option.kind === "local") {
             root.useLocal = true;
