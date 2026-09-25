@@ -18,6 +18,9 @@ Item {
     required property Item osdPanel
     required property Item sessionPanel
     required property Item utilitiesPanel
+    property bool osdSame: true
+    property bool sessionSame: true
+    property bool utilitiesSame: true
     readonly property int padding: Tokens.padding.large
     readonly property int clampedPadding: CUtils.clamp(padding - Config.border.thickness, 0, padding)
 
@@ -35,19 +38,19 @@ Item {
         for (let i = 0; i < count; i++)
             height += (list.itemAtIndex(i) as NotifWrapper)?.nonAnimHeight ?? 0;
 
-        if (screenState.osd) {
+        if (screenState.osd && osdSame) {
             const h = osdPanel.y - clampedPadding;
             if (height > h)
                 height = h;
         }
 
-        if (screenState.session) {
+        if (screenState.session && sessionSame) {
             const h = sessionPanel.y - clampedPadding;
             if (height > h)
                 height = h;
         }
 
-        if (screenState.utilities) {
+        if (screenState.utilities && utilitiesSame) {
             const h = ((QsWindow.window as QsWindow)?.screen.height ?? 0) - (utilitiesPanel as Utilities.Wrapper).nonAnimHeight - Config.border.thickness * 2 - padding * 2 - Tokens.spacing.extraLarge;
             if (height > h)
                 height = h;

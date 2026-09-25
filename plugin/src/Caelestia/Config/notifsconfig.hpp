@@ -13,6 +13,8 @@ using Qt::StringLiterals::operator""_s;
 class NotifsConfig : public settings::ObjectNode {
     CONFIG_NODE(NotifsConfig, settings::ObjectNode)
 
+    // Which side edge the notification popups stack from
+    CONFIG_ENUM_PROPERTY(PanelSide, side, PanelSide::Right)
     CONFIG_GLOBAL_PROPERTY(bool, expire, true)
     CONFIG_GLOBAL_ENUM_PROPERTY(NotifsFullscreen, fullscreen, NotifsFullscreen::On)
     CONFIG_GLOBAL_PROPERTY(int, defaultExpireTimeout, 5000)

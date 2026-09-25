@@ -55,8 +55,20 @@ PageBase {
         },
         {
             id: "sidebar",
-            label: Tr.tr("Notifications & utilities"),
+            label: Tr.tr("Sidebar & utilities"),
             icon: "notifications",
+            kind: "side"
+        },
+        {
+            id: "notifs",
+            label: Tr.tr("Notification popups"),
+            icon: "chat",
+            kind: "side"
+        },
+        {
+            id: "toasts",
+            label: Tr.tr("Toasts"),
+            icon: "campaign",
             kind: "side"
         },
         {
@@ -88,6 +100,8 @@ PageBase {
             session: "right",
             sidebar: "right",
             popout: "right",
+            notifs: "right",
+            toasts: "right",
             widgets: "top-right",
             icons: "top-left"
         })
@@ -158,6 +172,10 @@ PageBase {
             return ["left", "right"][Config.sidebar.side] ?? "right";
         case "popout":
             return ["left", "right"][GlobalConfig.notifPopout.side] ?? "right";
+        case "notifs":
+            return ["left", "right"][Config.notifs.side] ?? "right";
+        case "toasts":
+            return ["left", "right"][GlobalConfig.utilities.toasts.side] ?? "right";
         case "widgets":
             return Config.background.desktopWidgets.position;
         case "icons":
@@ -198,6 +216,12 @@ PageBase {
         case "popout":
             GlobalConfig.notifPopout.side = sides.indexOf(slot);
             break;
+        case "notifs":
+            GlobalConfig.notifs.side = sides.indexOf(slot);
+            break;
+        case "toasts":
+            GlobalConfig.utilities.toasts.side = sides.indexOf(slot);
+            break;
         case "widgets":
             GlobalConfig.background.desktopWidgets.position = slot;
             break;
@@ -232,6 +256,10 @@ PageBase {
             return Qt.size(w * 0.15, r.h - 12);
         case "popout":
             return Qt.size(w * 0.11, r.h - 12);
+        case "notifs":
+            return Qt.size(w * 0.13, h * 0.26);
+        case "toasts":
+            return Qt.size(w * 0.13, h * 0.12);
         case "widgets":
             return Qt.size(w * 0.26, h * 0.42);
         case "icons":
@@ -268,7 +296,7 @@ PageBase {
         if (parts.length === 1) {
             // Side panels: left or right, centred vertically (the tall ones fill the height). Ones sharing an
             // edge sit in columns, nearest the edge first, so none hides another.
-            const order = ["sidebar", "popout", "session", "osd"];
+            const order = ["sidebar", "popout", "session", "osd", "notifs", "toasts"];
             let inset = m;
             for (const other of order) {
                 if (other === id)
@@ -277,8 +305,10 @@ PageBase {
                     inset += sizeOf(other).width + 4;
             }
             x = parts[0] === "left" ? r.x + inset : r.x + r.w - sz.width - inset;
-            if (id === "sidebar" || id === "popout")
+            if (id === "sidebar" || id === "popout" || id === "notifs")
                 y = r.y + m;
+            else if (id === "toasts")
+                y = r.y + r.h - sz.height - m;
         } else {
             const horizontal = parts[1];
             x = (horizontal === "start" || horizontal === "left") ? r.x + m : horizontal === "center" ? r.x + (r.w - sz.width) / 2 : r.x + r.w - sz.width - m;
@@ -583,7 +613,7 @@ PageBase {
         StyledText {
             Layout.fillWidth: true
             wrapMode: Text.Wrap
-            text: Tr.tr("The sidebar, notifications, utilities and toasts share one side. With \"Mirror panels with a right-hand bar\" on in the Taskbar settings, every side panel also flips when the bar is on the right.")
+            text: Tr.tr("The sidebar and utilities share one side; notification popups and toasts each have their own. With \"Mirror panels with a right-hand bar\" on in the Taskbar settings, every side panel also flips when the bar is on the right.")
             color: Colours.palette.m3outline
             font: Tokens.font.label.small
         }

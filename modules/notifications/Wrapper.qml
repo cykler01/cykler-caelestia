@@ -9,10 +9,16 @@ Item {
     property alias osdPanel: content.osdPanel
     property alias sessionPanel: content.sessionPanel
     property alias utilitiesPanel: content.utilitiesPanel
+    // Whether each of those panels is on the same side as the popups (only then do they limit how tall they can be)
+    property alias osdSame: content.osdSame
+    property alias sessionSame: content.sessionSame
+    property alias utilitiesSame: content.utilitiesSame
+    // Whether the sidebar stack is on the popups' side, which is what makes them as wide as the sidebar
+    property bool stackSame: true
 
     visible: height > 0
     anchors.topMargin: -5
-    implicitWidth: Math.max(sidebarPanel.width, content.implicitWidth)
+    implicitWidth: stackSame ? Math.max(sidebarPanel.width, content.implicitWidth) : content.implicitWidth
     implicitHeight: content.implicitHeight
 
     Content {

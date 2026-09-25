@@ -43,6 +43,10 @@ Item {
     readonly property bool sessionLeft: (Config.session.side === PanelSide.Left) !== flipSides
     // The sidebar, notifications, utilities and toasts stack together, so they share one side
     readonly property bool stackLeft: (Config.sidebar.side === PanelSide.Left) !== flipSides
+    readonly property bool notifsLeft: (Config.notifs.side === PanelSide.Left) !== flipSides
+    readonly property bool toastsLeft: (GlobalConfig.utilities.toasts.side === PanelSide.Left) !== flipSides
+    readonly property bool notifsWithStack: notifsLeft === stackLeft
+    readonly property bool toastsWithStack: toastsLeft === stackLeft
     readonly property bool notifPopoutLeft: (GlobalConfig.notifPopout.side === PanelSide.Left) !== flipSides
 
     // Panels on the same side sit beside each other; panels on different sides don't affect each other
@@ -86,7 +90,7 @@ Item {
     Notifications.Wrapper {
         id: notifications
 
-        LayoutMirroring.enabled: root.stackLeft
+        LayoutMirroring.enabled: root.notifsLeft
         LayoutMirroring.childrenInherit: true
 
         screenState: root.screenState
@@ -94,6 +98,10 @@ Item {
         osdPanel: osdWrapper
         sessionPanel: sessionWrapper
         utilitiesPanel: utilities
+        osdSame: root.osdLeft === root.notifsLeft
+        sessionSame: root.sessionLeft === root.notifsLeft
+        utilitiesSame: root.stackLeft === root.notifsLeft
+        stackSame: root.notifsWithStack
 
         anchors.top: parent.top
         anchors.right: parent.right
@@ -170,12 +178,12 @@ Item {
     Toasts.Toasts {
         id: toasts
 
-        LayoutMirroring.enabled: root.stackLeft
-        LayoutMirroring.childrenInherit: false
-
-        anchors.bottom: sidebar.visible ? parent.bottom : utilities.top
-        anchors.right: sidebar.left
-        anchors.margins: Tokens.padding.medium
+        // Plain x/y bindings, so it can move to the other side (or leave the sidebar stack) while running.
+        // Next to the sidebar stack it sits beside the sidebar and above the utilities panel; on its own side
+        // it sits in the corner.
+        readonly property real gap: Tokens.padding.medium
+        x: root.toastsWithStack ? (root.stackLeft ? sidebar.x + sidebar.width + gap : sidebar.x - width - gap) : (root.toastsLeft ? gap : parent.width - width - gap)
+        y: (root.toastsWithStack && !sidebar.visible ? utilities.y : parent.height) - height - gap
     }
 
     Sidebar.Wrapper {
@@ -186,9 +194,9 @@ Item {
 
         screenState: root.screenState
 
-        anchors.top: notifications.bottom
+        anchors.top: root.notifsWithStack ? notifications.bottom : parent.top
         anchors.bottom: utilities.top
         anchors.right: parent.right
-        anchors.topMargin: -notifications.anchors.topMargin
+        anchors.topMargin: root.notifsWithStack ? -notifications.anchors.topMargin : 0
     }
 }

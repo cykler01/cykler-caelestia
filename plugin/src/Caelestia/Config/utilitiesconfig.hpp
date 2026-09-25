@@ -5,6 +5,7 @@
 
 #include "settings/objectnode.hpp"
 #include "common.hpp"
+#include "enums.hpp"
 
 namespace caelestia::config {
 
@@ -13,6 +14,8 @@ using Qt::StringLiterals::operator""_s;
 class UtilitiesToasts : public settings::ObjectNode {
     CONFIG_NODE(UtilitiesToasts, settings::ObjectNode)
 
+    // Which side edge the toasts appear on (bottom)
+    CONFIG_GLOBAL_ENUM_PROPERTY(PanelSide, side, PanelSide::Right)
     CONFIG_PROPERTY(QString, fullscreen, u"off"_s)
     CONFIG_GLOBAL_PROPERTY(bool, configLoaded, true)
     CONFIG_GLOBAL_PROPERTY(bool, chargingChanged, true)
