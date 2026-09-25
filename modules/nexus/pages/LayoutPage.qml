@@ -92,6 +92,14 @@ PageBase {
             icons: "top-left"
         })
 
+    // Which layer is being edited: the shell (bar, panels) or the desktop (widgets, icons) underneath it.
+    // Only that layer's tiles are solid and draggable; the other fades back so the two never fight over a grab.
+    property string editLayer: "shell"
+
+    function inActiveLayer(kind: string): bool {
+        return kind === "bar" || (editLayer === "desktop" ? kind === "desktop" : kind !== "desktop");
+    }
+
     // Which element is being dragged, and where its centre is (preview coordinates)
     property string dragId
     property point dragCentre
@@ -328,9 +336,30 @@ PageBase {
         StyledText {
             Layout.fillWidth: true
             wrapMode: Text.Wrap
-            text: Tr.tr("Drag a tile to move that part of the shell. It snaps to the places it supports, and the change applies straight away.")
+            text: root.editLayer === "shell" ? Tr.tr("Drag a tile to move that part of the shell. It snaps to the places it supports, and the change applies straight away.") : Tr.tr("Now editing the desktop: the widgets and app icons sit on the wallpaper, underneath everything else. Drag them to a corner.")
             color: Colours.palette.m3onSurfaceVariant
             font: Tokens.font.body.small
+        }
+
+        RowLayout {
+            Layout.alignment: Qt.AlignHCenter
+            spacing: Tokens.spacing.small
+
+            TextButton {
+                text: Tr.tr("Shell")
+                type: TextButton.Tonal
+                isToggle: true
+                checked: root.editLayer === "shell"
+                onClicked: root.editLayer = "shell"
+            }
+
+            TextButton {
+                text: Tr.tr("Desktop")
+                type: TextButton.Tonal
+                isToggle: true
+                checked: root.editLayer === "desktop"
+                onClicked: root.editLayer = "desktop"
+            }
         }
 
         StyledClippingRect {
@@ -387,11 +416,22 @@ PageBase {
                     readonly property color fill: modelData.kind === "bar" ? Colours.palette.m3primary : modelData.kind === "panel" ? Colours.palette.m3secondaryContainer : modelData.kind === "side" ? Colours.palette.m3tertiaryContainer : Colours.palette.m3surfaceContainerHighest
                     readonly property color onFill: modelData.kind === "bar" ? Colours.palette.m3onPrimary : modelData.kind === "panel" ? Colours.palette.m3onSecondaryContainer : modelData.kind === "side" ? Colours.palette.m3onTertiaryContainer : Colours.palette.m3onSurface
 
+                    readonly property bool active: root.inActiveLayer(modelData.kind)
+
+                    opacity: active ? 1 : 0.18
+                    enabled: modelData.kind === "bar" ? root.editLayer === "shell" : active
+
+                    Behavior on opacity {
+                        Anim {
+                            type: Anim.DefaultEffects
+                        }
+                    }
+
                     x: rest.x + (dragging ? dragDX : 0)
                     y: rest.y + (dragging ? dragDY : 0)
                     width: rest.width
                     height: rest.height
-                    z: dragging ? 100 : (modelData.kind === "desktop" ? 5 : 10 + index)
+                    z: dragging ? 100 : (active ? 20 + index : modelData.kind === "desktop" ? 2 : 5 + index)
 
                     Behavior on x {
                         enabled: !tile.dragging
