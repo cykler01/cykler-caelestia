@@ -27,7 +27,11 @@ restart the shell without leaving the session.
 ```
 
 `repoPath` defaults to `~/Documents/Github/cykler-caelestia` when empty, and `updateBranch` defaults to
-`main`. Set `repoPath` if your checkout lives somewhere else.
+`main`.
+
+If your checkout lives somewhere else, the page shows the path it is using and a **Browse** button
+next to it, which opens a folder picker rather than making you type the path out. The dialog starts in
+the directory currently configured, and the chosen folder is written straight to `repoPath`.
 
 ## How it works
 
