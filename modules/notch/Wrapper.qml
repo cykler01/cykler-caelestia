@@ -127,15 +127,6 @@ Item {
         Anim {}
     }
 
-    // The inset pill behind the content while it sits inside the bar, in the same style as the bar's own pills
-    StyledRect {
-        anchors.fill: parent
-        radius: Tokens.rounding.full
-        color: Colours.tPalette.m3surfaceContainer
-        opacity: root.inBarProg
-        visible: opacity > 0
-    }
-
     // Fluidly resize (rather than snap) when the track title's length changes
     // the pill's natural width, matching modules/bar/popouts/Wrapper.qml
     Behavior on implicitWidth {
@@ -270,6 +261,7 @@ Item {
             cavaWarm: root.cavaWarm
             showMedia: root.playing && (root.trackActive || (root.persistent && Config.notch.showMusic))
             showClock: root.persistent && Config.notch.showClock
+            compact: root.inBar
         }
     }
 }

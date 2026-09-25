@@ -39,7 +39,10 @@ Item {
         }
     }
 
-    readonly property int coverSize: Tokens.padding.extraLarge
+    // Sitting inside the bar rather than hanging from it: smaller everything, one line, no date
+    property bool compact
+
+    readonly property int coverSize: compact ? Tokens.padding.large + 4 : Tokens.padding.extraLarge
 
     // Drives the placeholder pattern below; only ticks while that pattern is actually on screen
     property real placeholderPhase
@@ -84,8 +87,8 @@ Item {
         return bars;
     }
 
-    implicitWidth: layout.implicitWidth + Tokens.padding.large * 2
-    implicitHeight: layout.implicitHeight + Tokens.padding.medium * 2
+    implicitWidth: layout.implicitWidth + (compact ? Tokens.padding.medium : Tokens.padding.large) * 2
+    implicitHeight: layout.implicitHeight + (compact ? Tokens.padding.small : Tokens.padding.medium) * 2
 
     RowLayout {
         id: layout
@@ -116,7 +119,7 @@ Item {
                     StyledText {
                         text: `${Time.hourStr}:${Time.minuteStr}`
                         color: Colours.palette.m3primary
-                        font: Tokens.font.title.builders.small.weight(Font.DemiBold).build()
+                        font: root.compact ? Tokens.font.label.builders.large.weight(Font.DemiBold).build() : Tokens.font.title.builders.small.weight(Font.DemiBold).build()
                     }
 
                     StyledText {
@@ -128,6 +131,7 @@ Item {
                 }
 
                 StyledText {
+                    visible: !root.compact
                     Layout.alignment: Qt.AlignHCenter
                     text: Time.format("ddd d MMM")
                     color: Colours.palette.m3onSurfaceVariant
@@ -159,14 +163,14 @@ Item {
             // Grows with the track title (and artist, if shown), elided past
             // this so one long name can't stretch the pill indefinitely
             Layout.alignment: Qt.AlignVCenter
-            Layout.maximumWidth: Config.notch.maxTitleWidth
+            Layout.maximumWidth: root.compact ? Math.min(Config.notch.maxTitleWidth, 200) : Config.notch.maxTitleWidth
             text: {
                 const title = root.local ? Music.title : Players.active?.trackTitle ?? "";
                 const artist = root.local ? Music.artist : Players.active?.trackArtist ?? "";
                 return Config.notch.showArtist && artist ? Tr.trCtx("%1 - %2", "track artist and title").arg(artist).arg(title) : title;
             }
             color: Colours.palette.m3onSurface
-            font: Tokens.font.title.small
+            font: root.compact ? Tokens.font.label.large : Tokens.font.title.small
             elide: Text.ElideRight
         }
 
