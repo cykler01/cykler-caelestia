@@ -170,6 +170,11 @@ QtObject {
                 Component {
                     OverviewPanel {}
                 }
+
+                // Desktop shortcuts and widgets sub-page
+                Component {
+                    DesktopPanel {}
+                }
             }
         },
         Component {

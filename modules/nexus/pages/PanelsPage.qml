@@ -58,11 +58,18 @@ PageBase {
         }
 
         NavRow {
-            last: true
             icon: "grid_view"
             text: Tr.tr("Overview")
             subtext: Config.overview.enabled ? Tr.trCtx("Enabled", "panel status") : Tr.trCtx("Disabled", "panel status")
             onClicked: root.nState.openSubPage(12)
+        }
+
+        NavRow {
+            last: true
+            icon: "widgets"
+            text: Tr.tr("Desktop")
+            subtext: Tr.tr("App shortcuts and widgets on the wallpaper")
+            onClicked: root.nState.openSubPage(13)
         }
     }
 }
