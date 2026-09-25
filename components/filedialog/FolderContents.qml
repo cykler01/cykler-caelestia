@@ -90,11 +90,11 @@ Item {
 
         Keys.onReturnPressed: {
             if (root.dialog.selectionValid)
-                root.dialog.accepted((currentItem as FileEntry).modelData.path);
+                root.dialog.accepted(root.dialog.selectedPath);
         }
         Keys.onEnterPressed: {
             if (root.dialog.selectionValid)
-                root.dialog.accepted((currentItem as FileEntry).modelData.path);
+                root.dialog.accepted(root.dialog.selectedPath);
         }
 
         StyledScrollBar.vertical: StyledScrollBar {

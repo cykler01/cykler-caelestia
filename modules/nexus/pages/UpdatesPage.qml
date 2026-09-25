@@ -6,6 +6,7 @@ import Caelestia.Config
 import Caelestia.I18n
 import qs.components
 import qs.components.controls
+import qs.components.filedialog
 import qs.services
 import qs.utils
 import qs.modules.nexus.common
@@ -232,12 +233,60 @@ PageBase {
             text: Tr.tr("Repository")
         }
 
-        TextFieldRow {
+        ConnectedRect {
             first: true
-            label: Tr.tr("Checkout location")
-            subtext: Tr.tr("The folder the shell was cloned to and built from (empty: ~/Documents/Github/cykler-caelestia)")
-            value: GlobalConfig.services.repoPath
-            onEditingFinished: v => GlobalConfig.services.repoPath = v.trim()
+            Layout.fillWidth: true
+            implicitHeight: checkoutRow.implicitHeight + Tokens.padding.large * 2
+
+            RowLayout {
+                id: checkoutRow
+
+                anchors.left: parent.left
+                anchors.right: parent.right
+                anchors.verticalCenter: parent.verticalCenter
+                anchors.leftMargin: Tokens.padding.largeIncreased
+                anchors.rightMargin: Tokens.padding.largeIncreased
+                spacing: Tokens.spacing.medium
+
+                ColumnLayout {
+                    Layout.fillWidth: true
+                    spacing: 0
+
+                    StyledText {
+                        Layout.fillWidth: true
+                        text: Tr.tr("Checkout location")
+                        font: Tokens.font.body.small
+                    }
+
+                    StyledText {
+                        Layout.fillWidth: true
+                        text: Paths.shortenHome(ShellUpdater.repoPath)
+                        color: Colours.palette.m3outline
+                        font: Tokens.font.label.small
+                        elide: Text.ElideMiddle
+                    }
+                }
+
+                TextButton {
+                    text: Tr.tr("Browse")
+                    type: TextButton.Tonal
+                    onClicked: {
+                        const home = Paths.home + "/";
+                        const path = ShellUpdater.repoPath;
+                        const rel = path.startsWith(home) ? path.slice(home.length).split("/").filter(x => x) : [];
+                        repoDialog.cwd = ["Home", ...rel];
+                        repoDialog.open();
+                    }
+                }
+            }
+
+            FileDialog {
+                id: repoDialog
+
+                title: Tr.tr("Select the shell's checkout folder")
+                folderMode: true
+                onAccepted: path => GlobalConfig.services.repoPath = path
+            }
         }
 
         TextFieldRow {
