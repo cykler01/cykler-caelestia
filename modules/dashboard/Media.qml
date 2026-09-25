@@ -69,7 +69,9 @@ Item {
     // The tab follows the audio: when the active player switches on its own, leave the local player
     Connections {
         function onAutoSwitched(): void {
-            root.useLocal = false;
+            // Not away from the local player while it is what is playing and was chosen
+            if (!(root.useLocal && Music.playing))
+                root.useLocal = false;
         }
 
         target: Players
@@ -81,7 +83,7 @@ Item {
             return;
         }
         root.useLocal = false;
-        Players.manualActive = option.player;
+        Players.pick(option.player);
     }
 
     implicitWidth: Tokens.sizes.dashboard.mediaTabWidth

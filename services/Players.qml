@@ -30,9 +30,22 @@ Singleton {
     // Follows the audio: a player that starts playing becomes the active one, and if the active one
     // stops while another is still playing, that one takes over. Picking a player by hand still works,
     // it just stays until something else starts playing.
+    // The player picked by hand in the media selector. While it is playing nothing else takes over from it.
+    property MprisPlayer pinned
+
+    function pick(player: MprisPlayer): void {
+        pinned = player;
+        props.manualActive = player;
+    }
+
     function followPlayback(player: MprisPlayer): void {
         if (!player)
             return;
+
+        if (pinned && pinned !== player && pinned.isPlaying)
+            return;
+        if (pinned === player && !player.isPlaying)
+            pinned = null;
 
         if (player.isPlaying) {
             if (root.active !== player || props.manualActive !== player) {
