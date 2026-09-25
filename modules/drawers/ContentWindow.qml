@@ -123,9 +123,9 @@ StyledWindow {
         height: panels.notifications.height
 
         Region {
-            x: bar.onRight ? 0 : root.width - width
+            x: panels.mirrored ? 0 : root.width - width
             y: panels.osdWrapper.y + bar.insetTop
-            width: panels.osdWrapper.width * (1 - panels.osd.offsetScale) + (bar.onRight ? bar.insetLeft : bar.insetRight)
+            width: panels.osdWrapper.width * (1 - panels.osd.offsetScale) + (panels.mirrored ? bar.insetLeft : bar.insetRight)
             height: panels.osd.height
         }
     }

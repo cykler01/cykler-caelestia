@@ -36,8 +36,9 @@ Item {
     readonly property alias toasts: toasts
     readonly property alias sidebar: sidebar
 
-    // With the bar on the right, the panels that normally open on the right edge open on the left instead
-    readonly property bool mirrored: bar.onRight
+    // With the bar on the right (and bar.mirrorPanels on), the panels that normally open on the right edge open
+    // on the left instead
+    readonly property bool mirrored: bar.onRight && Config.bar.mirrorPanels
 
     anchors.fill: parent
     anchors.leftMargin: bar.insetLeft

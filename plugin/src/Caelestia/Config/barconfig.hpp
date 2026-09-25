@@ -116,6 +116,9 @@ class BarConfig : public settings::ObjectNode {
     // On an empty workspace, drop the stretch of the bar between its first and last spacer so the
     // wallpaper shows through, leaving the two ends as capsules
     CONFIG_PROPERTY(bool, hideMiddleOnDesktop, true)
+    // With the bar on the right, open the panels that normally sit on the right edge (OSD, sidebar,
+    // session menu, notification popout) on the left instead
+    CONFIG_PROPERTY(bool, mirrorPanels, false)
     CONFIG_PROPERTY(bool, showOnHover, true)
     CONFIG_PROPERTY(int, dragThreshold, 20)
     CONFIG_SUBOBJECT(BarScrollActions, scrollActions)

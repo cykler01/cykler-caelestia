@@ -46,12 +46,19 @@ PageBase {
 
         SelectRow {
             first: true
-            last: true
             label: Tr.tr("Screen edge")
             subtext: Tr.tr("Which side of the screen the bar sits on")
             menuItems: root.positionItems
             active: root.positionItems[Config.bar.position] ?? root.positionItems[0]
             onSelected: item => GlobalConfig.bar.position = root.positionItems.indexOf(item)
+        }
+
+        ToggleRow {
+            last: true
+            text: Tr.tr("Mirror panels with a right-hand bar")
+            subtext: Tr.tr("When the bar is on the right, open the volume/brightness bars, notifications, sidebar and session menu on the left")
+            checked: Config.bar.mirrorPanels
+            onToggled: GlobalConfig.bar.mirrorPanels = checked
         }
 
         // Behaviour
