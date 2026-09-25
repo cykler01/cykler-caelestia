@@ -2,648 +2,132 @@
 
 <div align=center>
 
-A personal fork of [`caelestia-dots/shell`](https://github.com/caelestia-dots/shell) with the features I wanted.
+A personal fork of [caelestia-dots/shell](https://github.com/caelestia-dots/shell) with the features we wanted on top of it.
+
+[**Watch the feature showcase**](https://cykler.dev/caelestia/showcase.mp4) - every feature in this fork, in one clip
+
+[Docs](docs/README.md) - [Feature demos](docs/demos.md) - [Install](docs/install.md) - [Updating](docs/updating.md) - [Troubleshooting](docs/troubleshooting.md) - [Issues](https://github.com/cykler01/cykler-caelestia/issues)
+
+![GitHub last commit](https://img.shields.io/github/last-commit/cykler01/cykler-caelestia?style=flat-square&labelColor=101418&color=9ccbfb)
+![GitHub issues](https://img.shields.io/github/issues/cykler01/cykler-caelestia?style=flat-square&labelColor=101418&color=9ccbfb)
+![GitHub license](https://img.shields.io/github/license/cykler01/cykler-caelestia?style=flat-square&labelColor=101418&color=9ccbfb)
 
 </div>
 
-This is my take on the Caelestia shell - upstream's desktop shell with my own features layered on top. It's built for my machine and my workflow first.
-
 > [!WARNING]
-> These features are **not guaranteed to work everywhere or reliably**. This fork tracks my
-> hardware (an AMD laptop with a USB DAC) and my setup, so things may behave differently on
-> your system. Use at your own risk.
-
-## What's different from upstream
- 
-| Area | Upstream | This fork |
-|---|---|---|
-| Battery management | --- | `BatteryMonitor` service, auto power-saving on profile change, battery pane in control center |
-| Game mode | Derived from animation state | Fixed false-trigger; also sets flat mouse accel |
-| Input configuration | Hand-edited Hyprland config | Mouse, scroll and touchpad settings in Nexus |
-| Launcher | Standard actions | Adds OCR (`>ocr`) and Google Lens (`>lens`) region-capture actions |
-| Music player | External players only | In-shell local music player, with a library browser in the notification popout grouped by folder or by artist, and local-only transport controls under it |
-| To-do list | Fuzzel script in the dotfiles | `>todo` list in the launcher |
-| Window overview | --- | 4-finger swipe up or the top-left hot corner shows every workspace and its windows, click to jump |
-
-
-## Features added on top of upstream
-
-### Battery optimization suite
-
--   **`BatteryMonitor` service** - manages power profiles and per-profile effects
--   **Automatic Hyprland power saving** - when the power profile changes (e.g. switching to
-    battery saver), the shell automatically disables animations, blur, gaps and shadows, and
-    can adjust the screen refresh rate to save power. Changes are announced via toasts.
--   **Control center battery pane** - a new battery pane in the control center with:
-    -   Power profile selector (with configurable behaviors per profile)
-    -   Charging behavior settings
-    -   Battery charge threshold configuration (for laptops that expose charge limits)
-    -   Refresh rate selector
--   **Game mode false-trigger fix** - game mode state is no longer derived from whether
-    animations are disabled, so the battery monitor disabling animations for power saving no
-    longer makes the shell think game mode is on
-
-### Game mode mouse acceleration
-
--   Game mode now also sets `input:accel_profile: flat` in Hyprland, disabling mouse
-    acceleration while gaming (and restores it when game mode is turned off)
-
-### Input settings
-
--   **Settings page** - a new "Input" page under *Settings* with sliders for mouse
-    sensitivity and scroll speed and for touchpad scroll speed, plus a toggle for mouse
-    acceleration.
--   **Applied at runtime, remembered by the shell** - the values are sent to Hyprland as
-    runtime keywords, which a config reload would otherwise drop, so the shell puts them back
-    when Hyprland reloads or when the shell starts. Only settings changed here are applied, so
-    anything left alone keeps whatever `hyprland.conf` sets.
-
-### Launcher image tools
-
--   **OCR action** - select a screen region with `slurp`, recognize it with `tesseract`,
-    and copy the detected text to the clipboard with `wl-copy`.
--   **Google Lens action** - select a screen region with `slurp`, upload the capture to
-    Uguu, and open the result in Google Lens.
--   Launch either tool from the command panel by selecting its action or searching for
-    `>ocr` / `>lens`.
-
-### Launcher to-do list
-
--   **Ported from the fuzzel script** - `>todo` lists your tasks with a leading *New task* row.
-    Picking a task marks it done, and picking *New task* hands over to a `>todo add ` prompt
-    where typed text becomes the new task.
--   **Stored with the shell** - tasks live in `~/.local/share/caelestia/todo.json`. The first
-    time it runs, the list is imported once from the old fuzzel cache
-    (`~/.local/share/todo-fuzzel/todo.cache`), so existing tasks carry over.
-
-### Launcher wallpaper switching
-
--   **Left/right arrow keys** — the `>wallpaper` list is laid out horizontally, so plain
-    left/right arrows now step through wallpapers, matching the existing up/down arrows and
-    scroll wheel. Modified arrows (`shift` / `ctrl` / `alt`) keep their usual caret and
-    selection behaviour in the search field.
-
-### Screenshot preview
-
--   **Clipboard by default** — a screenshot goes straight to the clipboard, so it can be
-    pasted immediately without touching the temporary file it is written to first.
--   **Preview instead of a notification** — a framed thumbnail of the capture appears in
-    the bottom left of the screen for 3 seconds. Clicking the capture opens it in `swappy`
-    to annotate, and the save button writes a copy to `~/Desktop`. If it is left alone, the
-    temporary file is cleared and the clipboard keeps the image.
-
-### Shell assets
-
--   **Settings page** — a new "Shell assets" page under *Settings → Appearance* that
-    changes the images the shell uses: the system logo, the session screen and
-    dashboard media gifs, the sidebar and lock screen placeholder images, and the profile
-    picture (`~/.face`) shown on the dashboard and lock screen. Previously these could only
-    be changed by editing the files (or the config) by hand.
--   **Upload like the profile picture** — choosing a file copies it to
-    `~/.local/share/caelestia/assets/` and points the option at the copy, so the shell's
-    own assets (which can be read only, e.g. under `/etc/xdg`) are left alone. Each row
-    previews the current image, and the reset button restores the shell's default.
--   **Shell-relative asset paths fixed** — the shipped defaults use the `root:` prefix
-    (e.g. `root:/assets/kurukuru.gif`), which stopped being resolved to the shell's asset
-    directory, leaving the default logo, gifs and placeholder images blank.
-
-### Local music player
-
--   **Unified media tab** — one tab controls whatever is playing, whether that is an
-    external MPRIS player (a browser or music app) or the built in player. The cover, lyrics
-    and visualiser follow the active source, and the same controls drive it; with nothing to
-    control it says so rather than pretending there is something to play. The source
-    picker switches between the open MPRIS players and the built in player, which plays the
-    files under `paths.musicDir` (defaults to `~/Music`) in-shell with seek, volume, shuffle
-    and repeat (off / all / one).
--   **System-wide equalizer** (opt-in) — a ten band equalizer in the media tab, in a drawer
-    under the player. It is off until you switch it on in Settings > Audio, and
-    its one-off PipeWire setup (see **Equalizer** below) is a manual step, so updating the shell
-    never changes your audio on its own. It equalizes the whole system rather than just the
-    player, because the audio path is a PipeWire filter chain. Moving a slider writes the band
-    straight into the running node, so a tweak is audible immediately, and there are presets for
-    different kinds of music (rock, pop, jazz, classical, electronic, hip hop, bass boost,
-    vocal, loudness) alongside flat. The curve and preset are remembered between sessions.
--   **Music library** — a list of the music folder, in the notification popout's library tab
-    (the dashboard's media tab is only about controlling what is already playing). Every row
-    carries that entry's cover art beside the name: a folder's
-    own cover, a track's own art, and an icon on a rounded placeholder when there is none.
-    Folders show how many tracks they hold, the track that is playing is marked, and playing
-    one queues everything else on the list behind it, so a folder plays through instead of
-    stopping after a single song.
--   **Browse by folder** — the library lists the folders under the music folder as they are on
-    disk, with a breadcrumb beside the up and home buttons for climbing back out.
--   **Search that knows artists** — the search box matches titles, artists and albums across
-    the whole library as well as paths, so an artist brings up everything by them and a folder
-    or album name still finds its tracks. Artists come from the files' own tags, read by TagLib
-    in the background, and only when something asks for them, so a session that never searches
-    never pays for the scan. The popout takes keyboard focus on demand while its library tab is
-    up, so the field can actually be typed into.
--   **Add to queue** — the checklist button in the library's header turns taps on tracks into
-    a selection instead of playback, so a batch can be gathered up and queued in one go. The
-    selection is kept by path rather than by list position, so opening a folder or typing a
-    search doesn't throw it away - carry it across as many as you like,
-    then *Add to queue* puts them on the end of the current queue in the order they were
-    picked. The button beside it takes everything the list is showing (tracks on screen, not
-    the whole library) and gives it back again if it is all already selected. Adding never
-    interrupts what is playing, and a toast says how many songs went in; adding to an empty
-    player starts the queue rather than leaving it silent. Playing a track by tapping it
-    still starts a fresh queue from what is on screen, as before.
--   **Shuffle that reorders the queue** — switching shuffle on shuffles what is lined up
-    rather than leaving the list in one order and picking a random song when each ends, so the
-    queue the view shows is the order that plays (and reads as one list rather than as the
-    hand-picked and the rest of the context). Picking an album or a folder while it is on deals
-    that context out in the same random order. Switching it off puts the songs that have not
-    played back in the order they were in, leaving anything added or moved while it was on where
-    it is.
--   **Cover art** — art embedded in the track is shown on the cover next to the controls,
-    falling back to an image named after the track (what yt-dlp leaves behind, since opus
-    cannot hold one) and then to a `cover`, `folder` or `album` image in the track's folder.
-    Embedded art arrives from QtMultimedia as a `QImage`, which `Image.source` cannot take
-    directly, so it goes through the image cache first (keyed by content, so the same
-    artwork is only written once).
--   **Known gap** — Qt's ffmpeg backend only surfaces container level tags. mp3 (ID3), flac
-    and m4a tags are read correctly, but Ogg/Opus puts its Vorbis comments on the stream
-    instead, so those tracks show their file name with no artist or album. Cover art is
-    unaffected.
-
-### Equalizer
-
-The equalizer is a PipeWire filter chain, not something the shell can do to its own audio: a
-virtual sink with ten peaking bands, made the default output so everything playing is equalized.
-
-It is **opt-in and off by default** (`services.equalizer` in `shell.json`, or the *System-wide
-equalizer* switch under Settings > Audio). While it is off the shell does not run `pw-cli` or
-`pactl` at all and never touches the default output, so a plain update cannot change anyone's
-audio. It also needs a one-off setup before it can do anything, because PipeWire loads that kind
-of module at startup:
-
-```sh
-mkdir -p ~/.config/pipewire/pipewire.conf.d
-cp assets/pipewire/caelestia-eq.conf ~/.config/pipewire/pipewire.conf.d/
-systemctl --user restart pipewire pipewire-pulse wireplumber
-```
-
-The panel then finds the sink (`caelestia_eq.sink`) and drives its bands with `pw-cli`; until it
-is loaded — in the panel or on the settings page — it says so rather than pretending to work.
-With the option off the media tab hides the equalizer button entirely, so the feature is only
-visible to people who have asked for it.
-
-Everything only passes through the filter chain while that sink is the default output, so turning
-the equalizer on points the default at it and turning it off puts the device that was there
-before back. That is what makes it system-wide: streams that are already playing, browser audio
-included, move across with it, and the chain's own output stays wired to the real device.
-
-### Notification popout and gestures
-
-A 4-finger swipe on the trackpad opens a separate panel on the right edge, with two tabs: the
-notification dock and a browser for the local music library. Swipe **left** to open it, swipe
-**left** again to move between the two tabs, and **right to close** it whichever tab it is on.
-The tab you last looked at is remembered, so reopening the popout comes back to the music library
-if that is where you left it. The panel sits on its own blurred layer, so it looks blurrier than
-the rest of the shell without changing Hyprland's blur for any other window.
-
-There is nothing to set up. The shell registers the swipes with Hyprland itself each time it
-starts and after every Hyprland config reload, so a normal install is enough. It only does this
-when Hyprland is using its Lua config. Three fingers are left alone for workspace swiping.
-
-Both settings are in `shell.json`:
-
-```json
-"notifPopout": {
-    "gestures": true,
-    "gestureFingers": 4
-}
-```
-
-Set `gestures` to `false` to stop the shell registering them (they go away on the next Hyprland
-reload), for example if you already bind those swipes yourself. The popout can still be driven
-without a trackpad with `qs -c caelestia ipc call notifPopout open`, `close` or `toggle`, or by
-binding the `caelestia:notifPopoutOpen` / `caelestia:notifPopoutClose` global shortcuts.
-`caelestia:notifPopoutOpenOrNextTab` is the one the left swipe uses: it opens the popout when it
-is closed and moves to the other tab when it is already open.
-
-The music library tab browses the same music folder the media tab's local player plays, as a list
-of folders, artists and tracks with a search field, and clicking a track plays it. It is only built
-the first time you open that tab, so the notification side stays as cheap to open as it was.
-
-Under the list is a seek bar and a transport bar: shuffle, previous, play/pause, next and repeat.
-The seek bar shows the elapsed and total time either side of a draggable slider, whose position
-follows the song as it plays (and follows the drag while you scrub, seeking when you let go).
-Unlike the media tab's controls, which follow whichever source is active, these are wired to the
-in-shell player alone, so they keep driving the local queue while a browser is the thing that is
-playing. They are disabled rather than hidden while nothing is queued, so the library doesn't
-shift when a queue appears.
-
-### Keybinds
-
-*Settings > Keybinds* lists every `kb*` keybind from the Hyprland config (`hypr/variables.lua`),
-grouped and searchable. Click one to change its modifiers, click its key and press the new one, add
-a further shortcut or reset it to the default. Shortcuts that two binds share are flagged. Your
-choices are written to `~/.config/caelestia/hypr-vars.lua` (a copy is kept once as
-`hypr-vars.lua.bak-keybinds`) and Hyprland is reloaded. It needs the Lua config from the
-[main dotfiles](https://github.com/caelestia-dots/caelestia); the page is empty without it.
-
-### Window overview
-
-A full-screen overview of every workspace and the windows on it, so you can see everything at
-a glance and jump straight to it. Workspaces are shown ten to a page in a centred 2x5 grid. Each
-tile takes the shape of your monitor (its usable area, so the bar's space isn't counted) and every
-window is drawn at the position and size Hyprland gives it, scaled to fit, with the app's own icon
-over the middle of it. A workspace on a differently shaped monitor is letterboxed rather than
-stretched. Occupied workspaces are brighter than empty ones, all of them are outlined, and the
-focused one is outlined in the accent colour. Clicking a window focuses it and closes the overview;
-clicking anywhere else on a tile switches to that workspace. It slides up from the bottom of the
-screen when it opens.
-
-Open it either way:
-
--   **4-finger swipe up** on the trackpad (swipe down closes it). Registered with Hyprland by the
-    shell, the same as the notification popout swipes, so there is nothing to set up.
--   **Top-left hot corner** — move the pointer into the top-left corner of the screen and hold it
-    there briefly. The bar's logo sits below the corner, so this doesn't get in its way.
-
-For a machine without a trackpad, bind a key to the `caelestia:overview` global shortcut (it toggles
-the overview), e.g. in `hyprland.lua`: `hl.bind("SUPER + Up", hl.dsp.global("caelestia:overview"))`.
-It can also be driven without either with `qs -c caelestia ipc call overview open`, `close` or
-`toggle`, or by binding the `caelestia:overviewOpen` / `caelestia:overviewClose` global shortcuts.
-
-Keyboard:
-
--   **Arrow keys** move the highlight between workspaces (a second outline, apart from the focused
-    one) and carry on into the next or previous page at the edges; **Enter** or **Space** jumps to
-    the highlighted workspace. The pointer moves the highlight too.
--   **Home** / **End** go to the first or last tile of the page, **Page Up** / **Page Down** (or the
-    mouse wheel / touchpad scroll anywhere over the overview, the arrow buttons either side of the
-    grid, or the dots under it) change page.
--   With the overview open, the four-finger swipe **left** / **right** turns the page (instead of
-    driving the notification popout) and swiping **down** closes it.
--   The background is blurred rather than just dimmed. Where blur has been switched off (battery saving,
-    game mode) it is dimmed instead.
--   **Drag a whole workspace** by the number in its top-left corner onto another tile to trade their
-    contents. The previews refresh while the overview is open, so moves and swaps show up.
--   **Drag a window** (you carry its app icon) onto another tile to move it to that workspace (it stays
-    where you are), or onto another window of the same workspace to trade places with it. Hold it
-    out past either side of the grid to turn the page. A plain click still focuses the window.
--   `1`–`9` and `0` jump to that tile on the current page, and **Esc** closes it.
-
-Pages cover every workspace in groups of ten (1–10, 11–20 and so on, matching the workspace
-groups the keybinds use) out to the last group with a window on it or the focused one, plus one
-empty group so a fresh one is always reachable. Switch on *Only workspaces in use* to list just the
-workspaces that have windows, the focused one and the first free number instead; it is still shown
-ten to a page, and the number keys then pick the n-th tile on the page.
-
-Settings are under *Settings > Panels > Overview*, or in `shell.json`:
-
-```json
-"overview": {
-    "enabled": true,
-    "gestures": true,
-    "gestureFingers": 4,
-    "hotCorner": true,
-    "hotCornerSize": 10,
-    "onlyInUse": false
-}
-```
-
-Set `gestures` to `false` to stop the shell registering the swipes (they go away on the next
-Hyprland reload), for example if you already bind those swipes yourself, and `hotCorner` to
-`false` to turn the corner off. `hotCornerSize` is the corner's size in pixels.
-
-### Turning special workspaces off
-
-*Settings > Workspaces > Special workspaces* (`bar.workspaces.specialWorkspaces` in `shell.json`) is
-on by default. Switching it off does more than hide them from the bar: the shell closes a special
-workspace the moment it opens and moves its windows to the workspace you are on, whether it was
-opened by a keybind, a gesture or a dispatch, and a window that opens into one is moved out too. It
-works with any Hyprland config, so there is nothing to edit; the price is that the workspace can
-flash open for a moment before it is closed.
-
-<details>
-<summary>Optional: no flash, and app shortcuts that open on the current workspace</summary>
-
-If you would rather it never flash, have your own Hyprland binds check the setting first. The
-Hyprland config is not part of this repo, so this is a change to *your* dotfiles. It assumes the
-Caelestia Lua config, whose `utils/functions.lua` already has `toggle`, `get_clients`,
-`load_toggle_config`, `shell_join`, `json` and `config_dir`. It also gives the app shortcuts
-(Discord, music, to-do, system monitor) a proper "open on the current workspace" mode instead of
-the shell moving the window out afterwards.
-
-The setting is read from `shell.json` on every press, so flipping it in the shell needs no Hyprland
-reload, and if `shell.json` is missing it counts as on.
-
-**1. `utils/functions.lua`**: add this above the final `return {`, then list `launch`, `app` and
-`if_special_workspaces` in the table it returns.
-
-```lua
--- Open an app category's apps on the *current* workspace instead of a special one:
--- spawn the ones that aren't running, and pull running ones here and focus them.
-local function launch(category)
-    return function()
-        local apps = load_toggle_config()[category]
-        local active_ws = hl.get_active_workspace()
-        if not apps or not active_ws then
-            return
-        end
-
-        local clients = hl.get_windows() or {}
-        local to_focus = nil
-
-        for _, app in pairs(apps) do
-            if app.enable then
-                -- The default matches can require a special workspace name (sysmon); drop that
-                local match = {}
-                for _, rule in ipairs(app.match or {}) do
-                    local copy = {}
-                    for key, value in pairs(rule) do
-                        if key ~= "workspace" then
-                            copy[key] = value
-                        end
-                    end
-                    table.insert(match, copy)
-                end
-
-                local is_running, running = get_clients(clients, { match = match }, category)
-                if is_running then
-                    for _, entry in ipairs(running) do
-                        local ws = entry.window.workspace
-                        if not ws or ws.id ~= active_ws.id then
-                            hl.dispatch(hl.dsp.window.move({ window = entry.window, workspace = active_ws.id, follow = false }))
-                        end
-                        to_focus = to_focus or entry.window
-                    end
-                elseif app.command then
-                    hl.dispatch(hl.dsp.exec_cmd(shell_join(app.command)))
-                end
-            end
-        end
-
-        if to_focus then
-            hl.dispatch(hl.dsp.focus({ window = to_focus }))
-        end
-    end
-end
-
--- Mirrors the "Special workspaces" switch in the shell's settings (Workspaces), which is
--- bar.workspaces.specialWorkspaces in shell.json. Read on every press so changing it needs no reload.
-local function special_workspaces_enabled()
-    local file = io.open(config_dir .. "/caelestia/shell.json", "r")
-    if not file then
-        return true
-    end
-
-    local content = file:read("*a")
-    file:close()
-
-    local ok, conf = pcall(json.decode, content)
-    if ok and type(conf) == "table" and type(conf.bar) == "table" and type(conf.bar.workspaces) == "table" then
-        return conf.bar.workspaces.specialWorkspaces ~= false
-    end
-    return true
-end
-
--- Only runs the action while special workspaces are switched on in the shell's settings
-local function if_special_workspaces(action)
-    return function()
-        if special_workspaces_enabled() then
-            action()
-        end
-    end
-end
-
--- App shortcuts (Discord, music, ...): a special workspace when the setting is on, the current workspace when off
-local function app(category)
-    local in_special = toggle(category)
-    local in_current = launch(category)
-    return function()
-        if special_workspaces_enabled() then
-            in_special()
-        else
-            in_current()
-        end
-    end
-end
-```
-
-```lua
-return {
-    -- ...what is already there...
-    launch                = launch,
-    app                   = app,
-    if_special_workspaces = if_special_workspaces,
-}
-```
-
-**2. `hyprland/keybinds.lua`**: the plain special-workspace toggle only runs while the setting is
-on, and the four app shortcuts use `fn.app` instead of `fn.toggle`.
-
-```lua
-create_bind(vars.kbSpecialWs, fn.if_special_workspaces(fn.toggle("specialws")))
-create_bind(vars.kbSystemMonitorWs, fn.app("sysmon"))
-create_bind(vars.kbMusicWs, fn.app("music"))
-create_bind(vars.kbCommunicationWs, fn.app("communication"))
-create_bind(vars.kbTodoWs, fn.app("todo"))
-```
-
-**3. `hyprland/gestures.lua`**: the 3-finger up/down special workspace gestures.
-
-```lua
-hl.gesture({
-    fingers   = vars.gestureFingers,
-    direction = "up",
-    action    = fn.if_special_workspaces(function()
-        hl.dispatch(hl.dsp.workspace.toggle_special("special"))
-    end),
-})
-hl.gesture({
-    fingers   = vars.gestureFingers,
-    direction = "down",
-    action    = fn.if_special_workspaces(fn.toggle("specialws")),
-})
-```
-
-The up swipe becomes a plain toggle here: Hyprland's built-in `action = "special"` follows your
-fingers as you drag but can't be made conditional, so if you keep that one the shell will close the
-workspace right after it opens when the setting is off. Anything you leave unconverted is still
-handled by the shell, so partial changes are fine. Run `hyprctl reload` after editing.
-
-</details>
-
-## Feature requests
-
-Any feature requests are welcome - open an [issue](https://github.com/CYKLER01/cykler-caelestia/issues) and I will try to get onto them quickly.
-
-## Keeping up to date
- 
-I try to keep this fork merged with upstream `caelestia-dots/shell` regularly, so you should
-get upstream fixes and features here too (best effort, no promises).
- 
-Run the included script from inside your clone - by default it just pulls any new commits
-on this fork and rebuilds/reinstalls:
- 
-```sh
-./update.sh
-```
- 
-Flags:
- 
--   `--upstream` - also merge in `caelestia-dots/shell` (adding the `upstream` remote if
-    needed, and showing you what changed before merging)
--   `--yes` / `-y` - skip the confirmation prompts
-It refuses to run if you have uncommitted local changes, so commit or stash first.
- 
-<details>
-<summary>Doing it manually instead</summary>
-
-```sh
-cd cykler-caelestia
-git pull
-cmake --build build
-sudo cmake --install build
-```
- 
-To pull in upstream yourself:
- 
-```sh
-git remote add upstream https://github.com/caelestia-dots/shell.git
-git fetch upstream
-git merge upstream/main
-```
- 
-</details>
+> **Built for our machines first.** These features are not guaranteed to work reliably everywhere.
+> The fork tracks an AMD laptop with a USB DAC and our own setups, so behaviour may differ on your
+> system. Use at your own risk, and please open an [issue](https://github.com/cykler01/cykler-caelestia/issues)
+> if something breaks.
+
+## Features added in this fork
+
+Every feature below is our own work on top of upstream, with a clip of it in action in [docs/demos.md](docs/demos.md).
+
+| Feature | What it does | Where | Docs | Demo |
+|---|---|---|---|---|
+| **Battery & power management** | Automatic Hyprland power saving (animations, blur, gaps, shadows, refresh rate) per plug state and power profile, battery level thresholds, critical battery shell shutdown, and a battery pane in Settings | *Nexus → Power & battery* | [docs](docs/battery.md) | [▶](https://cykler.dev/caelestia/demos/battery.mp4) |
+| **Keep awake** | One tri-state control for the idle inhibitor: off, prevent sleep, or also prevent lock | *Utilities card* | [docs](docs/idle.md) | [▶](https://cykler.dev/caelestia/demos/idle.mp4) |
+| **Game mode mouse acceleration** | Game mode sets `input:accel_profile: flat`, and no longer false-triggers when power saving disables animations | Automatic | [docs](docs/input.md) | [▶](https://cykler.dev/caelestia/demos/game-mode.mp4) |
+| **Input settings** | Mouse sensitivity, scroll speed, touchpad scroll speed and acceleration, applied at runtime and put back after a Hyprland reload | *Nexus → Input* | [docs](docs/input.md) | [▶](https://cykler.dev/caelestia/demos/input.mp4) |
+| **Unified media tab** | One tab that drives whatever is playing, and follows your audio between external MPRIS players and the built-in local player, with a hand-picked player pinned so nothing else takes over | *Dashboard → Media* | [docs](docs/media.md) | [▶](https://cykler.dev/caelestia/demos/media-player.mp4) |
+| **Local music player & library** | Plays `paths.musicDir` in-shell with a queue, shuffle and repeat, and browses the library by folder, artist, album or search | *Notif popout → Library* | [docs](docs/media.md) | [▶](https://cykler.dev/caelestia/demos/music-library.mp4) |
+| **System-wide equalizer** | Opt-in ten-band PipeWire filter chain with presets, equalizing every stream rather than just the player | *Settings → Audio* | [docs](docs/equalizer.md) | [▶](https://cykler.dev/caelestia/demos/equalizer.mp4) |
+| **Notch** | A pill that drops down on track change with album art, controls and a mirrored spectrum, plus a standing notch that shows the clock and what is playing while the bar's middle is free (the bar then drops its own clock) | *Nexus → Panels → Notch* | [docs](docs/notch.md) | [▶](https://cykler.dev/caelestia/demos/notch.mp4) |
+| **Notification popout** | A gesture-driven panel on its own blurrier layer with a notification dock and the music library, plus IPC | 4-finger swipe left | [docs](docs/notification-popout.md) | [▶](https://cykler.dev/caelestia/demos/notification-popout.mp4) |
+| **Notification dock improvements** | Chat apps keep every message instead of only the newest, and grouped notifications show each message's own picture | *Sidebar* | [docs](docs/notifications.md) | [▶](https://cykler.dev/caelestia/demos/notifications.mp4) |
+| **Popups and toasts in any corner** | Notification popups and toasts each go in any of the four corners, and share a column when they pick the same one | *Nexus → Layout* | [docs](docs/notifications.md) | [▶](https://cykler.dev/caelestia/demos/corners.mp4) |
+| **Window overview** | Every workspace and window in one blurred grid: click to jump, drag windows and whole workspaces, keyboard and page navigation | 4-finger swipe up / hot corner | [docs](docs/overview.md) | [▶](https://cykler.dev/caelestia/demos/overview.mp4) |
+| **Special workspaces switch** | Turning special workspaces off makes the shell close them and move their windows to the current workspace, whatever opened them | *Settings → Workspaces* | [docs](docs/special-workspaces.md) | [▶](https://cykler.dev/caelestia/demos/special-workspaces.mp4) |
+| **Keybinds page** | Lists every `kb*` bind from the Hyprland Lua config, grouped and searchable, and writes your changes back and reloads | *Nexus → Keybinds* | [docs](docs/keybinds.md) | [▶](https://cykler.dev/caelestia/demos/keybinds.mp4) |
+| **OCR & Google Lens** | Select a screen region to copy the text in it with `tesseract`, or upload it and open it in Google Lens | Launcher `>ocr` / `>lens` | [docs](docs/launcher.md) | [▶](https://cykler.dev/caelestia/demos/launcher-ocr-lens.mp4) |
+| **To-do list** | A `>todo` list in the launcher, ported from the fuzzel script, importing the old cache once | Launcher `>todo` | [docs](docs/launcher.md) | [▶](https://cykler.dev/caelestia/demos/launcher-todo.mp4) |
+| **SSH hosts** | Lists the non-wildcard hosts from `~/.ssh/config` and connects to one in your terminal | Launcher `>ssh` | [docs](docs/launcher.md) | [▶](https://cykler.dev/caelestia/demos/launcher-ssh.mp4) |
+| **GPU modes** | Switches `supergfxctl` graphics modes and offers to restart or log out for them to take effect | Launcher `>gpu` | [docs](docs/launcher.md) | [▶](https://cykler.dev/caelestia/demos/launcher-gpu.mp4) |
+| **Wallpaper arrow keys** | The horizontal wallpaper list steps with left/right arrows, matching up/down and the scroll wheel | Launcher `>wallpaper` | [docs](docs/launcher.md) | [▶](https://cykler.dev/caelestia/demos/launcher-wallpaper.mp4) |
+| **Screenshot preview** | Screenshots go straight to the clipboard and show a framed thumbnail instead of a notification; click it to annotate, save to `~/Desktop`, or let it clear | After a capture | [docs](docs/screenshot.md) | [▶](https://cykler.dev/caelestia/demos/screenshot.mp4) |
+| **Shell assets page** | Changes the images the shell uses - logo, session and media gifs, placeholder images and the profile picture - from Settings | *Nexus → Shell assets* | [docs](docs/shell-assets.md) | [▶](https://cykler.dev/caelestia/demos/shell-assets.mp4) |
+| **Colour schemes in Settings** | Scheme, flavour and Material 3 variant pickers moved out of the launcher into the settings app | *Nexus → Wallpaper & style* | [docs](docs/nexus.md) | [▶](https://cykler.dev/caelestia/demos/settings-app.mp4) |
+| **Displays page** | Arranges monitors by drag and drop, sets resolution, refresh rate, scale and mirroring, identifies a display, and reverts by itself unless you confirm | *Nexus → Displays* | [docs](docs/displays.md) | [▶](https://cykler.dev/caelestia/demos/displays.mp4) |
+| **Dashboard performance graph** | CPU, GPU, memory, network and storage combined into a single card with configurable colours, and resources you switch off stay off | *Dashboard → Performance* | [docs](docs/dashboard.md) | [▶](https://cykler.dev/caelestia/demos/dashboard.mp4) |
+| **Layout editor** | A miniature screen where every part of the shell is a tile you drag into place - bar, launcher, dashboard, notch, sidebar, OSD, session menu, popups, toasts and the desktop items - with separate Shell and Desktop layers | *Nexus → Layout* | [docs](docs/layout.md) | [▶](https://cykler.dev/caelestia/demos/layout.mp4) |
+| **Taskbar on any edge** | The bar moves to left, right, top or bottom with its own horizontal components, cuts its middle away on an empty workspace so the wallpaper shows through, and can mirror the right-edge panels when it is on the right | *Nexus → Layout* | [docs](docs/bar.md) | [▶](https://cykler.dev/caelestia/demos/bar.mp4) |
+| **Desktop widgets & app shortcuts** | Widget cards (calendar, weather, focus timer, resources, now playing, battery) in an ordered grid and application shortcuts, both on the wallpaper with their own settings page | *Nexus → Panels → Desktop* | [docs](docs/desktop.md) | [▶](https://cykler.dev/caelestia/demos/desktop.mp4) |
+| **Updates page** | Checks this fork's repo for new commits and pulls, rebuilds, installs through `pkexec` and restarts the shell from inside the session | *Nexus → Updates* | [docs](docs/updates.md) | [▶](https://cykler.dev/caelestia/demos/updates.mp4) |
+
+Smaller fixes live in [docs/nexus.md](docs/nexus.md): the dropdown menu that flips to whichever side has
+room, the update notification that opens the Updates page, and the settings sidebar rework - the pages
+are grouped into categories and have stable keys, so anything can open one by name.
 
 ## Installation
- 
+
 > [!NOTE]
-> This installs the shell only. For the full Caelestia dotfiles (themes, Hyprland config,
-> keybinds, etc.), see [the main dotfiles repo](https://github.com/caelestia-dots/caelestia).
- 
+> This installs the shell only. For the full Caelestia dotfiles (themes, Hyprland config, keybinds),
+> see [the main dotfiles repo](https://github.com/caelestia-dots/caelestia).
+
 > [!IMPORTANT]
-> If you previously installed `caelestia-shell` or `caelestia-shell-git` from the AUR, remove
-> it first - this fork conflicts with and provides the same package.
- 
-### Arch Linux
-
-#### Quick install
-
-Installs dependencies, then builds and installs the shell:
+> If you previously installed `caelestia-shell` or `caelestia-shell-git` from the AUR, remove it
+> first - this fork provides the same package and they conflict.
 
 ```sh
-git clone https://github.com/CYKLER01/cykler-caelestia.git
+git clone https://github.com/cykler01/cykler-caelestia.git
 cd cykler-caelestia
 ./install.sh
 ```
 
-Flags:
+`install.sh` installs the dependencies and then builds and installs the shell. Pass
+`--install-deps false` if you already have the dependencies, `--repo-only` to skip AUR packages, or
+`-y` to skip the prompts. Then start it with `caelestia shell -d`.
 
--   `--install-deps false` - skip installing dependencies (default is `true`), if you already have them
--   `--repo-only` - skip AUR packages
--   `--yes` / `-y` - skip the confirmation prompts
+Nix users can try the upstream flake that this fork keeps:
 
-Or follow the steps below to do it by hand.
-
-#### 1. Clone the repo
- 
 ```sh
-git clone https://github.com/CYKLER01/cykler-caelestia.git
-cd cykler-caelestia
+nix run github:cykler01/cykler-caelestia#with-cli
 ```
- 
-#### 2. Install dependencies
- 
-Run the included script, which installs official-repo packages via `pacman` and AUR packages
-via `yay`/`paru` (installing `yay` for you if you don't have an AUR helper). It prints each
-package list and asks for confirmation before installing anything:
- 
+
+Manual steps, the full dependency list, the local-package approach and the Nix caveats are all in
+[docs/install.md](docs/install.md).
+
+## Keeping up to date
+
 ```sh
-./install-deps.sh
+./update.sh
 ```
- 
-Flags:
- 
--   `--repo-only` - skip AUR packages entirely, if you'd rather install those yourself or use a different helper
--   `--yes` / `-y` - skip the confirmation prompts (useful for scripting)
-<details>
-<summary>Manual dependency list (if you'd rather not run the script)</summary>
 
-##### Official repos:
- 
--   `glibc`, `gcc-libs` (base, usually already installed)
--   `ddcutil`, `brightnessctl`
--   `networkmanager`, `lm_sensors`, `aubio`, `libpipewire`, `libqalculate`, `taglib`, `power-profiles-daemon`
--   `qt6-base`, `qt6-declarative`, `qt6-imageformats`, `qt6-multimedia`
--   `swappy`, `fish`, `bash`, `grim`, `slurp`, `tesseract`, `wl-clipboard`, `libnotify`, `curl`, `jq`, `xdg-utils`
--   Build deps: `git`, `cmake`, `ninja`, `qt6-shadertools`
-##### AUR:
- 
--   [`caelestia-cli`](https://github.com/caelestia-dots/cli)
--   [`quickshell-git`](https://git.outfoxxed.me/quickshell/quickshell) — must be the git version
--   [`qt6-m3shapes-git`](https://github.com/soramanew/m3shapes)
--   `libcava`
--   Fonts: `ttf-material-symbols-variable`, `ttf-rubik-vf`, `ttf-cascadia-code-nerd`
-</details>
+It pulls this fork and rebuilds and reinstalls, and refuses to run with uncommitted changes. Pass
+`--upstream` to also merge `caelestia-dots/shell`, or `-y` to skip the prompts. We try to keep the
+fork merged with upstream regularly (best effort, no promises); see
+[docs/updating.md](docs/updating.md) for the manual route.
 
-#### 3. Build and install
- 
-```sh
-cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/
-cmake --build build
-sudo cmake --install build
-```
- 
-Then start the shell with `caelestia shell -d` (preferred) or `qs -c caelestia -n -d`.
- 
-> [!TIP]
-> You can customise the installation location via the CMake flags `INSTALL_LIBDIR`,
-> `INSTALL_QMLDIR`, and `INSTALL_QSCONFDIR`. See the
-> [upstream README](https://github.com/caelestia-dots/shell#manual-installation) for details.
- 
-### Arch Linux (local package)
- 
-I build my own system package from this repo. If you want the same approach, create a
-`PKGBUILD` that clones this repo (instead of the upstream source) and otherwise mirrors the
-[`caelestia-shell-git`](https://aur.archlinux.org/packages/caelestia-shell-git) PKGBUILD.
- 
-### Nix
- 
-The upstream flake is kept in this fork, so you can try it with:
- 
-```sh
-nix run github:CYKLER01/cykler-caelestia#with-cli
-```
- 
-If you've cloned the repo and use [direnv](https://direnv.net/), it comes with an `.envrc`
-that loads the flake's dev shell automatically - just approve it once after cloning:
- 
-```sh
-direnv allow
-```
- 
-This is best-effort - I don't run Nix daily, so I can't guarantee it stays working.
-
-
-
-## Configuration
-
-Configuration is unchanged from upstream: everything lives in `~/.config/caelestia/shell.json`
-and per-monitor overrides in `~/.config/caelestia/monitors/<monitor>/shell.json`. See the
-[upstream configuring section](https://github.com/caelestia-dots/shell#configuring) for the full list of options and an example config.
-
-## Troubleshooting
- 
--   **`install-deps.sh` can't find an AUR helper and you don't want it installing `yay`** —
-    run with `--repo-only`, then install the AUR packages yourself with your preferred helper.
--   **Build fails after pulling upstream changes** — try a clean build: `rm -rf build` then
-    repeat the `cmake -B build ...` step.
--   **`update.sh` stops with a merge conflict** — resolve the conflicting files with
-    `git status` / `git mergetool`, commit the merge, then rerun `./update.sh` (it'll skip
-    straight to the rebuild since you're already up to date).
--   **`update.sh` refuses to run** — it requires a clean working tree; commit or `git stash`
-    your local changes first.
--   **Shell won't start / blank output** — confirm you're on `quickshell-git` (not the
-    stable `quickshell` package) and check `caelestia shell -d` output for the actual error.
-
+Or do the same thing from inside the session: *Settings → Updates* checks the repo, shows what is
+incoming, and can pull, rebuild, install and restart the shell for you. See
+[docs/updates.md](docs/updates.md).
 
 ## Credits
 
-All credit for the shell itself goes to [Caelestia](https://github.com/caelestia-dots/shell) - this fork is just my additions on top of their excellent work. The battery power-management work also builds on the `feat/battery-power-management` branch contributed by [@PixelKhaos](https://github.com/PixelKhaos). The monitor configuration page is based on [PR #1629](https://github.com/caelestia-dots/shell/pull/1629) contributed by [@devalentineomonya](https://github.com/devalentineomonya).
+This fork is only worth anything because of the people below.
+
+- **[Caelestia](https://github.com/caelestia-dots/shell)** - the shell itself, by
+  [@soramanew](https://github.com/soramanew) and the upstream contributors. Everything here is their
+  work with our additions on top.
+- **[caelestia-dots/caelestia](https://github.com/caelestia-dots/caelestia)** - the Hyprland config,
+  themes and keybind variables our features integrate with, including the `hypr-vars.lua` the
+  Keybinds page reads and writes.
+- **This fork** - [@CYKLER01](https://github.com/CYKLER01) (Chris): battery and power management,
+  game mode, input settings, OCR, Google Lens, SSH and GPU launcher actions, to-do list, screenshots,
+  shell assets, wallpaper arrows, the displays page, and the local music player, library, queue and
+  equalizer.
+  [@imnuclr](https://github.com/imnuclr) (Charlie): install, dependency and update scripts, the
+  window overview, the notification popout and notification dock work, the notch, the power and
+  battery settings page, the performance graph, and the idle, keybinds and menu behaviour.
+- **Battery power management** - based on the `feat/battery-power-management` branch contributed by
+  [@PixelKhaos](https://github.com/PixelKhaos) (Robin Seger).
+- **Displays page** - based on [PR #1629](https://github.com/caelestia-dots/shell/pull/1629) by
+  [@devalentineomonya](https://github.com/devalentineomonya).
+- Three commits in this repository carry lost author metadata (the first displays menu, the
+  lock/display timeout work and the install flow fix). If you wrote one of them, tell us and we will
+  credit you.
+
+## License
+
+GPL-3.0, inherited from [upstream](https://github.com/caelestia-dots/shell).
