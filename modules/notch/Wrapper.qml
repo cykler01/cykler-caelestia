@@ -103,14 +103,11 @@ Item {
     // With windows open and a horizontal bar, the notch sits inside the bar (where the active window's title used to
     // be) as an inset pill, instead of hanging below it
     readonly property var barRef: ShellState.componentsFor(screen)?.bar
-    readonly property bool inBar: !!barRef && (barRef.onTop || barRef.onBottom) && !emptyWorkspace
-    property real inBarProg: inBar ? 1 : 0
-
-    Behavior on inBarProg {
-        Anim {
-            type: Anim.DefaultEffects
-        }
-    }
+    // 1 once the workspace is empty, 0 with windows: one animated value owned by the drawers window, shared with the
+    // bar's cut-away so the notch, the bar and the content all move on the same curve
+    property real morph: 1
+    readonly property real inBarProg: (barRef && (barRef.onTop || barRef.onBottom)) ? 1 - morph : 0
+    readonly property bool morphing: inBarProg > 0.001 && inBarProg < 0.999
 
     // Where it rests inside the bar band, centred across the band's thickness
     readonly property real barY: !barRef ? 0 : barRef.onBottom ? parent.height + (barRef.insetBottom - height) / 2 : -(barRef.insetTop + height) / 2
@@ -129,11 +126,17 @@ Item {
 
     // Fluidly resize (rather than snap) when the track title's length changes
     // the pill's natural width, matching modules/bar/popouts/Wrapper.qml
+    // (not while moving in or out of the bar: the size changes there while the content is faded out, and easing it
+    // on a different curve than the move is what makes the morph look uneven)
     Behavior on implicitWidth {
+        enabled: !root.morphing
+
         Anim {}
     }
 
     Behavior on implicitHeight {
+        enabled: !root.morphing
+
         Anim {}
     }
 
@@ -247,9 +250,11 @@ Item {
         // While peeking, the dashboard opens underneath this and would have the pill drawn across its tab row;
         // the pill stays in place (invisible) so it still sees the hover that keeps the peek open
         // and it fades out and back in across the move into (or out of) the bar, where the layout switches size
-        opacity: (root.peeking ? 0 : 1) * Math.abs(2 * root.inBarProg - 1)
+        opacity: peekFade * Math.abs(2 * root.inBarProg - 1)
 
-        Behavior on opacity {
+        property real peekFade: root.peeking ? 0 : 1
+
+        Behavior on peekFade {
             Anim {
                 type: Anim.DefaultEffects
             }

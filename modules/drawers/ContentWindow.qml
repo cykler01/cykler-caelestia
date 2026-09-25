@@ -114,6 +114,16 @@ StyledWindow {
         }
     }
 
+    // The same move for the notch going into / out of the bar. It uses the same animation as middleProg and starts
+    // in the same instant, so the frame, the notch and its content stay in step.
+    property real notchMorph: desktopEmpty ? 1 : 0
+
+    Behavior on notchMorph {
+        Anim {
+            type: Anim.DefaultEffects
+        }
+    }
+
     Behavior on surfaceColour {
         CAnim {}
     }
@@ -370,6 +380,7 @@ StyledWindow {
                     y: root.launcherShift
                 }
             ]
+            notch.morph: root.notchMorph
             notch.transform: Translate {
                 y: root.notchShift
             }
