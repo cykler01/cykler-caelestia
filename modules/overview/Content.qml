@@ -602,24 +602,6 @@ Item {
             }
         }
 
-        // On a pill so it stays readable over a bright, blurred backdrop
-        StyledRect {
-            anchors.horizontalCenter: parent.horizontalCenter
-            anchors.top: panel.bottom
-            anchors.topMargin: Tokens.padding.large
-            implicitWidth: hint.implicitWidth + Tokens.padding.large * 2
-            implicitHeight: hint.implicitHeight + Tokens.padding.small * 2
-            radius: Tokens.rounding.full
-            color: Colours.tPalette.m3surfaceContainerLow
-
-            StyledText {
-                id: hint
-
-                anchors.centerIn: parent
-                text: root.pageCount > 1 ? Tr.tr("Arrows to move · Enter to open · Drag a window, or a workspace by its number, to move or swap it · Page Up/Down for more · Esc to close") : Tr.tr("Arrows to move · Enter to open · Drag a window to move or swap it · Esc to close")
-                color: Colours.palette.m3onSurfaceVariant
-            }
-        }
     }
 
     // The app being dragged, as its icon in a disc under the pointer. It pops in as the drag
