@@ -123,9 +123,9 @@ StyledWindow {
         height: panels.notifications.height
 
         Region {
-            x: root.width - width
+            x: bar.onRight ? 0 : root.width - width
             y: panels.osdWrapper.y + bar.insetTop
-            width: panels.osdWrapper.width * (1 - panels.osd.offsetScale) + bar.insetRight
+            width: panels.osdWrapper.width * (1 - panels.osd.offsetScale) + (bar.onRight ? bar.insetLeft : bar.insetRight)
             height: panels.osd.height
         }
     }
@@ -268,7 +268,9 @@ StyledWindow {
             implicitWidth: panels.sidebar.offsetScale < 0.999 ? panel.width : 0
             implicitHeight: panel.height * (1 / rawDeformMatrix.m22) + 2
             exclude: panels.sidebar.offsetScale > 0.08 ? [] : [utilsBg]
-            bottomLeftRadius: Math.max(0, Math.min(1, panels.sidebar.offsetScale / 0.3)) * radius
+            // The corner where the sidebar meets the utilities panel is on the panels' inner side
+            bottomLeftRadius: panels.mirrored ? radius : Math.max(0, Math.min(1, panels.sidebar.offsetScale / 0.3)) * radius
+            bottomRightRadius: panels.mirrored ? Math.max(0, Math.min(1, panels.sidebar.offsetScale / 0.3)) * radius : radius
         }
 
         PanelBg {
@@ -293,7 +295,8 @@ StyledWindow {
             deformAmount: panels.sidebar.visible ? 0.1 : 0.15
             implicitWidth: panels.utilities.offsetScale < 0.999 ? panel.width : 0
             exclude: panels.sidebar.offsetScale > 0.08 ? [] : [sidebarBg]
-            topLeftRadius: Math.max(0, Math.min(1, panels.sidebar.offsetScale / 0.3)) * radius
+            topLeftRadius: panels.mirrored ? radius : Math.max(0, Math.min(1, panels.sidebar.offsetScale / 0.3)) * radius
+            topRightRadius: panels.mirrored ? Math.max(0, Math.min(1, panels.sidebar.offsetScale / 0.3)) * radius : radius
         }
 
         PanelBg {

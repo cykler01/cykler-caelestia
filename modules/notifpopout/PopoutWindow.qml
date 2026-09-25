@@ -18,6 +18,8 @@ StyledWindow {
     readonly property ScreenState screenState: ShellState.forScreen(screen)
     readonly property bool open: screenState.notifPopout
     readonly property real gap: contentItem.Tokens.padding.large
+    // With the bar on the right the popout opens from the left edge instead, away from the bar
+    readonly property bool mirrored: ShellState.componentsFor(screen)?.bar?.onRight ?? false
     // Separate from the sidebar's own so expanding cards in one doesn't affect the other
     readonly property var props: Sidebar.Props {
         reloadableId: "notifPopout"
@@ -39,7 +41,8 @@ StyledWindow {
 
     anchors.top: true
     anchors.bottom: true
-    anchors.right: true
+    anchors.left: root.mirrored
+    anchors.right: !root.mirrored
 
     mask: Region {
         item: panel
@@ -88,12 +91,16 @@ StyledWindow {
 
         anchors.top: true
         anchors.bottom: true
-        anchors.right: true
+        anchors.left: root.mirrored
+        anchors.right: !root.mirrored
 
         // No input, the popout above handles it
         mask: Region {}
 
         StyledRect {
+            LayoutMirroring.enabled: root.mirrored
+            LayoutMirroring.childrenInherit: true
+
             anchors.top: parent.top
             anchors.bottom: parent.bottom
             anchors.right: parent.right
@@ -118,6 +125,9 @@ StyledWindow {
     Item {
         id: panel
 
+        LayoutMirroring.enabled: root.mirrored
+        LayoutMirroring.childrenInherit: true
+
         anchors.top: parent.top
         anchors.bottom: parent.bottom
         anchors.right: parent.right
@@ -133,6 +143,10 @@ StyledWindow {
             active: true
 
             sourceComponent: Content {
+                // The content itself keeps its normal (unmirrored) layout
+                LayoutMirroring.enabled: false
+                LayoutMirroring.childrenInherit: true
+
                 screenState: root.screenState
                 props: root.props
             }

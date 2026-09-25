@@ -36,6 +36,9 @@ Item {
     readonly property alias toasts: toasts
     readonly property alias sidebar: sidebar
 
+    // With the bar on the right, the panels that normally open on the right edge open on the left instead
+    readonly property bool mirrored: bar.onRight
+
     anchors.fill: parent
     anchors.leftMargin: bar.insetLeft
     anchors.rightMargin: bar.insetRight
@@ -44,6 +47,10 @@ Item {
 
     Item {
         id: osdWrapper
+
+        // Flips to the left edge when the bar is on the right, so it never sits under or against the bar
+        LayoutMirroring.enabled: root.mirrored
+        LayoutMirroring.childrenInherit: true
 
         anchors.verticalCenter: parent.verticalCenter
         anchors.right: parent.right
@@ -68,6 +75,10 @@ Item {
     Notifications.Wrapper {
         id: notifications
 
+        // Flips to the left edge when the bar is on the right, so it never sits under or against the bar
+        LayoutMirroring.enabled: root.mirrored
+        LayoutMirroring.childrenInherit: true
+
         screenState: root.screenState
         sidebarPanel: sidebar
         osdPanel: osdWrapper
@@ -80,6 +91,10 @@ Item {
 
     Item {
         id: sessionWrapper
+
+        // Flips to the left edge when the bar is on the right, so it never sits under or against the bar
+        LayoutMirroring.enabled: root.mirrored
+        LayoutMirroring.childrenInherit: true
 
         anchors.verticalCenter: parent.verticalCenter
         anchors.right: parent.right
@@ -132,6 +147,10 @@ Item {
     Utilities.Wrapper {
         id: utilities
 
+        // Flips to the left edge when the bar is on the right, so it never sits under or against the bar
+        LayoutMirroring.enabled: root.mirrored
+        LayoutMirroring.childrenInherit: true
+
         screenState: root.screenState
         sidebar: sidebar
         popouts: popoutsWrapper.content
@@ -143,6 +162,9 @@ Item {
     Toasts.Toasts {
         id: toasts
 
+        LayoutMirroring.enabled: root.mirrored
+        LayoutMirroring.childrenInherit: false
+
         anchors.bottom: sidebar.visible ? parent.bottom : utilities.top
         anchors.right: sidebar.left
         anchors.margins: Tokens.padding.medium
@@ -150,6 +172,10 @@ Item {
 
     Sidebar.Wrapper {
         id: sidebar
+
+        // Flips to the left edge when the bar is on the right, so it never sits under or against the bar
+        LayoutMirroring.enabled: root.mirrored
+        LayoutMirroring.childrenInherit: true
 
         screenState: root.screenState
 

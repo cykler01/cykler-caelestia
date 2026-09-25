@@ -18,6 +18,10 @@ Item {
     Content {
         id: content
 
+        // The content itself keeps its normal (unmirrored) layout
+        LayoutMirroring.enabled: false
+        LayoutMirroring.childrenInherit: true
+
         anchors.topMargin: -root.anchors.topMargin
         screenState: root.screenState
     }

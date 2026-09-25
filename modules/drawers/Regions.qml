@@ -34,22 +34,22 @@ Region {
         id: sessionRegion
 
         panel: root.panels.sessionWrapper
-        x: root.win.width - width
-        width: panel.width * (1 - root.panels.session.offsetScale) + root.bar.insetRight + sidebarRegion.width
+        x: root.bar.onRight ? 0 : root.win.width - width
+        width: panel.width * (1 - root.panels.session.offsetScale) + (root.bar.onRight ? root.bar.insetLeft : root.bar.insetRight) + sidebarRegion.width
     }
 
     R {
         id: sidebarRegion
 
         panel: root.panels.sidebar
-        x: root.win.width - width
-        width: panel.width * (1 - root.panels.sidebar.offsetScale) + root.bar.insetRight
+        x: root.bar.onRight ? 0 : root.win.width - width
+        width: panel.width * (1 - root.panels.sidebar.offsetScale) + (root.bar.onRight ? root.bar.insetLeft : root.bar.insetRight)
     }
 
     R {
         panel: root.panels.osdWrapper
-        x: root.win.width - width
-        width: panel.width * (1 - root.panels.osd.offsetScale) + root.bar.insetRight + sessionRegion.width
+        x: root.bar.onRight ? 0 : root.win.width - width
+        width: panel.width * (1 - root.panels.osd.offsetScale) + (root.bar.onRight ? root.bar.insetLeft : root.bar.insetRight) + sessionRegion.width
     }
 
     R {

@@ -81,6 +81,9 @@ Item {
         active: root.shouldBeActive || root.visible
 
         sourceComponent: Content {
+            // The content itself keeps its normal (unmirrored) layout
+            LayoutMirroring.enabled: false
+            LayoutMirroring.childrenInherit: true
             implicitWidth: root.implicitWidth - root.totalPadding
             props: root.props
             screenState: root.screenState
