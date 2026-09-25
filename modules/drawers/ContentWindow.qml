@@ -106,8 +106,12 @@ StyledWindow {
         Anim {}
     }
 
+    // No overshoot here: the frame's thickness follows this, and a bouncy curve makes the blobs smooth the
+    // overshoot into a wobbly ramp at the ends of the bar
     Behavior on middleProg {
-        Anim {}
+        Anim {
+            type: Anim.DefaultEffects
+        }
     }
 
     Behavior on surfaceColour {
@@ -239,8 +243,9 @@ StyledWindow {
             panel: panels.notch
             deformAmount: 0.1
             y: panels.notch.y + bar.insetTop + root.notchShift
-            // No background of its own while it sits inside the bar as an inset pill
-            implicitHeight: panels.notch.height * (1 - panels.notch.inBarProg)
+            // No background of its own once it sits inside the bar. It slides up into the band at full size first
+            // (shrinking it on the way makes the blob renderer smooth it into a wedge under the bar)
+            implicitHeight: panels.notch.inBarProg > 0.999 ? 0 : panels.notch.height
         }
 
         PanelBg {

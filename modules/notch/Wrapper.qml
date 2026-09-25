@@ -246,7 +246,8 @@ Item {
 
         // While peeking, the dashboard opens underneath this and would have the pill drawn across its tab row;
         // the pill stays in place (invisible) so it still sees the hover that keeps the peek open
-        opacity: root.peeking ? 0 : 1
+        // and it fades out and back in across the move into (or out of) the bar, where the layout switches size
+        opacity: (root.peeking ? 0 : 1) * Math.abs(2 * root.inBarProg - 1)
 
         Behavior on opacity {
             Anim {
@@ -261,7 +262,7 @@ Item {
             cavaWarm: root.cavaWarm
             showMedia: root.playing && (root.trackActive || (root.persistent && Config.notch.showMusic))
             showClock: root.persistent && Config.notch.showClock
-            compact: root.inBar
+            compact: root.inBarProg > 0.5
         }
     }
 }
