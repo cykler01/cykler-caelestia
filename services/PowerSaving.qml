@@ -20,12 +20,12 @@ Singleton {
 
     // The visual effects the current power settings (Power & battery > plug state, profile, thresholds) have
     // switched off. BatteryMonitor sets these along with the matching Hyprland options, and the shell's own
-    // animations, blur, shadows and rounding follow them, so a "no blur / no animations" battery setting also
-    // applies to the shell and not just to windows. Everything defaults to on.
+    // animations, blur and shadows follow them, so a "no blur / no animations" battery setting also applies to the
+    // shell and not just to windows. Rounding is deliberately not among them: it only ever affects windows. Everything
+    // defaults to on.
     property bool animations: true
     property bool blur: true
     property bool shadows: true
-    property bool rounding: true
 
     function applyEffects(settings: var): void {
         if (settings.disableAnimations === "disable")
@@ -42,10 +42,5 @@ Singleton {
             shadows = false;
         else if (settings.disableShadows === "enable")
             shadows = true;
-
-        if (settings.disableRounding === "disable")
-            rounding = false;
-        else if (settings.disableRounding === "enable")
-            rounding = true;
     }
 }

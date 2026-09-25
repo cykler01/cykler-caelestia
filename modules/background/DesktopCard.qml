@@ -17,7 +17,7 @@ Item {
     property real plateOpacity: Config.background.desktopWidgets.opacity
     // Blur, shadow and rounding follow the Power & battery settings as well as the widget's own
     property bool blur: Config.background.desktopWidgets.blur && !GameMode.enabled && PowerSaving.blur
-    property real radius: PowerSaving.rounding ? Tokens.rounding.extraLarge : 0
+    property real radius: Tokens.rounding.extraLarge
     property real padding: Tokens.padding.largeIncreased
     default property alias content: col.data
 

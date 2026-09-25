@@ -61,7 +61,7 @@ StyledWindow {
     property real fsTransitionProg: hasFullscreen ? 1 : 0
     readonly property real sdfBorderOffset: 2 * fsTransitionProg // SDFs joins are not exact, so offset by 2px to ensure nothing shows
     readonly property real borderThickness: contentItem.Config.border.thickness * (1 - fsTransitionProg)
-    readonly property real borderRounding: PowerSaving.rounding ? contentItem.Config.border.rounding * (1 - fsTransitionProg) : 0
+    readonly property real borderRounding: contentItem.Config.border.rounding * (1 - fsTransitionProg)
     readonly property real shadowOpacity: 0.7 * (1 - fsTransitionProg)
     readonly property real borderLayoutThickness: hasFullscreen ? 0 : contentItem.Config.border.thickness
 
@@ -224,7 +224,7 @@ StyledWindow {
         // corners are rounded, and they join the thin frame like any other hanging panel.
         BlobRect {
             group: blobGroup
-            radius: PowerSaving.rounding ? Tokens.rounding.extraLarge : 0
+            radius: Tokens.rounding.extraLarge
             x: bar.vertical ? (bar.onLeft ? -radius : root.width - bar.thickness) : -radius
             y: bar.vertical ? -radius : (bar.onTop ? -radius : root.height - bar.thickness)
             implicitWidth: root.middleProg <= 0.01 ? 0 : bar.vertical ? bar.thickness + radius : bar.middleStart + radius
@@ -233,7 +233,7 @@ StyledWindow {
 
         BlobRect {
             group: blobGroup
-            radius: PowerSaving.rounding ? Tokens.rounding.extraLarge : 0
+            radius: Tokens.rounding.extraLarge
             x: bar.vertical ? (bar.onLeft ? -radius : root.width - bar.thickness) : bar.middleEnd
             y: bar.vertical ? bar.middleEnd : (bar.onTop ? -radius : root.height - bar.thickness)
             implicitWidth: root.middleProg <= 0.01 ? 0 : bar.vertical ? bar.thickness + radius : root.width - bar.middleEnd + radius
@@ -257,6 +257,7 @@ StyledWindow {
             // No background of its own once it sits inside the bar. It slides up into the band at full size first
             // (shrinking it on the way makes the blob renderer smooth it into a wedge under the bar)
             implicitHeight: panels.notch.inBarProg > 0.999 ? 0 : panels.notch.height
+            implicitWidth: panels.notch.inBarProg > 0.999 ? 0 : panels.notch.width
         }
 
         PanelBg {
@@ -451,9 +452,12 @@ StyledWindow {
         group: blobGroup
         x: panel.x + bar.insetLeft
         y: panel.y + bar.insetTop
-        implicitWidth: panel.width
-        implicitHeight: panel.height
-        radius: PowerSaving.rounding ? Tokens.rounding.extraLarge : 0
+        // A closed panel has no shape at all: it is parked just past the screen edge, which with a thin frame is
+        // invisible but with a tall bar puts it inside the bar, where it shows up as a faint box the size of the panel
+        readonly property bool closed: (panel.offsetScale ?? 0) >= 0.999
+        implicitWidth: closed ? 0 : panel.width
+        implicitHeight: closed ? 0 : panel.height
+        radius: Tokens.rounding.extraLarge
         deformScale: (deformAmount * Config.appearance.deformScale) / 10000
     }
 }

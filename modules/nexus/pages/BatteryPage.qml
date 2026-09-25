@@ -98,6 +98,42 @@ PageBase {
             onToggled: GlobalConfig.utilities.toasts.lowPowerModeChanged = checked
         }
 
+        // Independent of automatic power management: warns, then unloads the whole shell to save what is left
+        SectionHeader {
+            text: Tr.tr("Critical battery")
+        }
+
+        ToggleRow {
+            first: true
+            text: Tr.tr("Unload the shell at a critical level")
+            subtext: Tr.tr("Warn, then shut the shell down (caelestia shell -k) to stop it using power. Plugging in cancels it")
+            checked: GlobalConfig.general.battery.powerManagement.shellShutdown.enabled
+            onToggled: GlobalConfig.general.battery.powerManagement.shellShutdown.enabled = checked
+        }
+
+        StepperRow {
+            label: Tr.tr("Critical level")
+            // TRANSLATORS: % is the percent unit, leave it untranslated
+            subtext: Tr.tr("Battery percentage at or below which the countdown starts (%)")
+            value: GlobalConfig.general.battery.powerManagement.shellShutdown.level
+            from: 1
+            to: 30
+            stepSize: 1
+            onMoved: v => GlobalConfig.general.battery.powerManagement.shellShutdown.level = Math.round(v)
+        }
+
+        StepperRow {
+            last: true
+            label: Tr.tr("Warning time")
+            // TRANSLATORS: s is the seconds unit, leave it untranslated
+            subtext: Tr.tr("Seconds between the warning and the shell unloading (s)")
+            value: GlobalConfig.general.battery.powerManagement.shellShutdown.delay
+            from: 10
+            to: 300
+            stepSize: 10
+            onMoved: v => GlobalConfig.general.battery.powerManagement.shellShutdown.delay = Math.round(v)
+        }
+
         // Everything below only runs with automatic power management on
         ColumnLayout {
             Layout.fillWidth: true

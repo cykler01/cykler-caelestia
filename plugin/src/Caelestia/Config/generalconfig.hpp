@@ -93,6 +93,17 @@ class GeneralProfileBehaviors : public settings::ObjectNode {
     CONFIG_GLOBAL_SUBOBJECT(GeneralProfileBehavior, performance)
 };
 
+// NOTE(fork): at a critical battery level the shell warns, then unloads itself to save what is left
+class GeneralShellShutdown : public settings::ObjectNode {
+    CONFIG_NODE(GeneralShellShutdown, settings::ObjectNode)
+
+    CONFIG_GLOBAL_PROPERTY(bool, enabled, true)
+    // Battery percentage at or below which the countdown starts (while unplugged)
+    CONFIG_GLOBAL_PROPERTY(int, level, 5)
+    // Seconds between the warning and the shell being unloaded
+    CONFIG_GLOBAL_PROPERTY(int, delay, 60)
+};
+
 class GeneralPowerManagement : public settings::ObjectNode {
     CONFIG_NODE(GeneralPowerManagement, settings::ObjectNode)
 
@@ -101,6 +112,7 @@ class GeneralPowerManagement : public settings::ObjectNode {
     CONFIG_GLOBAL_PROPERTY(bool, pauseGraphInPowerSaver, true)
     CONFIG_GLOBAL_PROPERTY(bool, pauseVisualisersInPowerSaver, true)
     CONFIG_GLOBAL_PROPERTY(QVariantList, thresholds, {})
+    CONFIG_GLOBAL_SUBOBJECT(GeneralShellShutdown, shellShutdown)
     CONFIG_GLOBAL_SUBOBJECT(GeneralChargingBehavior, onCharging)
     CONFIG_GLOBAL_SUBOBJECT(GeneralUnpluggedBehavior, onUnplugged)
     CONFIG_GLOBAL_SUBOBJECT(GeneralProfileBehaviors, profileBehaviors)

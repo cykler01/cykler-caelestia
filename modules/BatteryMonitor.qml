@@ -31,8 +31,52 @@ Scope {
 
     readonly property list<string> effectKeys: ["disableAnimations", "disableBlur", "disableRounding", "disableShadows"]
 
+    // NOTE(fork): critical-battery shell shutdown. Seconds left on the countdown (0 = not counting down), and
+    // whether the shell has already been told to unload (so it is only asked once)
+    property int shutdownRemaining: 0
+    property bool shutdownFired: false
+    readonly property var shutdownConfig: GlobalConfig.general.battery.powerManagement.shellShutdown
+
+    function shutdownText(secs: int): string {
+        return secs >= 60 && secs % 60 === 0 ? Tr.tr("%1 min").arg(secs / 60) : Tr.tr("%1 s").arg(secs);
+    }
+
+    function warnShutdown(secs: int): void {
+        // The first toast stays up for the whole countdown; later reminders are shorter
+        Toaster.toast(Tr.tr("Critical battery"), Tr.tr("Shell shuts down in %1. Plug in to cancel.").arg(root.shutdownText(secs)), "battery_android_alert", Toast.Error, Math.max(5000, secs * 1000));
+    }
+
+    function startShellShutdown(): void {
+        root.shutdownRemaining = Math.max(1, root.shutdownConfig.delay);
+        root.warnShutdown(root.shutdownRemaining);
+        shutdownTimer.start();
+    }
+
+    function cancelShellShutdown(): void {
+        if (!shutdownTimer.running)
+            return;
+
+        shutdownTimer.stop();
+        root.shutdownRemaining = 0;
+        Toaster.toast(Tr.tr("Shell shutdown cancelled"), Tr.tr("The battery is no longer critical"), "battery_charging_full", Toast.Success);
+    }
+
+    // Starts the countdown once the battery is at or below the level while unplugged, and cancels it if a charger
+    // goes in or the level comes back up
+    function checkShellShutdown(p: real): void {
+        const critical = root.shutdownConfig.enabled && UPower.onBattery && p <= root.shutdownConfig.level;
+        if (critical && !shutdownTimer.running && !root.shutdownFired)
+            root.startShellShutdown();
+        else if (!critical && shutdownTimer.running)
+            root.cancelShellShutdown();
+
+        if (!critical)
+            root.shutdownFired = false;
+    }
+
     function handleBatteryWarnings(): void {
         const p = UPower.displayDevice.percentage * 100;
+        root.checkShellShutdown(p);
 
         if (!UPower.onBattery) {
             root.lastPercentage = p;
@@ -356,6 +400,8 @@ Scope {
                 if (GlobalConfig.utilities.toasts.chargingChanged)
                     Toaster.toast(Tr.tr("Charger plugged in"), Tr.tr("Battery is charging"), "power");
                 root.lastPercentage = 100;
+                root.cancelShellShutdown();
+                root.shutdownFired = false;
 
                 // NOTE(fork): apply the plugged-in settings
                 if (root.powerManagementEnabled)
@@ -413,6 +459,30 @@ Scope {
         }
 
         target: PowerProfiles
+    }
+
+    // NOTE(fork): counts the critical-battery warning down and then unloads the shell (`caelestia shell -k`)
+    Timer {
+        id: shutdownTimer
+
+        interval: 1000
+        repeat: true
+        onTriggered: {
+            root.shutdownRemaining--;
+            if (root.shutdownRemaining === 30 || root.shutdownRemaining === 10)
+                root.warnShutdown(root.shutdownRemaining);
+
+            if (root.shutdownRemaining <= 0) {
+                shutdownTimer.stop();
+                root.shutdownFired = true;
+                root.runShutdown();
+            }
+        }
+    }
+
+    // Split out so the command is in one place
+    function runShutdown(): void {
+        Quickshell.execDetached(["caelestia", "shell", "-k"]);
     }
 
     // Gives Hyprland's monitor list a moment to load before the startup state is applied,
