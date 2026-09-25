@@ -92,9 +92,9 @@ Scope {
             }
         }
 
-        if (!hibernateTimer.running && p <= GlobalConfig.general.battery.criticalLevel) {
-            Toaster.toast(Tr.tr("Hibernating in 5 seconds"), Tr.tr("Hibernating to prevent data loss"), "battery_android_alert", Toast.Error);
-            hibernateTimer.start();
+        if (!criticalPowerOffTimer.running && p <= GlobalConfig.general.battery.criticalLevel) {
+            Toaster.toast(Tr.tr("Shutting down in 5 seconds"), Tr.tr("Powering off to prevent data loss"), "battery_android_alert", Toast.Error);
+            criticalPowerOffTimer.start();
         }
 
         if (root.powerManagementEnabled)
@@ -495,9 +495,9 @@ Scope {
     }
 
     Timer {
-        id: hibernateTimer
+        id: criticalPowerOffTimer
 
         interval: 5000
-        onTriggered: SessionManager.hibernate()
+        onTriggered: SessionManager.poweroff()
     }
 }

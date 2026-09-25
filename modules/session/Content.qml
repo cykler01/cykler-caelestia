@@ -46,7 +46,7 @@ Column {
         command: Config.session.commands.shutdown
 
         KeyNavigation.up: logout
-        KeyNavigation.down: hibernate
+        KeyNavigation.down: sleep
     }
 
     AnimatedImage {
@@ -62,10 +62,10 @@ Column {
     }
 
     SessionButton {
-        id: hibernate
+        id: sleep
 
-        icon: Config.session.icons.hibernate
-        command: Config.session.commands.hibernate
+        icon: Config.session.icons.sleep
+        command: Config.session.commands.sleep
 
         KeyNavigation.up: shutdown
         KeyNavigation.down: reboot
@@ -77,7 +77,7 @@ Column {
         icon: Config.session.icons.reboot
         command: Config.session.commands.reboot
 
-        KeyNavigation.up: hibernate
+        KeyNavigation.up: sleep
     }
 
     component SessionButton: IconButton {
