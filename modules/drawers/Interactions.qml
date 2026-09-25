@@ -67,6 +67,26 @@ CustomMouseArea {
         return x > Math.min(width - Config.border.minThickness, bar.insetLeft + panel.x) && withinPanelHeight(panel, x, y);
     }
 
+    // Whether the pointer is over the bar popout's final area, or the gap between it and the bar. Uses the popout's
+    // target geometry rather than its animated one, so it can be reached while it is still opening.
+    function inPopout(x: real, y: real): bool {
+        const w = panels.popoutsWrapper;
+        const m = Config.border.rounding;
+        let l = bar.insetLeft + w.targetX - m;
+        let r = bar.insetLeft + w.targetX + w.targetW + m;
+        let t = bar.insetTop + w.targetY - m;
+        let b = bar.insetTop + w.targetY + w.targetH + m;
+        if (bar.onLeft)
+            l = 0;
+        else if (bar.onRight)
+            r = width;
+        else if (bar.onTop)
+            t = 0;
+        else
+            b = height;
+        return x >= l && x <= r && y >= t && y <= b;
+    }
+
     // The empty stretch of the bar between its two ends: panels on the bar's own edge can still be reached from it
     function inBarMiddle(x: real): bool {
         return bar.hasMiddle && x >= bar.middleStart && x <= bar.middleEnd;
@@ -326,7 +346,7 @@ CustomMouseArea {
         // Show popouts on hover
         if (bar.isOver(x, y, width, height)) {
             bar.checkPopout(bar.vertical ? y : x);
-        } else if ((!popouts.currentName.startsWith("traymenu") || ((popouts.current as StackView)?.depth ?? 0) <= 1) && !(bar.onLeft ? inLeftPanel(panels.popoutsWrapper, x, y) : bar.onRight ? inRightPanel(panels.popoutsWrapper, x, y) : bar.onTop ? inTopPanel(panels.popoutsWrapper, x, y) : inBottomPanel(panels.popoutsWrapper, x, y))) {
+        } else if ((!popouts.currentName.startsWith("traymenu") || ((popouts.current as StackView)?.depth ?? 0) <= 1) && !inPopout(x, y)) {
             popouts.hasCurrent = false;
             bar.closeTray();
         }

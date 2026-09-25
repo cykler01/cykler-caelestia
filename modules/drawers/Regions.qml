@@ -71,10 +71,17 @@ Region {
         height: panel.height * (1 - root.panels.utilities.offsetScale) + root.bar.insetBottom
     }
 
-    R {
-        panel: root.panels.popoutsWrapper
-        width: root.bar.vertical ? panel.width * (1 - root.panels.popoutsWrapper.offsetScale) : panel.width
-        height: root.bar.vertical ? panel.height : panel.height * (1 - root.panels.popoutsWrapper.offsetScale)
+    // While a popout is open its input area is its final one, not the one it is animating through, so the pointer
+    // can move onto it as soon as it starts to appear
+    Region {
+        readonly property Item p: root.panels.popoutsWrapper
+        readonly property bool open: root.panels.popouts.hasCurrent || root.panels.popouts.isDetached
+
+        x: root.bar.insetLeft + (open ? p.targetX : p.x)
+        y: root.bar.insetTop + (open ? p.targetY : p.y)
+        width: open ? p.targetW : (root.bar.vertical ? p.width * (1 - p.offsetScale) : p.width)
+        height: open ? p.targetH : (root.bar.vertical ? p.height : p.height * (1 - p.offsetScale))
+        intersection: Intersection.Subtract
     }
 
     component R: Region {
