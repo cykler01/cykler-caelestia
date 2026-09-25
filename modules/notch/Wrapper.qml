@@ -51,6 +51,9 @@ Item {
 
     // Up for as long as the workspace is empty, as long as there is something to show
     readonly property bool persistent: Config.notch.showOnEmptyWorkspace && emptyWorkspace && (Config.notch.showClock || root.playing)
+    // Whether the notch is standing in for the clock, so the bar can drop its own
+    readonly property bool showsClock: Config.notch.enabled && Config.notch.showOnEmptyWorkspace && emptyWorkspace && Config.notch.showClock
+
     // The brief pill after a track change, or while hovered/peeking
     readonly property bool trackActive: root.playing && (shown || hovered || peeking)
 

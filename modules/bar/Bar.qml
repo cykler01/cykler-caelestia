@@ -18,6 +18,8 @@ ColumnLayout {
     required property BarPopouts.Wrapper popouts
     required property bool fullscreen
     readonly property int vPadding: Tokens.padding.large
+    // The notch shows the time and date on an empty workspace, so the bar's clock steps aside
+    readonly property bool clockHidden: ShellState.componentsFor(screen)?.panels?.notch?.showsClock ?? false
 
     // Extent of the empty stretch between the first and last spacer, so the drawers can cut it out of the
     // frame on an empty workspace (y coordinates along the bar)
@@ -187,6 +189,7 @@ ColumnLayout {
             DelegateChoice {
                 roleValue: "clock"
                 delegate: EntryWrapper {
+                    visible: !root.clockHidden
                     Clock {
                         objectName: "taskbarClock"
                     }

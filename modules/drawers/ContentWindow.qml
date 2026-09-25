@@ -195,22 +195,20 @@ StyledWindow {
         // corners are rounded, and they join the thin frame like any other hanging panel.
         BlobRect {
             group: blobGroup
-            visible: root.middleProg > 0.01
             radius: Tokens.rounding.extraLarge
             x: bar.vertical ? (bar.onLeft ? -radius : root.width - bar.thickness) : -radius
             y: bar.vertical ? -radius : (bar.onTop ? -radius : root.height - bar.thickness)
-            implicitWidth: bar.vertical ? bar.thickness + radius : bar.middleStart + radius
-            implicitHeight: bar.vertical ? bar.middleStart + radius : bar.thickness + radius
+            implicitWidth: root.middleProg <= 0.01 ? 0 : bar.vertical ? bar.thickness + radius : bar.middleStart + radius
+            implicitHeight: root.middleProg <= 0.01 ? 0 : bar.vertical ? bar.middleStart + radius : bar.thickness + radius
         }
 
         BlobRect {
             group: blobGroup
-            visible: root.middleProg > 0.01
             radius: Tokens.rounding.extraLarge
             x: bar.vertical ? (bar.onLeft ? -radius : root.width - bar.thickness) : bar.middleEnd
             y: bar.vertical ? bar.middleEnd : (bar.onTop ? -radius : root.height - bar.thickness)
-            implicitWidth: bar.vertical ? bar.thickness + radius : root.width - bar.middleEnd + radius
-            implicitHeight: bar.vertical ? root.height - bar.middleEnd + radius : bar.thickness + radius
+            implicitWidth: root.middleProg <= 0.01 ? 0 : bar.vertical ? bar.thickness + radius : root.width - bar.middleEnd + radius
+            implicitHeight: root.middleProg <= 0.01 ? 0 : bar.vertical ? root.height - bar.middleEnd + radius : bar.thickness + radius
         }
 
         PanelBg {
@@ -243,7 +241,9 @@ StyledWindow {
             panel: panels.sessionWrapper
             deformAmount: 0.2
             x: panels.sessionWrapper.x + panels.session.x + bar.insetLeft
-            implicitWidth: panels.session.width
+            // Closed panels hide under the frame; with the bar's middle cut away that can be uncovered, so a
+            // closed panel gets no size at all (the blob renderer skips empty shapes)
+            implicitWidth: panels.session.offsetScale < 0.999 ? panels.session.width : 0
         }
 
         PanelBg {
@@ -251,6 +251,7 @@ StyledWindow {
 
             panel: panels.sidebar
             deformAmount: 0.03
+            implicitWidth: panels.sidebar.offsetScale < 0.999 ? panel.width : 0
             implicitHeight: panel.height * (1 / rawDeformMatrix.m22) + 2
             exclude: panels.sidebar.offsetScale > 0.08 ? [] : [utilsBg]
             bottomLeftRadius: Math.max(0, Math.min(1, panels.sidebar.offsetScale / 0.3)) * radius
@@ -262,7 +263,7 @@ StyledWindow {
             panel: panels.osdWrapper
             deformAmount: 0.25
             x: panels.osdWrapper.x + panels.osd.x + bar.insetLeft
-            implicitWidth: panels.osd.width
+            implicitWidth: panels.osd.offsetScale < 0.999 ? panels.osd.width : 0
         }
 
         PanelBg {
@@ -276,6 +277,7 @@ StyledWindow {
 
             panel: panels.utilities
             deformAmount: panels.sidebar.visible ? 0.1 : 0.15
+            implicitWidth: panels.utilities.offsetScale < 0.999 ? panel.width : 0
             exclude: panels.sidebar.offsetScale > 0.08 ? [] : [sidebarBg]
             topLeftRadius: Math.max(0, Math.min(1, panels.sidebar.offsetScale / 0.3)) * radius
         }
@@ -288,12 +290,17 @@ StyledWindow {
             // The extra size is tucked under the bar, so it grows towards the bar's side
             readonly property real extraOffset: (bar.onRight || bar.onBottom) && !panels.popouts.isDetached ? 0 : (bar.vertical ? panels.popouts.width : panels.popouts.height) * extraWidth
 
+            // A closed popout tucks itself under the bar band; with the bar's middle cut away nothing covers that
+            // spot any more, so the box is given no size at all while the popout is closed (the blob renderer skips
+            // empty shapes, it does not look at `visible`)
+            readonly property bool open: panels.popoutsWrapper.offsetScale < 0.999
+
             panel: panels.popoutsWrapper
             deformAmount: panels.popouts.isDetached ? 0.05 : panels.popouts.hasCurrent ? 0.15 : 0.1
             x: bar.vertical ? panels.popoutsWrapper.x + panels.popouts.x + bar.insetLeft - extraOffset : panels.popoutsWrapper.x + bar.insetLeft
             y: bar.vertical ? panels.popoutsWrapper.y + bar.insetTop : panels.popoutsWrapper.y + panels.popouts.y + bar.insetTop - extraOffset
-            implicitWidth: bar.vertical ? panels.popouts.width * (1 + extraWidth) : panels.popoutsWrapper.width
-            implicitHeight: bar.vertical ? panels.popoutsWrapper.height : panels.popouts.height * (1 + extraWidth)
+            implicitWidth: !open ? 0 : bar.vertical ? panels.popouts.width * (1 + extraWidth) : panels.popoutsWrapper.width
+            implicitHeight: !open ? 0 : bar.vertical ? panels.popoutsWrapper.height : panels.popouts.height * (1 + extraWidth)
 
             Behavior on extraWidth {
                 Anim {}

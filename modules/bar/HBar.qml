@@ -18,6 +18,8 @@ RowLayout {
     required property BarPopouts.Wrapper popouts
     required property bool fullscreen
     readonly property int hPadding: Tokens.padding.large
+    // The notch shows the time and date on an empty workspace, so the bar's clock steps aside
+    readonly property bool clockHidden: ShellState.componentsFor(screen)?.panels?.notch?.showsClock ?? false
 
     // Centre of an item along the bar (x), in bar coordinates
     function centerOf(item: Item): real {
@@ -191,6 +193,7 @@ RowLayout {
             DelegateChoice {
                 roleValue: "clock"
                 delegate: EntryWrapper {
+                    visible: !root.clockHidden
                     HClock {
                         objectName: "taskbarClock"
                     }
