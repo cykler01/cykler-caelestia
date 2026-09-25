@@ -310,6 +310,15 @@ PageBase {
 
     title: Tr.tr("Layout")
 
+    // Hold the page still while a tile is being dragged
+    Item {
+        Binding {
+            target: root.flickable
+            property: "interactive"
+            value: root.dragId === ""
+        }
+    }
+
     ColumnLayout {
         anchors.horizontalCenter: parent.horizontalCenter
         anchors.top: parent.top
@@ -444,6 +453,8 @@ PageBase {
                         property point start
 
                         anchors.fill: parent
+                        // Without this the page's scroll area takes over as soon as the pointer moves
+                        preventStealing: true
                         cursorShape: pressed ? Qt.ClosedHandCursor : Qt.OpenHandCursor
 
                         onPressed: event => {
