@@ -1,12 +1,13 @@
 pragma ComponentBehavior: Bound
 
 import QtQuick
+import "geometry.js" as Geometry
 import Quickshell
 import Caelestia.Config
 import qs.components
 import qs.services
 
-// A 16:9 representation of one workspace: every window on it is drawn at the position
+// A scaled-down picture of one workspace: every window on it is drawn at the position
 // and size Hyprland reports, scaled down from its monitor into this tile. Clicking a
 // window focuses it, clicking anywhere else on the tile focuses the workspace.
 StyledClippingRect {
@@ -17,6 +18,15 @@ StyledClippingRect {
     required property int cardWidth
     required property int cardHeight
     required property ScreenState screenState
+    // Outlined as the keyboard's current choice, apart from the focused workspace
+    property bool selected
+    // A window is being dragged over this tile and would land here if let go
+    property bool dropTarget
+    // The window being dragged, if any, so its preview here can be dimmed
+    property var draggedClient: null
+
+    signal pointerMoved
+    signal windowGrabbed(var card, real grabX, real grabY)
 
     readonly property var workspace: Hypr.workspaces.values.find(w => w.id === root.wsId) ?? null
     // A plain array of toplevels. The Repeater below cannot take a `list<HyprlandToplevel>`
@@ -37,18 +47,17 @@ StyledClippingRect {
         return name && name !== String(root.wsId) ? name : String(root.wsId);
     }
 
-    // Windows report layout coordinates, so they are placed relative to the monitor
-    // they sit on and scaled from that monitor's size into this tile. A tile is 16:9
-    // while a monitor is usually a little taller, so the axes are scaled separately:
-    // the workspace ends up fractionally squashed rather than cropped.
-    readonly property var wsMonitor: root.workspace?.monitor ?? null
-    readonly property real scaleX: root.wsMonitor?.width ? root.contentWidth / root.wsMonitor.width : 0
-    readonly property real scaleY: root.wsMonitor?.height ? root.contentHeight / root.wsMonitor.height : 0
-    readonly property real originX: root.wsMonitor?.x ?? 0
-    readonly property real originY: root.wsMonitor?.y ?? 0
+    // Windows report logical layout coordinates, so they are placed relative to the usable part
+    // of the monitor they sit on (see geometry.js) and scaled into this tile by one factor for
+    // both axes, then centred: a workspace on a monitor shaped differently to the tile is
+    // letterboxed rather than stretched, and on a matching monitor it fills the tile.
+    readonly property var usable: Geometry.usableRect(root.workspace?.monitor?.lastIpcObject)
     // The tile's content is inset by its border, so window geometry has to match
     readonly property real contentWidth: root.cardWidth - root.border.width * 2
     readonly property real contentHeight: root.cardHeight - root.border.width * 2
+    readonly property real fit: root.usable ? Math.min(root.contentWidth / root.usable.width, root.contentHeight / root.usable.height) : 0
+    readonly property real offsetX: root.usable ? (root.contentWidth - root.usable.width * root.fit) / 2 : 0
+    readonly property real offsetY: root.usable ? (root.contentHeight - root.usable.height * root.fit) / 2 : 0
 
     implicitWidth: root.cardWidth
     implicitHeight: root.cardHeight
@@ -56,9 +65,13 @@ StyledClippingRect {
     // Occupied workspaces read brighter than the empty ones, which stay dark
     color: root.occupied ? Colours.tPalette.m3surfaceContainerHighest : Colours.tPalette.m3surfaceContainerLowest
     border.width: root.active ? 2 : 1
-    border.color: root.active ? Colours.palette.m3primary : root.occupied ? Colours.tPalette.m3outline : Colours.tPalette.m3outlineVariant
+    border.color: root.borderColour
 
-    Behavior on border.color {
+    // Animated through a plain property: ClippingRectangle's border is an alias into an
+    // inner rectangle, and a Behavior directly on border.color crashes Quickshell
+    property color borderColour: root.active ? Colours.palette.m3primary : root.occupied ? Colours.tPalette.m3outline : Colours.tPalette.m3outlineVariant
+
+    Behavior on borderColour {
         CAnim {}
     }
 
@@ -81,48 +94,104 @@ StyledClippingRect {
             }
 
             WindowCard {
+                id: card
+
                 required property var modelData
 
                 client: modelData
+                ghosted: root.draggedClient !== null && modelData === root.draggedClient
+                onGrabbed: (grabX, grabY) => root.windowGrabbed(card, grabX, grabY)
                 screenState: root.screenState
-                scaleX: root.scaleX
-                scaleY: root.scaleY
-                originX: root.originX
-                originY: root.originY
+                fit: root.fit
+                offsetX: root.offsetX
+                offsetY: root.offsetY
+                originX: root.usable?.x ?? 0
+                originY: root.usable?.y ?? 0
                 tileWidth: root.contentWidth
                 tileHeight: root.contentHeight
             }
         }
     }
 
-    // Overlaid on the tile so it stays readable over a bright window preview
+    // Only real pointer movement counts, so a tile that merely ends up under a resting pointer
+    // (after the keyboard moves the page, say) doesn't steal the selection back
+    HoverHandler {
+        onPointChanged: root.pointerMoved()
+    }
+
+    // The keyboard's current choice, drawn inside the tile's own outline so it can sit on the
+    // focused workspace without hiding that it is the focused one
+    StyledRect {
+        anchors.fill: parent
+        anchors.margins: 3
+        radius: root.radius - 3
+        color: "transparent"
+        border.width: 2
+        border.color: Colours.palette.m3tertiary
+        opacity: root.selected ? 1 : 0
+
+        Behavior on opacity {
+            Anim {
+                type: Anim.FastEffects
+            }
+        }
+    }
+
+    // Lit while a dragged window is over the tile
+    StyledRect {
+        anchors.fill: parent
+        radius: root.radius
+        color: Qt.alpha(Colours.palette.m3primary, 0.18)
+        border.width: 2
+        border.color: Colours.palette.m3primary
+        opacity: root.dropTarget ? 1 : 0
+
+        Behavior on opacity {
+            Anim {
+                type: Anim.FastEffects
+            }
+        }
+    }
+
+    // The workspace number top left and how many windows it holds top right, both overlaid on
+    // the tile so they stay readable over a bright window preview
     StyledRect {
         anchors.left: parent.left
         anchors.top: parent.top
         anchors.margins: Tokens.padding.small
 
-        implicitWidth: header.implicitWidth + Tokens.padding.small * 2
-        implicitHeight: header.implicitHeight + Tokens.padding.extraSmall * 2
+        implicitWidth: label.implicitWidth + Tokens.padding.small * 2
+        implicitHeight: label.implicitHeight + Tokens.padding.extraSmall * 2
         radius: Tokens.rounding.full
         color: Qt.alpha(Colours.palette.m3surfaceContainerLowest, 0.6)
 
-        Row {
-            id: header
+        StyledText {
+            id: label
 
             anchors.centerIn: parent
-            spacing: Tokens.spacing.small
+            text: root.wsLabel
+            color: root.active ? Colours.palette.m3primary : root.occupied ? Colours.palette.m3onSurface : Colours.palette.m3onSurfaceVariant
+            font: Tokens.font.body.medium
+        }
+    }
 
-            StyledText {
-                text: root.wsLabel
-                color: root.active ? Colours.palette.m3primary : root.occupied ? Colours.palette.m3onSurface : Colours.palette.m3onSurfaceVariant
-                font: Tokens.font.body.medium
-            }
+    StyledRect {
+        anchors.right: parent.right
+        anchors.top: parent.top
+        anchors.margins: Tokens.padding.small
 
-            StyledText {
-                visible: root.occupied
-                text: root.windows.length
-                color: Colours.palette.m3onSurfaceVariant
-            }
+        visible: root.occupied
+        implicitWidth: Math.max(implicitHeight, count.implicitWidth + Tokens.padding.small * 2)
+        implicitHeight: count.implicitHeight + Tokens.padding.extraSmall * 2
+        radius: Tokens.rounding.full
+        color: Qt.alpha(Colours.palette.m3surfaceContainerLowest, 0.6)
+
+        StyledText {
+            id: count
+
+            anchors.centerIn: parent
+            text: root.windows.length
+            color: Colours.palette.m3onSurfaceVariant
         }
     }
 }

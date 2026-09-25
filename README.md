@@ -229,15 +229,26 @@ in-shell player alone, so they keep driving the local queue while a browser is t
 playing. They are disabled rather than hidden while nothing is queued, so the library doesn't
 shift when a queue appears.
 
+### Keybinds
+
+*Settings > Keybinds* lists every `kb*` keybind from the Hyprland config (`hypr/variables.lua`),
+grouped and searchable. Click one to change its modifiers, click its key and press the new one, add
+a further shortcut or reset it to the default. Shortcuts that two binds share are flagged. Your
+choices are written to `~/.config/caelestia/hypr-vars.lua` (a copy is kept once as
+`hypr-vars.lua.bak-keybinds`) and Hyprland is reloaded. It needs the Lua config from the
+[main dotfiles](https://github.com/caelestia-dots/caelestia); the page is empty without it.
+
 ### Window overview
 
 A full-screen overview of every workspace and the windows on it, so you can see everything at
-glance and jump straight to it. The ten workspaces around the current one are laid out in a
-centred 2×5 grid, each tile a 16:9 representation of that workspace: every window is drawn at the
-position and size Hyprland gives it, scaled down from its monitor, with the app's own icon over the
-middle of it. Occupied workspaces are brighter than empty ones, all of them are outlined, and the
+a glance and jump straight to it. Workspaces are shown ten to a page in a centred 2x5 grid. Each
+tile takes the shape of your monitor (its usable area, so the bar's space isn't counted) and every
+window is drawn at the position and size Hyprland gives it, scaled to fit, with the app's own icon
+over the middle of it. A workspace on a differently shaped monitor is letterboxed rather than
+stretched. Occupied workspaces are brighter than empty ones, all of them are outlined, and the
 focused one is outlined in the accent colour. Clicking a window focuses it and closes the overview;
-clicking anywhere else on a tile switches to that workspace.
+clicking anywhere else on a tile switches to that workspace. It slides up from the bottom of the
+screen when it opens.
 
 Open it either way:
 
@@ -246,11 +257,32 @@ Open it either way:
 -   **Top-left hot corner** — move the pointer into the top-left corner of the screen and hold it
     there briefly. The bar's logo sits below the corner, so this doesn't get in its way.
 
+For a machine without a trackpad, bind a key to the `caelestia:overview` global shortcut (it toggles
+the overview), e.g. in `hyprland.lua`: `hl.bind("SUPER + Up", hl.dsp.global("caelestia:overview"))`.
 It can also be driven without either with `qs -c caelestia ipc call overview open`, `close` or
 `toggle`, or by binding the `caelestia:overviewOpen` / `caelestia:overviewClose` global shortcuts.
-Escape closes it, and number keys `1`–`9` jump to that workspace.
 
-Settings are in `shell.json`:
+Keyboard:
+
+-   **Arrow keys** move the highlight between workspaces (a second outline, apart from the focused
+    one) and carry on into the next or previous page at the edges; **Enter** or **Space** jumps to
+    the highlighted workspace. The pointer moves the highlight too.
+-   **Home** / **End** go to the first or last tile of the page, **Page Up** / **Page Down** (or the
+    mouse wheel / touchpad scroll anywhere over the overview, the arrow buttons either side of the
+    grid, or the dots under it) change page.
+-   With the overview open, the four-finger swipe **left** / **right** turns the page (instead of
+    driving the notification popout) and swiping **down** closes it.
+-   **Drag a window** onto another tile to move it to that workspace (it stays where you are). Hold it
+    out past either side of the grid to turn the page. A plain click still focuses the window.
+-   `1`–`9` and `0` jump to that tile on the current page, and **Esc** closes it.
+
+Pages cover every workspace in groups of ten (1–10, 11–20 and so on, matching the workspace
+groups the keybinds use) out to the last group with a window on it or the focused one, plus one
+empty group so a fresh one is always reachable. Switch on *Only workspaces in use* to list just the
+workspaces that have windows, the focused one and the first free number instead; it is still shown
+ten to a page, and the number keys then pick the n-th tile on the page.
+
+Settings are under *Settings > Panels > Overview*, or in `shell.json`:
 
 ```json
 "overview": {
@@ -258,7 +290,8 @@ Settings are in `shell.json`:
     "gestures": true,
     "gestureFingers": 4,
     "hotCorner": true,
-    "hotCornerSize": 10
+    "hotCornerSize": 10,
+    "onlyInUse": false
 }
 ```
 

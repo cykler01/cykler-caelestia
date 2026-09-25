@@ -14,6 +14,9 @@ PersistentProperties {
     property bool notifPopout
     property bool overview
 
+    // Asks the overview to turn its page (-1 back, 1 forward), for the swipe gestures
+    signal overviewPageRequested(int delta)
+
     // Which tab the notification popout is showing: 0 notifications, 1 media library.
     // Kept here rather than in the popout so it survives the popout closing, and so the
     // swipe gestures can move it without reaching into a window

@@ -18,10 +18,12 @@ StyledWindow {
     readonly property ScreenState screenState: ShellState.forScreen(screen)
     // Attached config lives on the content item, the same as every other window here
     readonly property bool open: (screenState?.overview ?? false) && (contentItem?.Config.overview.enabled ?? false)
-    readonly property bool wanted: open || reveal > 0
+    readonly property bool wanted: open || reveal > 0 || lift > 0
 
-    // 0 when closed, 1 when fully open; drives the enter/leave animation
+    // 0 when closed, 1 when fully open; drives the enter/leave animation. reveal fades the
+    // scrim and grid in, lift is how far the grid has been pulled up from below the screen
     property real reveal: open ? 1 : 0
+    property real lift: open ? 1 : 0
 
     name: "overview"
     visible: wanted
@@ -39,6 +41,12 @@ StyledWindow {
     Behavior on reveal {
         Anim {
             type: Anim.FastEffects
+        }
+    }
+
+    Behavior on lift {
+        Anim {
+            type: Anim.DefaultSpatial
         }
     }
 
@@ -70,7 +78,6 @@ StyledWindow {
         screen: root.screen
         screenState: root.screenState
         reveal: root.reveal
-        opacity: root.reveal
-        scale: 0.98 + 0.02 * root.reveal
+        lift: root.lift
     }
 }

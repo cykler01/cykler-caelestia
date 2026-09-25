@@ -98,7 +98,14 @@ Scope {
         // qmllint enable unresolved-type
         name: "notifPopoutClose"
         description: "Close the notification popout"
-        onPressed: ShellState.forActive().notifPopout = false
+        onPressed: {
+            const screenState = ShellState.forActive();
+            // With the overview up the same swipe turns its page instead
+            if (screenState.overview)
+                screenState.overviewPageRequested(-1);
+            else
+                screenState.notifPopout = false;
+        }
     }
 
     // qmllint disable unresolved-type
@@ -111,6 +118,11 @@ Scope {
         description: "Open the notification popout, or switch it to its next tab"
         onPressed: {
             const screenState = ShellState.forActive();
+            if (screenState.overview) {
+                screenState.overviewPageRequested(1);
+                return;
+            }
+
             if (!screenState.notifPopout) {
                 screenState.notifPopout = true;
                 return;

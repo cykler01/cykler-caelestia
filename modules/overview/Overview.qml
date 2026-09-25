@@ -33,6 +33,16 @@ Scope {
             root.toggle();
         }
 
+        // Closes the overview if it is open and says whether it was, so a gesture shared with
+        // something else (a four-finger swipe down that also suspends, say) can tell them apart
+        function closeIfOpen(): bool {
+            const state = ShellState.forActive();
+            const wasOpen = state?.overview ?? false;
+            if (wasOpen)
+                state.overview = false;
+            return wasOpen;
+        }
+
         target: "overview"
     }
 

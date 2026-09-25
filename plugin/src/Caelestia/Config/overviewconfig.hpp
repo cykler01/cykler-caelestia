@@ -18,6 +18,9 @@ class OverviewConfig : public settings::ObjectNode {
     CONFIG_PROPERTY(bool, hotCorner, true)
     // Size of the top-left hot corner, in pixels
     CONFIG_GLOBAL_PROPERTY(int, hotCornerSize, 10)
+    // Only list workspaces that have windows (plus the focused one and the next free one)
+    // instead of every workspace in groups of ten. Still shown ten to a page
+    CONFIG_GLOBAL_PROPERTY(bool, onlyInUse, false)
 };
 
 } // namespace caelestia::config

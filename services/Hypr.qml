@@ -61,6 +61,14 @@ Singleton {
         dispatch(usingLua ? `hl.dsp.focus({ window = "address:0x${address}" })` : `focuswindow address:0x${address}`);
     }
 
+    // Moves a window to a workspace without following it there
+    function moveWindowToWorkspace(address: string, ws: int): void {
+        if (!address)
+            return;
+
+        dispatch(usingLua ? `hl.dsp.window.move({ workspace = ${ws}, follow = false, window = "address:0x${address}" })` : `movetoworkspacesilent ${ws},address:0x${address}`);
+    }
+
     function cycleSpecialWorkspace(direction: string): void {
         const openSpecials = workspaces.values.filter(w => w.name.startsWith("special:") && w.lastIpcObject.windows > 0);
 

@@ -77,7 +77,7 @@ StyledRect {
         }
 
         // The three modes sit in one pill, with a thumb that slides to whichever of them is on,
-        // instead of each being a button of its own
+        // instead ofdd each being a button of its own
         StyledRect {
             id: modePill
 

@@ -5,6 +5,7 @@ import Quickshell
 import Quickshell.Io
 import Caelestia
 import qs.services
+import qs.utils
 
 Singleton {
     id: root

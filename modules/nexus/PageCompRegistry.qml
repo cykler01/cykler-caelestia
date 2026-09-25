@@ -165,6 +165,11 @@ QtObject {
                 Component {
                     NotchPanel {}
                 }
+
+                // Overview settings sub-page
+                Component {
+                    OverviewPanel {}
+                }
             }
         },
         Component {
@@ -205,6 +210,14 @@ QtObject {
             StackPage {
                 Component {
                     InputPage {}
+                }
+            }
+        },
+        Component {
+            // NOTE(fork): Hyprland keybinds
+            StackPage {
+                Component {
+                    KeybindsPage {}
                 }
             }
         },

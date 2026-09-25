@@ -51,11 +51,18 @@ PageBase {
         }
 
         NavRow {
-            last: true
             icon: "queue_music"
             text: Tr.tr("Notch")
             subtext: Config.notch.enabled ? Tr.trCtx("Enabled", "panel status") : Tr.trCtx("Disabled", "panel status")
             onClicked: root.nState.openSubPage(11)
+        }
+
+        NavRow {
+            last: true
+            icon: "grid_view"
+            text: Tr.tr("Overview")
+            subtext: Config.overview.enabled ? Tr.trCtx("Enabled", "panel status") : Tr.trCtx("Disabled", "panel status")
+            onClicked: root.nState.openSubPage(12)
         }
     }
 }
