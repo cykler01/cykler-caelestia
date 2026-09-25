@@ -6,7 +6,7 @@ A personal fork of [caelestia-dots/shell](https://github.com/caelestia-dots/shel
 
 [**Watch the feature showcase**](https://cykler.dev/caelestia/showcase.mp4) - every feature in this fork, in one clip
 
-[Docs](docs/README.md) - [Feature demos](docs/demos.md) - [Install](docs/install.md) - [Updating](docs/updating.md) - [Troubleshooting](docs/troubleshooting.md) - [Issues](https://github.com/cykler01/cykler-caelestia/issues)
+[Docs](docs/README.md) - [Install](docs/install.md) - [Updating](docs/updating.md) - [Troubleshooting](docs/troubleshooting.md) - [Issues](https://github.com/cykler01/cykler-caelestia/issues)
 
 ![GitHub last commit](https://img.shields.io/github/last-commit/cykler01/cykler-caelestia?style=flat-square&labelColor=101418&color=9ccbfb)
 ![GitHub issues](https://img.shields.io/github/issues/cykler01/cykler-caelestia?style=flat-square&labelColor=101418&color=9ccbfb)
@@ -16,7 +16,7 @@ A personal fork of [caelestia-dots/shell](https://github.com/caelestia-dots/shel
 
 > [!WARNING]
 > **Built for our machines first.** These features are not guaranteed to work reliably everywhere.
-> The fork tracks an AMD laptop with a USB DAC and our own setups, so behaviour may differ on your
+> The fork tracks our own setups, so behaviour may differ on your
 > system. Use at your own risk, and please open an [issue](https://github.com/cykler01/cykler-caelestia/issues)
 > if something breaks.
 
@@ -113,20 +113,17 @@ This fork is only worth anything because of the people below.
 - **[caelestia-dots/caelestia](https://github.com/caelestia-dots/caelestia)** - the Hyprland config,
   themes and keybind variables our features integrate with, including the `hypr-vars.lua` the
   Keybinds page reads and writes.
-- **This fork** - [@CYKLER01](https://github.com/CYKLER01) (Chris): battery and power management,
+- **This fork** - [@CYKLER01](https://github.com/CYKLER01): battery and power management,
   game mode, input settings, OCR, Google Lens, SSH and GPU launcher actions, to-do list, screenshots,
   shell assets, wallpaper arrows, the displays page, and the local music player, library, queue and
   equalizer.
-  [@imnuclr](https://github.com/imnuclr) (Charlie): install, dependency and update scripts, the
+  [@imnuclr](https://github.com/imnuclr): install, dependency and update scripts, the
   window overview, the notification popout and notification dock work, the notch, the power and
   battery settings page, the performance graph, and the idle, keybinds and menu behaviour.
 - **Battery power management** - based on the `feat/battery-power-management` branch contributed by
   [@PixelKhaos](https://github.com/PixelKhaos) (Robin Seger).
 - **Displays page** - based on [PR #1629](https://github.com/caelestia-dots/shell/pull/1629) by
   [@devalentineomonya](https://github.com/devalentineomonya).
-- Three commits in this repository carry lost author metadata (the first displays menu, the
-  lock/display timeout work and the install flow fix). If you wrote one of them, tell us and we will
-  credit you.
 
 ## License
 
