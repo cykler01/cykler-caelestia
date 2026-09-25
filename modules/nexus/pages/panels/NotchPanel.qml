@@ -114,29 +114,6 @@ PageBase {
             onMoved: v => GlobalConfig.notch.showDuration = Math.round(v)
         }
 
-        StepperRow {
-            label: Tr.tr("Hover delay")
-            // TRANSLATORS: ms is the millisecond unit, leave it untranslated
-            subtext: Tr.tr("Time hovering before it peeks the Media tab (ms)")
-            value: Config.notch.hoverExpandDelay
-            from: 0
-            to: 1000
-            stepSize: 50
-            onMoved: v => GlobalConfig.notch.hoverExpandDelay = Math.round(v)
-        }
-
-        StepperRow {
-            last: true
-            label: Tr.tr("Collapse delay")
-            // TRANSLATORS: ms is the millisecond unit, leave it untranslated
-            subtext: Tr.tr("Time after the cursor leaves before it collapses (ms)")
-            value: Config.notch.collapseDelay
-            from: 0
-            to: 2000
-            stepSize: 50
-            onMoved: v => GlobalConfig.notch.collapseDelay = Math.round(v)
-        }
-
         // Content
         SectionHeader {
             text: Tr.tr("Content")

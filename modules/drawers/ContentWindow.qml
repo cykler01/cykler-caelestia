@@ -192,10 +192,12 @@ StyledWindow {
     Item {
         anchors.fill: parent
         opacity: root.surfaceColour.a
-        // The frame's drop shadow is a full-screen shader pass; it goes when shadows are switched off
-        layer.enabled: PowerSaving.shadows
+        // The layer also makes the frame's opacity apply to all the blobs as one surface. Without it, where two blobs
+        // overlap (the notch on the bar, say) the translucent colour is applied twice and shows as darker patches, so
+        // it is only dropped when there is no shadow to draw and the frame is fully opaque.
+        layer.enabled: PowerSaving.shadows || root.surfaceColour.a < 1
         layer.effect: MultiEffect {
-            shadowEnabled: true
+            shadowEnabled: PowerSaving.shadows
             blurMax: 15
             shadowColor: Qt.alpha(Colours.palette.m3shadow, Math.max(0, root.shadowOpacity))
         }

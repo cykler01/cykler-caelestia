@@ -24,10 +24,6 @@ Item {
     required property ScreenState screenState
 
     property bool shown
-    property bool hovered
-    property bool peeking
-    property bool wasAlreadyOpen
-    property int previousTab
 
     // Whether cava has ever produced a spectrum with a real level in it, which is what the pill
     // uses to decide between its placeholder pattern and the real bars. Deliberately one way:
@@ -42,9 +38,6 @@ Item {
     readonly property bool local: !Players.active && Music.hasTrack
     readonly property bool playing: root.local ? Music.playing : Players.active?.isPlaying === true
 
-    // Stays visible through our own peek (root.peeking) so the pill keeps
-    // receiving hover events to detect mouse-away and end the peek; only
-    // hides for a dashboard opened some other way (e.g. the user's own keybind)
     // No tiled windows cover this monitor's desktop (floating ones leave it visible), same rule as the desktop widgets
     readonly property var monitor: Hypr.monitorFor(screen)
     readonly property bool emptyWorkspace: monitor?.activeWorkspace?.toplevels?.values.every(t => t.lastIpcObject?.floating) ?? true
@@ -58,37 +51,11 @@ Item {
     // Whether the notch is standing in for the clock, so the bar can drop its own
     readonly property bool showsClock: Config.notch.enabled && wanted && Config.notch.showClock
 
-    // The brief pill after a track change, or while hovered/peeking
-    readonly property bool trackActive: root.playing && (shown || hovered || peeking)
+    // The brief pill after a track change, 
+    readonly property bool trackActive: root.playing && shown
 
-    readonly property bool shouldBeActive: Config.notch.enabled && (persistent || trackActive) && (!screenState.dashboard || root.peeking) && !screenState.launcher
+    readonly property bool shouldBeActive: Config.notch.enabled && (persistent || trackActive) && !screenState.dashboard && !screenState.launcher
     property real offsetScale: shouldBeActive ? 0 : 1
-
-    // Media tab is inserted after Dashboard's own tab (if shown), matching the
-    // filter order built in modules/dashboard/Content.qml's dashboardTabs
-    readonly property int mediaTabIndex: Config.dashboard.showMedia ? (Config.dashboard.showDashboard ? 1 : 0) : -1
-
-    function startPeek(): void {
-        if (root.mediaTabIndex < 0 || !Config.dashboard.enabled)
-            return;
-
-        root.peeking = true;
-        root.wasAlreadyOpen = root.screenState.dashboard;
-        root.previousTab = root.screenState.dashboardTab;
-        root.screenState.dashboard = true;
-        root.screenState.dashboardTab = root.mediaTabIndex;
-    }
-
-    function endPeek(): void {
-        if (!root.peeking)
-            return;
-
-        root.peeking = false;
-        if (!root.wasAlreadyOpen)
-            root.screenState.dashboard = false;
-        else
-            root.screenState.dashboardTab = root.previousTab;
-    }
 
     // Services are reference counted, so cava - and the PipeWire capture it reads - stops the
     // moment the pill's own ref (in Pill.qml) goes away. Started cold it has to settle its
@@ -163,12 +130,6 @@ Item {
         Anim {}
     }
 
-    onShouldBeActiveChanged: {
-        // e.g. playback stopped mid-peek: don't leave the dashboard force-opened
-        if (!shouldBeActive && peeking)
-            endPeek();
-    }
-
     Connections {
         // Watches the spectrum itself rather than a peak property's change signal: a passage that
         // holds the loudest bar steady for a while still has to be able to warm this up. Stops
@@ -236,55 +197,14 @@ Item {
         target: Music
     }
 
-    Timer {
-        id: collapseTimer
-
-        interval: root.Config.notch.collapseDelay
-        onTriggered: root.endPeek()
-    }
-
-    Timer {
-        id: expandTimer
-
-        interval: root.Config.notch.hoverExpandDelay
-        onTriggered: {
-            // Peeking opens the media tab, which is only interesting while something is playing
-            if (root.playing)
-                root.startPeek();
-        }
-    }
-
-    HoverHandler {
-        onHoveredChanged: {
-            root.hovered = hovered;
-            if (hovered) {
-                collapseTimer.stop();
-                expandTimer.restart();
-            } else {
-                expandTimer.stop();
-                collapseTimer.restart();
-            }
-        }
-    }
-
     Loader {
         id: content
 
         anchors.horizontalCenter: parent.horizontalCenter
         anchors.top: parent.top
 
-        // While peeking, the dashboard opens underneath this and would have the pill drawn across its tab row;
-        // the pill stays in place (invisible) so it still sees the hover that keeps the peek open
-        // and it fades out and back in across the move into (or out of) the bar, where the layout switches size
-        opacity: peekFade * Math.abs(2 * root.inBarProg - 1)
-
-        property real peekFade: root.peeking ? 0 : 1
-
-        Behavior on peekFade {
-            Anim {
-                type: Anim.DefaultEffects
-            }
-        }
+        // Fades out and back in across the move into (or out of) the bar, where the layout switches size
+        opacity: Math.abs(2 * root.inBarProg - 1)
 
         active: root.shouldBeActive || root.visible
 
