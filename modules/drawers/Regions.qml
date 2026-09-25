@@ -54,6 +54,7 @@ Region {
 
     R {
         panel: root.panels.notch
+        y: panel.y + root.bar.insetTop - root.win.topShift
         height: panel.height * (1 - root.panels.notch.offsetScale)
     }
 

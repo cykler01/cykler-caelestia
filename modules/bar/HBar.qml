@@ -24,6 +24,34 @@ RowLayout {
         return item ? item.mapToItem(root, item.width / 2, 0).x : 0;
     }
 
+    // Extent of the empty stretch between the first and last spacer, so the drawers can cut it out of the
+    // frame on an empty workspace (x coordinates along the bar)
+    property real middleStart
+    property real middleEnd
+    readonly property bool hasMiddle: middleEnd > middleStart
+
+    function updateMiddle(): void {
+        let first = null;
+        let last = null;
+        for (let i = 0; i < repeater.count; i++) {
+            const w = repeater.itemAt(i) as EntryWrapper;
+            if (w?.entryId === "spacer") {
+                if (!first)
+                    first = w;
+                last = w;
+            }
+        }
+        middleStart = first ? first.x : 0;
+        middleEnd = last ? last.x + last.width : 0;
+    }
+
+    Timer {
+        id: middleTimer
+
+        interval: 0
+        onTriggered: root.updateMiddle()
+    }
+
     function closeTray(): void {
         if (!Config.bar.tray.compact)
             return;
@@ -200,6 +228,10 @@ RowLayout {
 
         implicitWidth: item?.implicitWidth ?? 0
         implicitHeight: item?.implicitHeight ?? 0
+
+        onXChanged: middleTimer.restart()
+        onWidthChanged: middleTimer.restart()
+        Component.onCompleted: middleTimer.restart()
 
         children: item
     }

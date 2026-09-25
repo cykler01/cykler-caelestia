@@ -41,6 +41,12 @@ Item {
     readonly property real insetTop: onTop ? thickness : borderThickness
     readonly property real insetBottom: onBottom ? thickness : borderThickness
 
+    // The empty stretch of the bar between its two ends (see Bar/HBar), and how far the bar sticks out past the plain border
+    readonly property real middleStart: content.item?.middleStart ?? 0
+    readonly property real middleEnd: content.item?.middleEnd ?? 0
+    readonly property bool hasMiddle: content.item?.hasMiddle ?? false
+    readonly property real cutDepth: Math.max(0, thickness - borderThickness)
+
     // Same as above but never below the minimum hover thickness (for input regions)
     readonly property real clampedInsetLeft: onLeft ? clampedThickness : Config.border.clampedThickness
     readonly property real clampedInsetRight: onRight ? clampedThickness : Config.border.clampedThickness

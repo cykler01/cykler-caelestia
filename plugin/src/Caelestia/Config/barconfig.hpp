@@ -113,6 +113,9 @@ class BarConfig : public settings::ObjectNode {
 
     CONFIG_ENUM_PROPERTY(BarPosition, position, BarPosition::Left)
     CONFIG_PROPERTY(bool, persistent, true)
+    // On an empty workspace, drop the stretch of the bar between its first and last spacer so the
+    // wallpaper shows through, leaving the two ends as capsules
+    CONFIG_PROPERTY(bool, hideMiddleOnDesktop, true)
     CONFIG_PROPERTY(bool, showOnHover, true)
     CONFIG_PROPERTY(int, dragThreshold, 20)
     CONFIG_SUBOBJECT(BarScrollActions, scrollActions)

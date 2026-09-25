@@ -68,6 +68,13 @@ PageBase {
         }
 
         ToggleRow {
+            text: Tr.tr("Hide middle on desktop")
+            subtext: Tr.tr("On an empty workspace, remove the stretch of the bar between its two ends so the wallpaper shows through")
+            checked: Config.bar.hideMiddleOnDesktop
+            onToggled: GlobalConfig.bar.hideMiddleOnDesktop = checked
+        }
+
+        ToggleRow {
             text: Tr.tr("Show on hover")
             subtext: Tr.tr("Reveal the bar when the cursor reaches the screen edge")
             checked: Config.bar.showOnHover

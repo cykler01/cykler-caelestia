@@ -35,6 +35,15 @@ StyledWindow {
         return hasFullscreenOnNormalWs;
     }
 
+    // On an empty workspace the bar's middle stretch can be dropped so the wallpaper shows through
+    // (config bar.hideMiddleOnDesktop). Floating windows don't count as covering the desktop.
+    readonly property bool desktopEmpty: monitor?.activeWorkspace?.toplevels?.values.every(t => t.lastIpcObject?.floating) ?? true
+    readonly property bool middleHidden: contentItem.Config.bar.hideMiddleOnDesktop && desktopEmpty && bar.hasMiddle && !hasFullscreen
+    property real middleProg: middleHidden ? 1 : 0
+    // How far panels centred on the bar's edge move back towards the screen edge to stay attached to the thin frame
+    readonly property real topShift: bar.onTop ? bar.cutDepth * middleProg : 0
+    readonly property real bottomShift: bar.onBottom ? bar.cutDepth * middleProg : 0
+
     property real fsTransitionProg: hasFullscreen ? 1 : 0
     readonly property real sdfBorderOffset: 2 * fsTransitionProg // SDFs joins are not exact, so offset by 2px to ensure nothing shows
     readonly property real borderThickness: contentItem.Config.border.thickness * (1 - fsTransitionProg)
@@ -80,6 +89,10 @@ StyledWindow {
     anchors.right: true
 
     Behavior on fsTransitionProg {
+        Anim {}
+    }
+
+    Behavior on middleProg {
         Anim {}
     }
 
@@ -170,10 +183,34 @@ StyledWindow {
             anchors.margins: -50 // Make border thicker to smooth out bulge from closed drawers
             group: blobGroup
             radius: root.borderRounding
-            borderLeft: bar.insetLeft - anchors.margins - root.sdfBorderOffset
-            borderRight: bar.insetRight - anchors.margins - root.sdfBorderOffset
-            borderTop: bar.insetTop - anchors.margins - root.sdfBorderOffset
-            borderBottom: bar.insetBottom - anchors.margins - root.sdfBorderOffset
+            // Along the bar's edge the frame thins back to the plain border while the middle is hidden;
+            // the two capsules below then carry the ends of the bar
+            borderLeft: bar.insetLeft - (bar.onLeft ? bar.cutDepth * root.middleProg : 0) - anchors.margins - root.sdfBorderOffset
+            borderRight: bar.insetRight - (bar.onRight ? bar.cutDepth * root.middleProg : 0) - anchors.margins - root.sdfBorderOffset
+            borderTop: bar.insetTop - (bar.onTop ? bar.cutDepth * root.middleProg : 0) - anchors.margins - root.sdfBorderOffset
+            borderBottom: bar.insetBottom - (bar.onBottom ? bar.cutDepth * root.middleProg : 0) - anchors.margins - root.sdfBorderOffset
+        }
+
+        // The two ends of the bar while its middle is hidden. Overshoot the screen edge so only the inner
+        // corners are rounded, and they join the thin frame like any other hanging panel.
+        BlobRect {
+            group: blobGroup
+            visible: root.middleProg > 0.01
+            radius: Tokens.rounding.extraLarge
+            x: bar.vertical ? (bar.onLeft ? -radius : root.width - bar.thickness) : -radius
+            y: bar.vertical ? -radius : (bar.onTop ? -radius : root.height - bar.thickness)
+            implicitWidth: bar.vertical ? bar.thickness + radius : bar.middleStart + radius
+            implicitHeight: bar.vertical ? bar.middleStart + radius : bar.thickness + radius
+        }
+
+        BlobRect {
+            group: blobGroup
+            visible: root.middleProg > 0.01
+            radius: Tokens.rounding.extraLarge
+            x: bar.vertical ? (bar.onLeft ? -radius : root.width - bar.thickness) : bar.middleEnd
+            y: bar.vertical ? bar.middleEnd : (bar.onTop ? -radius : root.height - bar.thickness)
+            implicitWidth: bar.vertical ? bar.thickness + radius : root.width - bar.middleEnd + radius
+            implicitHeight: bar.vertical ? root.height - bar.middleEnd + radius : bar.thickness + radius
         }
 
         PanelBg {
@@ -181,6 +218,7 @@ StyledWindow {
 
             panel: panels.dashboard
             deformAmount: 0.1
+            y: panels.dashboard.y + bar.insetTop - root.topShift
         }
 
         PanelBg {
@@ -188,6 +226,7 @@ StyledWindow {
 
             panel: panels.notch
             deformAmount: 0.1
+            y: panels.notch.y + bar.insetTop - root.topShift
         }
 
         PanelBg {
@@ -195,6 +234,7 @@ StyledWindow {
 
             panel: panels.launcher
             deformAmount: 0.1
+            y: panels.launcher.y + bar.insetTop + root.bottomShift
         }
 
         PanelBg {
@@ -283,11 +323,24 @@ StyledWindow {
             utilities.horizontalStretch: (sidebarBg.rawDeformMatrix.m11 - 1) / 2 + 1
             utilities.deformMatrix: utilsBg.rawDeformMatrix
 
-            dashboard.transform: Matrix4x4 {
-                matrix: dashBg.deformMatrix
-            }
-            launcher.transform: Matrix4x4 {
-                matrix: launcherBg.deformMatrix
+            dashboard.transform: [
+                Matrix4x4 {
+                    matrix: dashBg.deformMatrix
+                },
+                Translate {
+                    y: -root.topShift
+                }
+            ]
+            launcher.transform: [
+                Matrix4x4 {
+                    matrix: launcherBg.deformMatrix
+                },
+                Translate {
+                    y: root.bottomShift
+                }
+            ]
+            notch.transform: Translate {
+                y: -root.topShift
             }
             session.transform: Matrix4x4 {
                 matrix: sessionBg.deformMatrix

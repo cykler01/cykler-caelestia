@@ -19,6 +19,34 @@ ColumnLayout {
     required property bool fullscreen
     readonly property int vPadding: Tokens.padding.large
 
+    // Extent of the empty stretch between the first and last spacer, so the drawers can cut it out of the
+    // frame on an empty workspace (y coordinates along the bar)
+    property real middleStart
+    property real middleEnd
+    readonly property bool hasMiddle: middleEnd > middleStart
+
+    function updateMiddle(): void {
+        let first = null;
+        let last = null;
+        for (let i = 0; i < repeater.count; i++) {
+            const w = repeater.itemAt(i) as EntryWrapper;
+            if (w?.entryId === "spacer") {
+                if (!first)
+                    first = w;
+                last = w;
+            }
+        }
+        middleStart = first ? first.y : 0;
+        middleEnd = last ? last.y + last.height : 0;
+    }
+
+    Timer {
+        id: middleTimer
+
+        interval: 0
+        onTriggered: root.updateMiddle()
+    }
+
     function closeTray(): void {
         if (!Config.bar.tray.compact)
             return;
@@ -196,6 +224,10 @@ ColumnLayout {
 
         implicitWidth: item?.implicitWidth ?? 0
         implicitHeight: item?.implicitHeight ?? 0
+
+        onYChanged: middleTimer.restart()
+        onHeightChanged: middleTimer.restart()
+        Component.onCompleted: middleTimer.restart()
 
         children: item
     }
