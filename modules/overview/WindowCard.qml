@@ -29,6 +29,8 @@ StyledRect {
 
     // Dimmed in its tile while it is being dragged out of it
     property bool ghosted
+    // Another window is being dragged over this one and would trade places with it
+    property bool dropHighlight
 
     // Pressed, so the overview can start dragging this window if the pointer then moves
     signal grabbed(real grabX, real grabY)
@@ -61,9 +63,55 @@ StyledRect {
     radius: Tokens.rounding.extraSmall
     color: Colours.tPalette.m3surfaceContainerHighest
     border.width: 1
-    border.color: root.hovered ? Colours.palette.m3primary : Qt.alpha(Colours.palette.m3outline, 0.5)
+    border.color: root.hovered || root.dropHighlight ? Colours.palette.m3primary : Qt.alpha(Colours.palette.m3outline, 0.5)
     clip: true
     opacity: root.ghosted ? 0.35 : 1
+    scale: root.dropHighlight ? 1.06 : root.hovered && !root.ghosted ? 1.02 : 1
+
+    // Windows glide to their new places when the layout changes, after a swap say
+    Behavior on x {
+        Anim {
+            type: Anim.DefaultSpatial
+        }
+    }
+
+    Behavior on y {
+        Anim {
+            type: Anim.DefaultSpatial
+        }
+    }
+
+    Behavior on width {
+        Anim {
+            type: Anim.DefaultSpatial
+        }
+    }
+
+    Behavior on height {
+        Anim {
+            type: Anim.DefaultSpatial
+        }
+    }
+
+    Behavior on scale {
+        Anim {
+            type: Anim.FastSpatial
+        }
+    }
+
+    // Pops in when it first appears
+    Component.onCompleted: popIn.start()
+
+    NumberAnimation {
+        id: popIn
+
+        target: root
+        property: "scale"
+        from: 0.85
+        to: 1
+        duration: 260
+        easing.type: Easing.OutBack
+    }
 
     Behavior on opacity {
         Anim {

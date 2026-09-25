@@ -3,11 +3,13 @@ pragma ComponentBehavior: Bound
 import "geometry.js" as Geometry
 import QtQuick
 import Quickshell
-import Quickshell.Wayland
+import Quickshell.Hyprland
+import Quickshell.Widgets
 import Caelestia.Config
 import Caelestia.I18n
 import qs.components
 import qs.services
+import qs.utils
 
 Item {
     id: root
@@ -18,6 +20,7 @@ Item {
     // 0 with the grid off the bottom of the screen, 1 once it has been pulled up into place
     required property real lift
 
+    readonly property bool blurred: !!Hypr.options["decoration:blur:enabled"]
     readonly property var monitor: Hypr.monitorFor(screen)
     readonly property int activeWsId: monitor?.activeWorkspace?.id ?? 1
 
@@ -80,15 +83,23 @@ Item {
     // to the side) destroys the tiles of the page it started on.
     property var pending: null
     property var dragClient: null
-    property real ghostWidth
-    property real ghostHeight
-    property real grabX
-    property real grabY
+    // The workspace being dragged when it is a whole one, or -1
+    property int dragWs: -1
+    readonly property bool dragging: root.dragClient !== null || root.dragWs > 0
+    // What the pointer carries is a workspace number instead of an app icon
+    property bool ghostIsWorkspace
+    property string ghostLabel
+    // What the pointer carries: the app's icon, kept after the drop so it can shrink away
+    property string ghostIcon
+    property string ghostClass
+    readonly property real ghostSize: 64
     property point dragPoint
     // The workspace a dropped window would land on, or -1
     property int dropWsId: -1
+    // The window under the pointer in the workspace it came from: dropping there trades places
+    property var swapClient: null
     // Which side of the panel the pointer is out past while dragging, so the page can be turned
-    readonly property int dragEdge: root.dragClient === null || root.pageCount < 2 ? 0 : root.dragPoint.x < panel.x ? -1 : root.dragPoint.x > panel.x + panel.width ? 1 : 0
+    readonly property int dragEdge: !root.dragging || root.pageCount < 2 ? 0 : root.dragPoint.x < panel.x ? -1 : root.dragPoint.x > panel.x + panel.width ? 1 : 0
 
     readonly property int gap: Tokens.spacing.large
     // The grid only ever takes a fraction of the screen, so the tiles stay a modest
@@ -151,40 +162,105 @@ Item {
         if (Math.abs(press.x - p.pressX) > 2 || Math.abs(press.y - p.pressY) > 2)
             return;
 
-        root.ghostWidth = p.width;
-        root.ghostHeight = p.height;
-        root.grabX = p.grabX;
-        root.grabY = p.grabY;
-        root.dragClient = p.client;
+        root.ghostIsWorkspace = p.kind === "workspace";
+        root.ghostLabel = p.label ?? "";
+        root.ghostIcon = p.icon ?? "";
+        root.ghostClass = p.windowClass ?? "";
+        if (root.ghostIsWorkspace)
+            root.dragWs = p.wsId;
+        else
+            root.dragClient = p.client;
         root.updateDrag(sceneX, sceneY);
     }
 
     function updateDrag(sceneX: real, sceneY: real): void {
-        if (root.dragClient === null)
+        if (!root.dragging)
             return;
 
         root.dragPoint = root.mapFromItem(null, sceneX, sceneY);
 
         let target = -1;
+        let swap = null;
         for (let i = 0; i < tiles.count; ++i) {
             const tile = tiles.itemAt(i);
             if (tile && tile.contains(tile.mapFromItem(root, root.dragPoint.x, root.dragPoint.y))) {
                 target = tile.wsId;
+                // Over another window of its own workspace, a drop rearranges rather than moves
+                if (!root.ghostIsWorkspace && target === root.pending?.wsId) {
+                    const under = tile.windowAt(root, root.dragPoint.x, root.dragPoint.y);
+                    if (under && under !== root.dragClient)
+                        swap = under;
+                }
                 break;
             }
         }
         root.dropWsId = target;
+        root.swapClient = swap;
     }
 
-    // Letting go over a different workspace sends the window there; anywhere else it stays put
+    // Hyprland says nothing when a layout changes under a swap, so the previews are asked to
+    // catch up once the windows have settled
+    function refreshSoon(): void {
+        Hyprland.refreshToplevels();
+        Hyprland.refreshWorkspaces();
+        refreshTimer.restart();
+    }
+
+    // Trades the whole contents of two workspaces
+    function swapWorkspaces(a: int, b: int): void {
+        for (const t of Hypr.toplevels.values) {
+            const id = t.workspace?.id ?? -1;
+            if (id === a)
+                Hypr.moveWindowToWorkspace(t.address, b);
+            else if (id === b)
+                Hypr.moveWindowToWorkspace(t.address, a);
+        }
+    }
+
+    // Letting go over a different workspace sends the window there, over another window of its
+    // own trades their places, a whole workspace over another trades their contents, and
+    // anywhere else nothing happens
     function endDrag(): void {
         const p = root.pending;
-        if (root.dragClient !== null && p && root.dropWsId > 0 && root.dropWsId !== p.wsId)
-            Hypr.moveWindowToWorkspace(root.dragClient.address, root.dropWsId);
+        if (root.dragging && p) {
+            if (root.ghostIsWorkspace) {
+                if (root.dropWsId > 0 && root.dropWsId !== root.dragWs) {
+                    root.swapWorkspaces(root.dragWs, root.dropWsId);
+                    root.refreshSoon();
+                }
+            } else if (root.swapClient !== null) {
+                Hypr.swapWindows(root.dragClient.address, root.swapClient.address);
+                root.refreshSoon();
+            } else if (root.dropWsId > 0 && root.dropWsId !== p.wsId) {
+                Hypr.moveWindowToWorkspace(root.dragClient.address, root.dropWsId);
+                root.refreshSoon();
+            }
+        }
 
         root.dragClient = null;
+        root.dragWs = -1;
         root.dropWsId = -1;
+        root.swapClient = null;
         root.pending = null;
+    }
+
+    // While it is up the previews are kept current, since a layout change (a swap, a resize
+    // from elsewhere) sends no event of its own
+    Timer {
+        interval: 500
+        repeat: true
+        running: root.screenState.overview
+        onTriggered: Hyprland.refreshToplevels()
+    }
+
+    Timer {
+        id: refreshTimer
+
+        interval: 350
+        onTriggered: {
+            Hyprland.refreshToplevels();
+            Hyprland.refreshWorkspaces();
+        }
     }
 
     focus: true
@@ -228,7 +304,9 @@ Item {
     Connections {
         function onOverviewChanged(): void {
             root.dragClient = null;
+            root.dragWs = -1;
             root.dropWsId = -1;
+            root.swapClient = null;
             root.pending = null;
             if (root.screenState.overview) {
                 root.resetSelection();
@@ -340,7 +418,9 @@ Item {
 
     StyledRect {
         anchors.fill: parent
-        color: Qt.alpha(Colours.palette.m3scrim, 0.55)
+        // A light tint when the compositor blurs what is behind it (see Overview.qml), and a
+        // darker one where blur is switched off (battery saving, game mode) so it still stands out
+        color: Qt.alpha(Colours.palette.m3scrim, root.blurred ? 0.18 : 0.55)
         opacity: root.reveal
 
         MouseArea {
@@ -404,13 +484,19 @@ Item {
                             }
 
                             WorkspaceCard {
+                                id: tile
+
                                 required property int modelData
+                                required property int index
 
                                 wsId: modelData
                                 active: root.activeWsId === modelData
                                 selected: root.selectedId === modelData
-                                dropTarget: root.dragClient !== null && root.dropWsId === modelData
+                                dropTarget: root.dragging && root.dropWsId === modelData && root.swapClient === null && root.pending?.wsId !== modelData
                                 draggedClient: root.dragClient
+                                lifted: root.dragWs === modelData
+                                swapClient: root.swapClient
+                                order: index
                                 cardWidth: root.cardWidth
                                 cardHeight: root.cardHeight
                                 screenState: root.screenState
@@ -418,12 +504,24 @@ Item {
                                 onWindowGrabbed: (card, gx, gy) => {
                                     const at = card.mapToItem(root, gx, gy);
                                     root.pending = {
+                                        kind: "window",
                                         client: card.client,
                                         wsId: modelData,
-                                        width: card.width,
-                                        height: card.height,
-                                        grabX: gx,
-                                        grabY: gy,
+                                        icon: card.appIcon,
+                                        windowClass: card.ipc?.class ?? "",
+                                        pressX: at.x,
+                                        pressY: at.y
+                                    };
+                                }
+                                onTileGrabbed: (gx, gy) => {
+                                    // Only a workspace with something on it is worth carrying
+                                    if (!tile.occupied)
+                                        return;
+                                    const at = tile.mapToItem(root, gx, gy);
+                                    root.pending = {
+                                        kind: "workspace",
+                                        wsId: modelData,
+                                        label: tile.wsLabel,
                                         pressX: at.x,
                                         pressY: at.y
                                     };
@@ -504,33 +602,79 @@ Item {
             }
         }
 
-        StyledText {
+        // On a pill so it stays readable over a bright, blurred backdrop
+        StyledRect {
             anchors.horizontalCenter: parent.horizontalCenter
             anchors.top: panel.bottom
             anchors.topMargin: Tokens.padding.large
-            text: root.pageCount > 1 ? Tr.tr("Arrows to move · Enter to open · Drag a window to move it · Page Up/Down for more · Esc to close") : Tr.tr("Arrows to move · Enter to open · Drag a window to move it · Esc to close")
-            color: Qt.alpha(Colours.palette.m3onSurfaceVariant, 0.8)
+            implicitWidth: hint.implicitWidth + Tokens.padding.large * 2
+            implicitHeight: hint.implicitHeight + Tokens.padding.small * 2
+            radius: Tokens.rounding.full
+            color: Colours.tPalette.m3surfaceContainerLow
+
+            StyledText {
+                id: hint
+
+                anchors.centerIn: parent
+                text: root.pageCount > 1 ? Tr.tr("Arrows to move · Enter to open · Drag a window, or a workspace by its number, to move or swap it · Page Up/Down for more · Esc to close") : Tr.tr("Arrows to move · Enter to open · Drag a window to move or swap it · Esc to close")
+                color: Colours.palette.m3onSurfaceVariant
+            }
         }
     }
 
-    // The window being dragged, following the pointer above everything else
+    // The app being dragged, as its icon in a disc under the pointer. It pops in as the drag
+    // starts and shrinks away when it ends.
     StyledRect {
-        visible: root.dragClient !== null
-        x: root.dragPoint.x - root.grabX
-        y: root.dragPoint.y - root.grabY
-        width: root.ghostWidth
-        height: root.ghostHeight
-        radius: Tokens.rounding.extraSmall
-        color: Colours.tPalette.m3surfaceContainerHighest
-        border.width: 2
-        border.color: Colours.palette.m3primary
-        opacity: 0.9
-        clip: true
+        id: ghost
 
-        ScreencopyView {
-            anchors.fill: parent
-            captureSource: root.dragClient?.wayland ?? null
-            live: false
+        readonly property bool shown: root.dragging
+
+        x: root.dragPoint.x - width / 2
+        y: root.dragPoint.y - height / 2
+        width: root.ghostSize
+        height: root.ghostSize
+        radius: Tokens.rounding.full
+        color: Colours.palette.m3secondaryContainer
+        border.width: 2
+        border.color: root.dropWsId > 0 || root.swapClient !== null ? Colours.palette.m3primary : Colours.palette.m3outline
+        visible: opacity > 0
+        opacity: ghost.shown ? 0.95 : 0
+        scale: ghost.shown ? (root.dropWsId > 0 || root.swapClient !== null ? 1.1 : 1) : 0.5
+
+        Behavior on opacity {
+            Anim {
+                type: Anim.FastEffects
+            }
+        }
+
+        Behavior on scale {
+            Anim {
+                type: Anim.FastSpatial
+            }
+        }
+
+        StyledText {
+            anchors.centerIn: parent
+            visible: root.ghostIsWorkspace
+            text: root.ghostLabel
+            color: Colours.palette.m3onSecondaryContainer
+            font: Tokens.font.title.large
+        }
+
+        IconImage {
+            anchors.centerIn: parent
+            visible: !root.ghostIsWorkspace && root.ghostIcon !== ""
+            asynchronous: true
+            implicitSize: root.ghostSize * 0.65
+            source: root.ghostIcon
+        }
+
+        MaterialIcon {
+            anchors.centerIn: parent
+            visible: !root.ghostIsWorkspace && root.ghostIcon === ""
+            text: Icons.getAppCategoryIcon(root.ghostClass, "window")
+            color: Colours.palette.m3onSecondaryContainer
+            fontStyle: Tokens.font.icon.size(root.ghostSize * 0.5).build()
         }
     }
 }

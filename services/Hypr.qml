@@ -69,6 +69,20 @@ Singleton {
         dispatch(usingLua ? `hl.dsp.window.move({ workspace = ${ws}, follow = false, window = "address:0x${address}" })` : `movetoworkspacesilent ${ws},address:0x${address}`);
     }
 
+    // Trades the places of two windows in a workspace's layout
+    function swapWindows(address: string, other: string): void {
+        if (!address || !other)
+            return;
+
+        if (usingLua) {
+            dispatch(`hl.dsp.window.swap({ window = "address:0x${address}", target = "address:0x${other}" })`);
+        } else {
+            // The old dispatcher swaps the focused window with the target
+            dispatch(`focuswindow address:0x${address}`);
+            dispatch(`swapwindow address:0x${other}`);
+        }
+    }
+
     function cycleSpecialWorkspace(direction: string): void {
         const openSpecials = workspaces.values.filter(w => w.name.startsWith("special:") && w.lastIpcObject.windows > 0);
 

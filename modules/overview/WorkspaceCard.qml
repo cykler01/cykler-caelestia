@@ -24,9 +24,27 @@ StyledClippingRect {
     property bool dropTarget
     // The window being dragged, if any, so its preview here can be dimmed
     property var draggedClient: null
+    // The window a dragged one would trade places with, if it is on this tile
+    property var swapClient: null
+    // The whole workspace is being dragged from here
+    property bool lifted
+    // Position on the page, so the tiles can come in one after another
+    property int order
 
     signal pointerMoved
+    // Pressed on the tile itself rather than on a window, so the whole workspace can be dragged
+    signal tileGrabbed(real grabX, real grabY)
     signal windowGrabbed(var card, real grabX, real grabY)
+
+    // The window under a point given in the coordinates of `item`, or null
+    function windowAt(item: Item, x: real, y: real): var {
+        for (let i = 0; i < windowCards.count; ++i) {
+            const card = windowCards.itemAt(i);
+            if (card && card.contains(card.mapFromItem(item, x, y)))
+                return card.client;
+        }
+        return null;
+    }
 
     readonly property var workspace: Hypr.workspaces.values.find(w => w.id === root.wsId) ?? null
     // A plain array of toplevels. The Repeater below cannot take a `list<HyprlandToplevel>`
@@ -61,6 +79,39 @@ StyledClippingRect {
 
     implicitWidth: root.cardWidth
     implicitHeight: root.cardHeight
+    // Lifts a little for the keyboard's choice and more for a window about to land on it
+    scale: root.dropTarget ? 1.04 : root.lifted ? 0.96 : root.selected ? 1.015 : 1
+
+    Behavior on scale {
+        Anim {
+            type: Anim.FastSpatial
+        }
+    }
+
+    // Each tile rises into place a moment after the one before it
+    Component.onCompleted: enter.start()
+
+    SequentialAnimation {
+        id: enter
+
+        PropertyAction {
+            target: root
+            property: "opacity"
+            value: 0
+        }
+
+        PauseAnimation {
+            duration: root.order * 30
+        }
+
+        NumberAnimation {
+            target: root
+            property: "opacity"
+            to: 1
+            duration: 220
+            easing.type: Easing.OutCubic
+        }
+    }
     radius: Tokens.rounding.large
     // Occupied workspaces read brighter than the empty ones, which stay dark
     color: root.occupied ? Colours.tPalette.m3surfaceContainerHighest : Colours.tPalette.m3surfaceContainerLowest
@@ -79,6 +130,7 @@ StyledClippingRect {
     StateLayer {
         id: stateLayer
 
+        onPressed: e => root.tileGrabbed(e.x, e.y)
         onClicked: {
             Hypr.focusWorkspace(root.wsId);
             root.screenState.overview = false;
@@ -89,6 +141,8 @@ StyledClippingRect {
         anchors.fill: parent
 
         Repeater {
+            id: windowCards
+
             model: ScriptModel {
                 values: root.windows
             }
@@ -100,6 +154,7 @@ StyledClippingRect {
 
                 client: modelData
                 ghosted: root.draggedClient !== null && modelData === root.draggedClient
+                dropHighlight: root.swapClient !== null && modelData === root.swapClient
                 onGrabbed: (grabX, grabY) => root.windowGrabbed(card, grabX, grabY)
                 screenState: root.screenState
                 fit: root.fit
@@ -164,6 +219,21 @@ StyledClippingRect {
         implicitHeight: label.implicitHeight + Tokens.padding.extraSmall * 2
         radius: Tokens.rounding.full
         color: Qt.alpha(Colours.palette.m3surfaceContainerLowest, 0.6)
+
+        // The handle for carrying the whole workspace: a window preview usually covers all of the
+        // tile, so there is often no bare part of it to grab. A click here still opens it.
+        MouseArea {
+            anchors.fill: parent
+            cursorShape: Qt.OpenHandCursor
+            onPressed: e => {
+                const at = mapToItem(root, e.x, e.y);
+                root.tileGrabbed(at.x, at.y);
+            }
+            onClicked: {
+                Hypr.focusWorkspace(root.wsId);
+                root.screenState.overview = false;
+            }
+        }
 
         StyledText {
             id: label

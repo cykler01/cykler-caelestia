@@ -278,7 +278,12 @@ Keyboard:
     grid, or the dots under it) change page.
 -   With the overview open, the four-finger swipe **left** / **right** turns the page (instead of
     driving the notification popout) and swiping **down** closes it.
--   **Drag a window** onto another tile to move it to that workspace (it stays where you are). Hold it
+-   The background is blurred rather than just dimmed. Where blur has been switched off (battery saving,
+    game mode) it is dimmed instead.
+-   **Drag a whole workspace** by the number in its top-left corner onto another tile to trade their
+    contents. The previews refresh while the overview is open, so moves and swaps show up.
+-   **Drag a window** (you carry its app icon) onto another tile to move it to that workspace (it stays
+    where you are), or onto another window of the same workspace to trade places with it. Hold it
     out past either side of the grid to turn the page. A plain click still focuses the window.
 -   `1`–`9` and `0` jump to that tile on the current page, and **Esc** closes it.
 
