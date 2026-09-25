@@ -10,15 +10,20 @@ Item {
 
     required property ShellScreen screen
     required property real borderThickness
+    // Attach to the right edge of the panel area instead of the left
+    required property bool barOnRight
 
     readonly property alias content: content
-    property real offsetScale: x > 0 || content.hasCurrent ? 0 : 1
+    property real offsetScale: content.isDetached || content.hasCurrent || (!barOnRight && x > 0) ? 0 : 1
 
     visible: width > 0 && height > 0
     clip: true
 
     implicitWidth: content.implicitWidth * (1 - offsetScale)
     implicitHeight: content.implicitHeight
+
+    // Anchors keep the right-attached popout flush with the bar; they are dropped while detached so x can animate
+    anchors.right: barOnRight && !content.isDetached ? parent.right : undefined
 
     x: content.isDetached ? (parent.width - content.nonAnimWidth) / 2 : 0
     y: {
@@ -59,7 +64,9 @@ Item {
         offsetScale: root.offsetScale
 
         anchors.verticalCenter: parent.verticalCenter
-        anchors.left: parent.left
+        anchors.left: root.barOnRight ? undefined : parent.left
+        anchors.right: root.barOnRight ? parent.right : undefined
         anchors.leftMargin: (-implicitWidth - 5) * root.offsetScale
+        anchors.rightMargin: (-implicitWidth - 5) * root.offsetScale
     }
 }

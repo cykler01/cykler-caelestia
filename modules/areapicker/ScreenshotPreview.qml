@@ -25,7 +25,7 @@ StyledWindow {
     // How long to wait for a click before discarding the capture.
     readonly property int timeout: 3000
     // The bar owns the left edge, so the preview sits to the right of it.
-    readonly property int barWidth: ShellState.componentsFor(root.screen)?.bar?.implicitWidth ?? 0
+    readonly property int barWidth: ShellState.componentsFor(root.screen)?.bar?.insetLeft ?? 0
     // Match the outline Hyprland draws around client windows, using the theme's
     // primary colour so the preview reads as another window rather than a panel.
     readonly property int borderWidth: Hypr.options["general:border_size"] ?? 2

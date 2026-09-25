@@ -90,15 +90,15 @@ StyledWindow {
     Region {
         id: emptyRegion
 
-        x: panels.notifications.x + bar.implicitWidth
-        y: panels.notifications.y + root.borderThickness
+        x: panels.notifications.x + bar.insetLeft
+        y: panels.notifications.y + bar.insetTop
         width: panels.notifications.width
         height: panels.notifications.height
 
         Region {
             x: root.width - width
-            y: panels.osdWrapper.y + root.borderThickness
-            width: panels.osdWrapper.width * (1 - panels.osd.offsetScale) + root.borderThickness
+            y: panels.osdWrapper.y + bar.insetTop
+            width: panels.osdWrapper.width * (1 - panels.osd.offsetScale) + bar.insetRight
             height: panels.osd.height
         }
     }
@@ -170,10 +170,10 @@ StyledWindow {
             anchors.margins: -50 // Make border thicker to smooth out bulge from closed drawers
             group: blobGroup
             radius: root.borderRounding
-            borderLeft: bar.implicitWidth - anchors.margins - root.sdfBorderOffset
-            borderRight: root.borderThickness - anchors.margins - root.sdfBorderOffset
-            borderTop: root.borderThickness - anchors.margins - root.sdfBorderOffset
-            borderBottom: root.borderThickness - anchors.margins - root.sdfBorderOffset
+            borderLeft: bar.insetLeft - anchors.margins - root.sdfBorderOffset
+            borderRight: bar.insetRight - anchors.margins - root.sdfBorderOffset
+            borderTop: bar.insetTop - anchors.margins - root.sdfBorderOffset
+            borderBottom: bar.insetBottom - anchors.margins - root.sdfBorderOffset
         }
 
         PanelBg {
@@ -202,7 +202,7 @@ StyledWindow {
 
             panel: panels.sessionWrapper
             deformAmount: 0.2
-            x: panels.sessionWrapper.x + panels.session.x + bar.implicitWidth
+            x: panels.sessionWrapper.x + panels.session.x + bar.insetLeft
             implicitWidth: panels.session.width
         }
 
@@ -221,7 +221,7 @@ StyledWindow {
 
             panel: panels.osdWrapper
             deformAmount: 0.25
-            x: panels.osdWrapper.x + panels.osd.x + bar.implicitWidth
+            x: panels.osdWrapper.x + panels.osd.x + bar.insetLeft
             implicitWidth: panels.osd.width
         }
 
@@ -245,10 +245,12 @@ StyledWindow {
 
             // Extra width to prevent vertical movement deformation partially detaching panel from bar
             property real extraWidth: panels.popouts.isDetached ? 0 : 0.2
+            // The extra width is tucked under the bar, so it grows towards the bar's side
+            readonly property real extraOffset: bar.onRight && !panels.popouts.isDetached ? 0 : panels.popouts.width * extraWidth
 
             panel: panels.popoutsWrapper
             deformAmount: panels.popouts.isDetached ? 0.05 : panels.popouts.hasCurrent ? 0.15 : 0.1
-            x: panels.popoutsWrapper.x + panels.popouts.x + bar.implicitWidth - panels.popouts.width * extraWidth
+            x: panels.popoutsWrapper.x + panels.popouts.x + bar.insetLeft - extraOffset
             implicitWidth: panels.popouts.width * (1 + extraWidth)
 
             Behavior on extraWidth {
@@ -308,14 +310,18 @@ StyledWindow {
         BarWrapper {
             id: bar
 
-            anchors.top: parent.top
-            anchors.bottom: parent.bottom
+            // Pinned to the configured edge, spanning that edge's full length
+            anchors.top: onLeft || onRight || onTop ? parent.top : undefined
+            anchors.bottom: onLeft || onRight || onBottom ? parent.bottom : undefined
+            anchors.left: onLeft || onTop || onBottom ? parent.left : undefined
+            anchors.right: onRight || onTop || onBottom ? parent.right : undefined
 
             screen: root.screen
             screenState: root.screenState
             popouts: panels.popouts
 
             fullscreen: root.hasFullscreen
+            borderThickness: root.borderThickness
         }
     }
 
@@ -348,8 +354,8 @@ StyledWindow {
         property real deformAmount: 0.15
 
         group: blobGroup
-        x: panel.x + bar.implicitWidth
-        y: panel.y + root.borderThickness
+        x: panel.x + bar.insetLeft
+        y: panel.y + bar.insetTop
         implicitWidth: panel.width
         implicitHeight: panel.height
         radius: Tokens.rounding.extraLarge

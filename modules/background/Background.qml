@@ -37,8 +37,12 @@ Variants {
         Item {
             id: insets
 
-            // Space taken by the (left) bar; replaced by per-edge insets when the bar becomes movable
-            readonly property real bar: Tokens.sizes.bar.innerWidth + Math.max(Tokens.padding.small, Config.border.thickness)
+            // Space the bar takes on each edge (border thickness on edges without the bar)
+            readonly property var barRef: ShellState.componentsFor(win.screen)?.bar
+            readonly property real barLeft: (barRef?.onLeft ? barRef.contentThickness : Config.border.thickness)
+            readonly property real barRight: (barRef?.onRight ? barRef.contentThickness : Config.border.thickness)
+            readonly property real barTop: (barRef?.onTop ? barRef.contentThickness : Config.border.thickness)
+            readonly property real barBottom: (barRef?.onBottom ? barRef.contentThickness : Config.border.thickness)
 
             // Whether tiled (non-floating) windows are covering this monitor's desktop; floating ones leave it visible
             readonly property var monitor: Hypr.monitorFor(win.screen)
@@ -87,8 +91,10 @@ Variants {
             asynchronous: true
             active: Config.background.desktopClock.enabled
 
-            anchors.margins: Tokens.padding.extraLargeIncreased
-            anchors.leftMargin: Tokens.padding.extraLargeIncreased + Tokens.sizes.bar.innerWidth + Math.max(Tokens.padding.small, Config.border.thickness)
+            anchors.leftMargin: Tokens.padding.extraLargeIncreased + insets.barLeft
+            anchors.rightMargin: Tokens.padding.extraLargeIncreased + insets.barRight
+            anchors.topMargin: Tokens.padding.extraLargeIncreased + insets.barTop
+            anchors.bottomMargin: Tokens.padding.extraLargeIncreased + insets.barBottom
 
             state: Config.background.desktopClock.position
             states: [
@@ -203,8 +209,10 @@ Variants {
             }
             height: parent.height - anchors.topMargin - anchors.bottomMargin
 
-            anchors.margins: Tokens.padding.extraLargeIncreased
-            anchors.leftMargin: Tokens.padding.extraLargeIncreased + (pos.endsWith("left") ? insets.bar : 0)
+            anchors.leftMargin: Tokens.padding.extraLargeIncreased + insets.barLeft
+            anchors.rightMargin: Tokens.padding.extraLargeIncreased + insets.barRight
+            anchors.topMargin: Tokens.padding.extraLargeIncreased + insets.barTop
+            anchors.bottomMargin: Tokens.padding.extraLargeIncreased + insets.barBottom
             anchors.top: pos.startsWith("top") ? parent.top : undefined
             anchors.bottom: pos.startsWith("bottom") ? parent.bottom : undefined
             anchors.left: pos.endsWith("left") ? parent.left : undefined
@@ -232,8 +240,10 @@ Variants {
             }
             height: parent.height - anchors.topMargin - anchors.bottomMargin
 
-            anchors.margins: Tokens.padding.extraLargeIncreased
-            anchors.leftMargin: Tokens.padding.extraLargeIncreased + (pos.endsWith("left") ? insets.bar : 0)
+            anchors.leftMargin: Tokens.padding.extraLargeIncreased + insets.barLeft
+            anchors.rightMargin: Tokens.padding.extraLargeIncreased + insets.barRight
+            anchors.topMargin: Tokens.padding.extraLargeIncreased + insets.barTop
+            anchors.bottomMargin: Tokens.padding.extraLargeIncreased + insets.barBottom
             anchors.top: pos.startsWith("top") ? parent.top : undefined
             anchors.bottom: pos.startsWith("bottom") ? parent.bottom : undefined
             anchors.left: pos.endsWith("left") ? parent.left : undefined
