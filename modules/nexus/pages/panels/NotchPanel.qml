@@ -47,9 +47,9 @@ PageBase {
             onToggled: GlobalConfig.notch.enabled = checked
         }
 
-        // Empty workspace
+        // Standing notch
         SectionHeader {
-            text: Tr.tr("Empty workspace")
+            text: Tr.tr("Standing notch")
         }
 
         ToggleRow {
@@ -61,11 +61,25 @@ PageBase {
         }
 
         ToggleRow {
-            last: true
+            text: Tr.tr("Show on workspaces with windows")
+            subtext: Tr.tr("Keep the notch up on workspaces that have windows too, not just empty ones")
+            checked: Config.notch.showWithWindows
+            onToggled: GlobalConfig.notch.showWithWindows = checked
+        }
+
+        ToggleRow {
             text: Tr.tr("Show clock")
-            subtext: Tr.tr("Show the time and date in the notch, next to the playing track")
+            subtext: Tr.tr("Show the time and date in the notch")
             checked: Config.notch.showClock
             onToggled: GlobalConfig.notch.showClock = checked
+        }
+
+        ToggleRow {
+            last: true
+            text: Tr.tr("Show music")
+            subtext: Tr.tr("Show the playing track in the notch alongside the clock")
+            checked: Config.notch.showMusic
+            onToggled: GlobalConfig.notch.showMusic = checked
         }
 
         // Behaviour

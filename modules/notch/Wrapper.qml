@@ -50,9 +50,13 @@ Item {
     readonly property bool emptyWorkspace: monitor?.activeWorkspace?.toplevels?.values.every(t => t.lastIpcObject?.floating) ?? true
 
     // Up for as long as the workspace is empty, as long as there is something to show
-    readonly property bool persistent: Config.notch.showOnEmptyWorkspace && emptyWorkspace && (Config.notch.showClock || root.playing)
+    // Whether the notch is meant to be up on this workspace at all: empty ones and ones with windows have their own switch
+    readonly property bool wanted: emptyWorkspace ? Config.notch.showOnEmptyWorkspace : Config.notch.showWithWindows
+    // Whether the standing notch has music to show
+    readonly property bool musicShown: Config.notch.showMusic && root.playing
+    readonly property bool persistent: wanted && (Config.notch.showClock || musicShown)
     // Whether the notch is standing in for the clock, so the bar can drop its own
-    readonly property bool showsClock: Config.notch.enabled && Config.notch.showOnEmptyWorkspace && emptyWorkspace && Config.notch.showClock
+    readonly property bool showsClock: Config.notch.enabled && wanted && Config.notch.showClock
 
     // The brief pill after a track change, or while hovered/peeking
     readonly property bool trackActive: root.playing && (shown || hovered || peeking)
@@ -240,7 +244,7 @@ Item {
         sourceComponent: Pill {
             local: root.local
             cavaWarm: root.cavaWarm
-            showMedia: root.playing && (root.trackActive || root.persistent)
+            showMedia: root.playing && (root.trackActive || (root.persistent && Config.notch.showMusic))
             showClock: root.persistent && Config.notch.showClock
         }
     }

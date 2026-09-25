@@ -19,6 +19,10 @@ class NotchConfig : public settings::ObjectNode {
     // Keep the notch up while the workspace has no (tiled) windows, showing the clock and what is playing
     CONFIG_PROPERTY(bool, showOnEmptyWorkspace, true)
     CONFIG_PROPERTY(bool, showClock, true)
+    // Keep the notch up on workspaces that have windows as well, not just empty ones
+    CONFIG_PROPERTY(bool, showWithWindows, true)
+    // Show what is playing in the notch alongside the clock (the brief pill on a track change is separate)
+    CONFIG_PROPERTY(bool, showMusic, true)
 };
 
 } // namespace caelestia::config
