@@ -15,6 +15,8 @@ class NotifsConfig : public settings::ObjectNode {
 
     // Which side edge the notification popups stack from
     CONFIG_ENUM_PROPERTY(PanelSide, side, PanelSide::Right)
+    // Top or bottom of that side (together with side: one of the four corners)
+    CONFIG_ENUM_PROPERTY(PanelEdge, edge, PanelEdge::Top)
     CONFIG_GLOBAL_PROPERTY(bool, expire, true)
     CONFIG_GLOBAL_ENUM_PROPERTY(NotifsFullscreen, fullscreen, NotifsFullscreen::On)
     CONFIG_GLOBAL_PROPERTY(int, defaultExpireTimeout, 5000)

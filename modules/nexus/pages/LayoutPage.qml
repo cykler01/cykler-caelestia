@@ -100,8 +100,8 @@ PageBase {
             session: "right",
             sidebar: "right",
             popout: "right",
-            notifs: "right",
-            toasts: "right",
+            notifs: "top-right",
+            toasts: "bottom-right",
             widgets: "top-right",
             icons: "top-left"
         })
@@ -146,6 +146,8 @@ PageBase {
             return ["top-start", "top-center", "top-end"];
         case "widgets":
         case "icons":
+        case "notifs":
+        case "toasts":
             return ["top-left", "top-right", "bottom-left", "bottom-right"];
         default:
             return ["left", "right"];
@@ -173,9 +175,9 @@ PageBase {
         case "popout":
             return ["left", "right"][GlobalConfig.notifPopout.side] ?? "right";
         case "notifs":
-            return ["left", "right"][Config.notifs.side] ?? "right";
+            return `${edges[Config.notifs.edge] ?? "top"}-${["left", "right"][Config.notifs.side] ?? "right"}`;
         case "toasts":
-            return ["left", "right"][GlobalConfig.utilities.toasts.side] ?? "right";
+            return `${edges[GlobalConfig.utilities.toasts.edge] ?? "bottom"}-${["left", "right"][GlobalConfig.utilities.toasts.side] ?? "right"}`;
         case "widgets":
             return Config.background.desktopWidgets.position;
         case "icons":
@@ -217,10 +219,12 @@ PageBase {
             GlobalConfig.notifPopout.side = sides.indexOf(slot);
             break;
         case "notifs":
-            GlobalConfig.notifs.side = sides.indexOf(slot);
+            GlobalConfig.notifs.edge = edges.indexOf(parts[0]);
+            GlobalConfig.notifs.side = sides.indexOf(parts[1]);
             break;
         case "toasts":
-            GlobalConfig.utilities.toasts.side = sides.indexOf(slot);
+            GlobalConfig.utilities.toasts.edge = edges.indexOf(parts[0]);
+            GlobalConfig.utilities.toasts.side = sides.indexOf(parts[1]);
             break;
         case "widgets":
             GlobalConfig.background.desktopWidgets.position = slot;
@@ -296,7 +300,7 @@ PageBase {
         if (parts.length === 1) {
             // Side panels: left or right, centred vertically (the tall ones fill the height). Ones sharing an
             // edge sit in columns, nearest the edge first, so none hides another.
-            const order = ["sidebar", "popout", "session", "osd", "notifs", "toasts"];
+            const order = ["sidebar", "popout", "session", "osd"];
             let inset = m;
             for (const other of order) {
                 if (other === id)
@@ -307,12 +311,18 @@ PageBase {
             x = parts[0] === "left" ? r.x + inset : r.x + r.w - sz.width - inset;
             if (id === "sidebar" || id === "popout" || id === "notifs")
                 y = r.y + m;
-            else if (id === "toasts")
-                y = r.y + r.h - sz.height - m;
+
         } else {
             const horizontal = parts[1];
             x = (horizontal === "start" || horizontal === "left") ? r.x + m : horizontal === "center" ? r.x + (r.w - sz.width) / 2 : r.x + r.w - sz.width - m;
             y = parts[0] === "top" ? r.y + (id === "notch" ? 0 : m) : r.y + r.h - sz.height - m;
+
+            // Popups and toasts in the same corner are one column: at the top the popups come first, at the bottom
+            // the toasts sit in the corner and the popups above them
+            if (id === "toasts" && currentSlot("notifs") === slot && parts[0] === "top")
+                y += sizeOf("notifs").height + 4;
+            else if (id === "notifs" && currentSlot("toasts") === slot && parts[0] === "bottom")
+                y -= sizeOf("toasts").height + 4;
         }
         return Qt.rect(x, y, sz.width, sz.height);
     }
@@ -461,7 +471,7 @@ PageBase {
                     y: rest.y + (dragging ? dragDY : 0)
                     width: rest.width
                     height: rest.height
-                    z: dragging ? 100 : (active ? 20 + index : modelData.kind === "desktop" ? 2 : 5 + index)
+                    z: dragging ? 100 : (active ? 20 + index + (elementId === "notifs" || elementId === "toasts" ? 15 : 0) : modelData.kind === "desktop" ? 2 : 5 + index)
 
                     Behavior on x {
                         enabled: !tile.dragging
@@ -613,7 +623,7 @@ PageBase {
         StyledText {
             Layout.fillWidth: true
             wrapMode: Text.Wrap
-            text: Tr.tr("The sidebar and utilities share one side; notification popups and toasts each have their own. With \"Mirror panels with a right-hand bar\" on in the Taskbar settings, every side panel also flips when the bar is on the right.")
+            text: Tr.tr("The sidebar and utilities share one side; notification popups and toasts can each go in any corner, and share a column when they pick the same one. With \"Mirror panels with a right-hand bar\" on in the Taskbar settings, every side panel also flips when the bar is on the right.")
             color: Colours.palette.m3outline
             font: Tokens.font.label.small
         }

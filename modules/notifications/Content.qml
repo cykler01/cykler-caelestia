@@ -21,6 +21,9 @@ Item {
     property bool osdSame: true
     property bool sessionSame: true
     property bool utilitiesSame: true
+    // Which corner it sits in: the thin margin (the one against the screen frame) goes on that side
+    property bool atLeft
+    property bool atBottom
     readonly property int padding: Tokens.padding.large
     readonly property int clampedPadding: CUtils.clamp(padding - Config.border.thickness, 0, padding)
 
@@ -38,19 +41,19 @@ Item {
         for (let i = 0; i < count; i++)
             height += (list.itemAtIndex(i) as NotifWrapper)?.nonAnimHeight ?? 0;
 
-        if (screenState.osd && osdSame) {
+        if (screenState.osd && osdSame && !atBottom) {
             const h = osdPanel.y - clampedPadding;
             if (height > h)
                 height = h;
         }
 
-        if (screenState.session && sessionSame) {
+        if (screenState.session && sessionSame && !atBottom) {
             const h = sessionPanel.y - clampedPadding;
             if (height > h)
                 height = h;
         }
 
-        if (screenState.utilities && utilitiesSame) {
+        if (screenState.utilities && utilitiesSame && !atBottom) {
             const h = ((QsWindow.window as QsWindow)?.screen.height ?? 0) - (utilitiesPanel as Utilities.Wrapper).nonAnimHeight - Config.border.thickness * 2 - padding * 2 - Tokens.spacing.extraLarge;
             if (height > h)
                 height = h;
@@ -62,8 +65,10 @@ Item {
     ClippingWrapperRectangle {
         anchors.fill: parent
         anchors.margins: root.padding
-        anchors.topMargin: root.clampedPadding
-        anchors.rightMargin: root.clampedPadding
+        anchors.topMargin: root.atBottom ? root.padding : root.clampedPadding
+        anchors.bottomMargin: root.atBottom ? root.clampedPadding : root.padding
+        anchors.leftMargin: root.atLeft ? root.clampedPadding : root.padding
+        anchors.rightMargin: root.atLeft ? root.padding : root.clampedPadding
 
         color: "transparent"
         radius: Tokens.rounding.large

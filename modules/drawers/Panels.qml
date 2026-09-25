@@ -45,6 +45,11 @@ Item {
     readonly property bool stackLeft: (Config.sidebar.side === PanelSide.Left) !== flipSides
     readonly property bool notifsLeft: (Config.notifs.side === PanelSide.Left) !== flipSides
     readonly property bool toastsLeft: (GlobalConfig.utilities.toasts.side === PanelSide.Left) !== flipSides
+    readonly property bool notifsTop: Config.notifs.edge === PanelEdge.Top
+    readonly property bool toastsTop: GlobalConfig.utilities.toasts.edge === PanelEdge.Top
+    // Popups and toasts in the same corner form one column: popups against the screen edge they grow from (top:
+    // popups first, bottom: toasts nearest the corner), the toasts next to them
+    readonly property bool notifsToastsShared: notifsLeft === toastsLeft && notifsTop === toastsTop
     readonly property bool notifsWithStack: notifsLeft === stackLeft
     readonly property bool toastsWithStack: toastsLeft === stackLeft
     readonly property bool notifPopoutLeft: (GlobalConfig.notifPopout.side === PanelSide.Left) !== flipSides
@@ -102,9 +107,15 @@ Item {
         sessionSame: root.sessionLeft === root.notifsLeft
         utilitiesSame: root.stackLeft === root.notifsLeft
         stackSame: root.notifsWithStack
+        atLeft: root.notifsLeft
+        atBottom: !root.notifsTop
 
-        anchors.top: parent.top
-        anchors.right: parent.right
+        // Plain x/y bindings so it can change corner while running. In the top corners it starts just above the
+        // panel area (the -5 lets it blend into the frame); at the bottom it sits above whatever holds the corner:
+        // the toasts sharing it, or the utilities panel when it is in the sidebar stack.
+        readonly property real floorY: root.notifsToastsShared ? toasts.y - (toasts.height > 0 ? toasts.gap : 0) : (root.notifsWithStack ? utilities.y : parent.height)
+        x: root.notifsLeft ? 0 : parent.width - width
+        y: root.notifsTop ? anchors.topMargin : floorY - height
     }
 
     Item {
@@ -182,8 +193,10 @@ Item {
         // Next to the sidebar stack it sits beside the sidebar and above the utilities panel; on its own side
         // it sits in the corner.
         readonly property real gap: Tokens.padding.medium
+        // When it shares a top corner it goes below the popups; a bottom corner it holds itself
+        fromTop: root.toastsTop
         x: root.toastsWithStack ? (root.stackLeft ? sidebar.x + sidebar.width + gap : sidebar.x - width - gap) : (root.toastsLeft ? gap : parent.width - width - gap)
-        y: (root.toastsWithStack && !sidebar.visible ? utilities.y : parent.height) - height - gap
+        y: root.toastsTop ? (root.notifsToastsShared ? notifications.y + notifications.height + (notifications.height > 0 ? gap : 0) : gap) : (root.toastsWithStack && !sidebar.visible ? utilities.y : parent.height) - Math.max(0, height) - gap
     }
 
     Sidebar.Wrapper {
@@ -194,9 +207,9 @@ Item {
 
         screenState: root.screenState
 
-        anchors.top: root.notifsWithStack ? notifications.bottom : parent.top
+        anchors.top: root.notifsWithStack && root.notifsTop ? notifications.bottom : parent.top
         anchors.bottom: utilities.top
         anchors.right: parent.right
-        anchors.topMargin: root.notifsWithStack ? -notifications.anchors.topMargin : 0
+        anchors.topMargin: root.notifsWithStack && root.notifsTop ? -notifications.anchors.topMargin : 0
     }
 }

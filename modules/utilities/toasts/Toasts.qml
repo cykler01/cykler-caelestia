@@ -11,6 +11,8 @@ Item {
     id: root
 
     readonly property int spacing: Tokens.spacing.small
+    // Stack downwards from the top edge instead of upwards from the bottom one
+    property bool fromTop
     property bool flag
 
     function shouldShowToast(toast: Toast): bool {
@@ -81,7 +83,8 @@ Item {
         opacity: modelData.closed || previewHidden ? 0 : 1
         scale: modelData.closed || previewHidden ? 0.7 : 1
 
-        anchors.bottomMargin: {
+        // Distance from the edge the stack grows from
+        readonly property real stackOffset: {
             root.flag; // Force update
             let y = 0;
             for (let i = 0; i < index; i++) {
@@ -92,9 +95,10 @@ Item {
             return y;
         }
 
+        // A y binding rather than a bottom anchor, so the stack can switch between edges while running
+        y: root.fromTop ? stackOffset : root.height - implicitHeight - stackOffset
         anchors.left: parent.left
         anchors.right: parent.right
-        anchors.bottom: parent.bottom
         implicitHeight: toastInner.implicitHeight
 
         acceptedButtons: Qt.LeftButton | Qt.MiddleButton | Qt.RightButton

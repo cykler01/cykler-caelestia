@@ -16,6 +16,7 @@ class UtilitiesToasts : public settings::ObjectNode {
 
     // Which side edge the toasts appear on (bottom)
     CONFIG_GLOBAL_ENUM_PROPERTY(PanelSide, side, PanelSide::Right)
+    CONFIG_GLOBAL_ENUM_PROPERTY(PanelEdge, edge, PanelEdge::Bottom)
     CONFIG_PROPERTY(QString, fullscreen, u"off"_s)
     CONFIG_GLOBAL_PROPERTY(bool, configLoaded, true)
     CONFIG_GLOBAL_PROPERTY(bool, chargingChanged, true)

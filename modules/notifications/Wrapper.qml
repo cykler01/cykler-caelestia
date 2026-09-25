@@ -13,6 +13,8 @@ Item {
     property alias osdSame: content.osdSame
     property alias sessionSame: content.sessionSame
     property alias utilitiesSame: content.utilitiesSame
+    property alias atLeft: content.atLeft
+    property alias atBottom: content.atBottom
     // Whether the sidebar stack is on the popups' side, which is what makes them as wide as the sidebar
     property bool stackSame: true
 
