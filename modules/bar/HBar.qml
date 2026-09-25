@@ -25,6 +25,14 @@ RowLayout {
     }
 
     function closeTray(): void {
+        if (!Config.bar.tray.compact)
+            return;
+
+        for (let i = 0; i < repeater.count; i++) {
+            const tray = (repeater.itemAt(i) as EntryWrapper)?.item as HTray;
+            if (tray)
+                tray.expanded = false;
+        }
     }
 
     // x is the coordinate along the bar
@@ -35,6 +43,9 @@ RowLayout {
             popouts.hasCurrent = false;
             return;
         }
+
+        if (ch.entryId !== "tray")
+            closeTray();
 
         const id = ch.entryId;
 
@@ -50,7 +61,14 @@ RowLayout {
                 popouts.hasCurrent = false;
             }
         } else if (id === "tray" && Config.bar.popouts.tray) {
-            const tray = ch.item as Item;
+            const tray = ch.item as HTray;
+            // Compact tray: hovering the collapsed chevron (or its own chevron while expanded) toggles it open
+            if (Config.bar.tray.compact && !(tray.expanded && !tray.expandIcon.contains(mapToItem(tray.expandIcon, x, tray.height / 2)))) {
+                popouts.hasCurrent = false;
+                tray.expanded = true;
+                return;
+            }
+
             let found = null;
             let foundIdx = -1;
             for (let i = 0; i < tray.items.count; i++) {
