@@ -1,0 +1,87 @@
+name: Lint
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: lint-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  changed-files:
+    name: conventions & translations (changed files)
+    runs-on: ubuntu-slim
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v7
+        with:
+          # Full history so the base commit of a PR is available to diff against
+          fetch-depth: 0
+
+      - name: Collect changed files
+        run: |
+          if [[ "${GITHUB_EVENT_NAME}" == "pull_request" ]]; then
+            base="${{ github.event.pull_request.base.sha }}"
+            git diff --name-only --diff-filter=d "$base...HEAD" > changed.txt
+          else
+            before="${{ github.event.before }}"
+            after="${{ github.sha }}"
+            # A new branch (all-zero before) or a force-push leaves nothing to
+            # diff against, so fall back to the pushed commit, then to the tree
+            if [[ "$before" =~ ^0+$ ]] || ! git merge-base --is-ancestor "$before" "$after" 2>/dev/null; then
+              if git rev-parse --verify -q "$after^" >/dev/null; then
+                git diff --name-only --diff-filter=d "$after^" "$after" > changed.txt
+              else
+                git ls-files > changed.txt
+              fi
+            else
+              git diff --name-only --diff-filter=d "$before" "$after" > changed.txt
+            fi
+          fi
+
+          echo "Changed files:"
+          sed 's/^/  /' changed.txt
+
+      - name: Lint changed files
+        run: |
+          set -uo pipefail
+
+          mapfile -t qml_files < <(grep -E '\.qml$' changed.txt || true)
+          mapfile -t trs_files < <(grep -E '\.(qml|cpp|hpp)$' changed.txt || true)
+          status=0
+
+          if (( ${#trs_files[@]} )); then
+            echo "::group::Translation issues (scripts/trs-check.py)"
+            for f in "${trs_files[@]}"; do
+              [[ -f "$f" ]] || continue
+              echo "== $f"
+              python3 scripts/trs-check.py --file "$f" || status=1
+            done
+            echo "::endgroup::"
+          else
+            echo "No changed .qml/.cpp/.hpp files to check for translation issues."
+          fi
+
+          if (( ${#qml_files[@]} )); then
+            echo "::group::Convention violations (scripts/qml-lint-conventions.py)"
+            for f in "${qml_files[@]}"; do
+              [[ -f "$f" ]] || continue
+              echo "== $f"
+              python3 scripts/qml-lint-conventions.py --file "$f" || status=1
+            done
+            echo "::endgroup::"
+          else
+            echo "No changed .qml files to check for convention violations."
+          fi
+
+          if (( status )); then
+            echo "::error::Lint failed - see the reports above."
+          fi
+          exit "$status"
