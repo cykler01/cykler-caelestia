@@ -54,7 +54,7 @@ Every feature below is our own work on top of upstream.
 
 Smaller fixes: The dropdown menu that flips to whichever side has
 room, the update notification that opens the Updates page, and the settings sidebar rework - the pages
-are grouped into categories and have stable keys, so anything can open one by name, mouses acceleration during game mode.
+are grouped into categories and have stable keys, so anything can open one by name, mouse acceleration during game mode.
 
 ## Installation
 

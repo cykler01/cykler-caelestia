@@ -11,6 +11,7 @@
   lm_sensors,
   swappy,
   wl-clipboard,
+  hyprpicker,
   libqalculate,
   bash,
   hyprland,
@@ -47,6 +48,7 @@
       lm_sensors
       swappy
       wl-clipboard
+      hyprpicker
       libqalculate
       bash
       hyprland
