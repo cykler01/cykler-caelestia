@@ -106,6 +106,6 @@ if confirm "Rebuild and reinstall now (sudo cmake --install build)?"; then
     sudo cmake --install build
     echo "==> Done. Restart the shell to pick up changes: caelestia shell -d"
 else
-    echo "==> Skipped build/install. Run manually when ready:"build
+    echo "==> Skipped build/install. Run manually when ready:"
     echo "    cmake --build build && sudo cmake --install build"
 fi
