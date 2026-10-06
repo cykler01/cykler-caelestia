@@ -1,4 +1,5 @@
 import Quickshell
+import Quickshell.Hyprland
 import Quickshell.Io
 import qs.components.misc
 import qs.services
@@ -9,6 +10,10 @@ Scope {
     id: root
 
     function focusedScreen(): ShellScreen {
+        // Hypr.focusedMonitor can sit stale until some other event nudges Hyprland's IPC
+        // connection - forcing a refresh first is what every other place in this shell that
+        // reads monitor state right before acting on it already does (see Hypr.qml)
+        Hyprland.refreshMonitors();
         const name = Hypr.focusedMonitor?.name;
         return Screens.screens.find(s => s.name === name) ?? null;
     }
