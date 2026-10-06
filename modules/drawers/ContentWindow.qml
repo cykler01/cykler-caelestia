@@ -474,3 +474,5 @@ StyledWindow {
         deformScale: (deformAmount * Config.appearance.deformScale) / 10000
     }
 }
+
+// Scratch change to exercise the relint gate: see CI run.
