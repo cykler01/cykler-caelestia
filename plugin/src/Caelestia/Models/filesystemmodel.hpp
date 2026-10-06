@@ -88,7 +88,7 @@ public:
         NoFilter,
         Images,
         Files,
-        Dirs
+        Dirs,
     };
     Q_ENUM(Filter)
 

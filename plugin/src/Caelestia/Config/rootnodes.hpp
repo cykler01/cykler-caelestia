@@ -79,7 +79,7 @@ namespace detail {
 
 enum class ConfigKind : quint8 {
     Shell,
-    Tokens
+    Tokens,
 };
 
 void loaded(ConfigKind kind, settings::RootNode* layer, const QString& screen);
