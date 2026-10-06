@@ -124,8 +124,7 @@ This fork is only worth anything because of the people below.
 - **[Caelestia](https://github.com/caelestia-dots/shell)** - the shell itself, by
   [@soramanew](https://github.com/soramanew) and the upstream contributors. Everything here is their
   work with our additions on top.
-- **Battery power management** - based on the `feat/battery-power-management` branch contributed by
-  [@PixelKhaos](https://github.com/PixelKhaos).
+- **Battery power management** - based on [PR #1](https://github.com/cykler01/cykler-caelestia/pull/1) by [@PixelKhaos](https://github.com/PixelKhaos).
 - **Displays page** - based on [PR #1629](https://github.com/caelestia-dots/shell/pull/1629) by
   [@devalentineomonya](https://github.com/devalentineomonya).
 - **KDE-Connect card** - based on [PR #4](https://github.com/cykler01/cykler-caelestia/pull/4) by
