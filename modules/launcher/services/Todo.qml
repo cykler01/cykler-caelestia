@@ -3,23 +3,18 @@ pragma Singleton
 import QtQuick
 import Quickshell
 import Quickshell.Io
-import Caelestia.Config
 import Caelestia.I18n
-import qs.services
 import qs.utils
 
 // NOTE(fork): the to-do list. Started as a port of the fuzzel to-do list from the dotfiles (a
-// flat list of task strings); now backs the to-do tab of the notification popout too, so tasks
-// are objects with a list, a done flag, an optional deadline and any number of reminders. The
-// launcher still has its quick ">todo" add/search/complete, and everything else (editing, lists,
-// dates) lives in the popout.
+// flat list of task strings); now it is the store behind the to-do tab of the notification
+// popout, so tasks are objects with a list, a done flag, an optional deadline and any number of
+// reminders. The launcher no longer touches it - lists, editing and dates are all in the popout.
 Singleton {
     id: root
 
     readonly property string storePath: `${Paths.data}/todo.json`
     readonly property string legacyPath: `${Paths.home}/.local/share/todo-fuzzel/todo.cache`
-    readonly property string prefix: `${GlobalConfig.launcher.actionPrefix}todo`
-    readonly property string addPrefix: `${root.prefix} add `
     readonly property string defaultListId: "default"
 
     // { id, name }
@@ -171,17 +166,6 @@ Singleton {
         root.save();
     }
 
-    // Kept for the legacy "complete by exact text" launcher flow
-    function complete(text: string): void {
-        const task = root.tasks.find(t => t.text === text && !t.done);
-        if (task)
-            root.toggleDone(task.id);
-    }
-
-    function add(text: string): void {
-        root.addTask(text, root.defaultListId);
-    }
-
     // A task from disk into one every function above can rely on: reminders as a list, always
     // migrating an older single "reminder"/"reminded" pair into a one-entry list if there is one
     function normaliseTask(t: var): var {
@@ -245,69 +229,12 @@ Singleton {
         }
     }
 
-    // The text after ">todo ", which is empty for a bare ">todo"
-    function queryFor(search: string): string {
-        return search === root.prefix ? "" : search.slice(root.prefix.length + 1);
-    }
-
-    function items(search: string): var {
-        const query = root.queryFor(search);
-        if (query === "add" || query.startsWith("add "))
-            return [root.addEntry(query.slice("add ".length))];
-
-        const pending = root.tasks.filter(t => !t.done);
-        const matches = query ? pending.filter(task => task.text.toLowerCase().includes(query.toLowerCase())) : pending;
-        return [root.openEntry(), root.newTaskEntry()].concat(matches.map(root.taskEntry));
-    }
-
-    function openEntry(): var {
-        return {
-            name: Tr.tr("Open to-do list"),
-            desc: Tr.tr("See every list, edit tasks, set reminders"),
-            icon: "checklist",
-            onClicked: list => {
-                list.screenState.launcher = false;
-                const state = ShellState.forActive();
-                if (state) {
-                    state.notifPopoutTab = 2;
-                    state.sidebar = true;
-                }
-            }
-        };
-    }
-
-    function newTaskEntry(): var {
-        return {
-            name: Tr.tr("New task"),
-            desc: Tr.tr("Create a new task"),
-            icon: "add",
-            onClicked: list => list.search.text = root.addPrefix
-        };
-    }
-
-    function addEntry(task: string): var {
-        const trimmed = task.trim();
-        return {
-            name: trimmed ? Tr.tr("Add \"%1\"").arg(trimmed) : Tr.tr("Type a task to add"),
-            desc: trimmed ? Tr.tr("Press enter to add it") : Tr.tr("Type a name and press enter"),
-            icon: "add_task",
-            onClicked: list => {
-                if (!trimmed)
-                    return;
-
-                root.add(trimmed);
-                list.search.text = `${root.prefix} `;
-            }
-        };
-    }
-
-    function taskEntry(task: var): var {
-        return {
-            name: task.text,
-            desc: Tr.tr("Mark as done"),
-            icon: "radio_button_unchecked",
-            onClicked: () => root.toggleDone(task.id)
-        };
+    // A real notification rather than a toast: it lands in the actual notification dock and
+    // stays there until dismissed, like any app's, instead of appearing and disappearing on its
+    // own. Sent over the same org.freedesktop.Notifications interface the shell itself listens
+    // on (that is what "notify-send" is), rather than anything special-cased for the to-do list.
+    function notifyReminder(text: string): void {
+        Quickshell.execDetached(["notify-send", "--app-name=To-do", "--icon=notifications-active", "--urgency=normal", Tr.tr("Task reminder"), text]);
     }
 
     LoggingCategory {
@@ -342,14 +269,6 @@ Singleton {
         }
         // Covered by the collector, but a missing cache file must still seed the list
         onExited: root.importLegacy(legacyOutput.text)
-    }
-
-    // A real notification rather than a toast: it lands in the actual notification dock and
-    // stays there until dismissed, like any app's, instead of appearing and disappearing on its
-    // own. Sent over the same org.freedesktop.Notifications interface the shell itself listens
-    // on (that is what "notify-send" is), rather than anything special-cased for the to-do list.
-    function notifyReminder(text: string): void {
-        Quickshell.execDetached(["notify-send", "--app-name=To-do", "--icon=notifications-active", "--urgency=normal", Tr.tr("Task reminder"), text]);
     }
 
     // Checks for due reminders. A shell that isn't running can't remind you, same as any other
