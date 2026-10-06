@@ -203,4 +203,24 @@ ColumnLayout {
             onInteraction: value => root.source.setVolume(value)
         }
     }
+
+    // How loud the output device itself is, as opposed to the row above which (when the player
+    // supports it) is that one stream's own volume relative to the device
+    RowLayout {
+        Layout.fillWidth: true
+        Layout.topMargin: Tokens.spacing.small
+        spacing: Tokens.spacing.small
+
+        MaterialIcon {
+            text: Audio.muted || Audio.volume === 0 ? "volume_off" : Audio.volume < 0.5 ? "volume_down" : "volume_up"
+            color: Colours.palette.m3onSurfaceVariant
+            fontStyle: Tokens.font.icon.small
+        }
+
+        StyledSlider {
+            Layout.fillWidth: true
+            value: Audio.muted ? 0 : Audio.volume
+            onInteraction: value => Audio.setVolume(value)
+        }
+    }
 }

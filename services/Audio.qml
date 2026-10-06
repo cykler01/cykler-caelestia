@@ -8,6 +8,7 @@ import Caelestia
 import Caelestia.Config
 import Caelestia.I18n
 import Caelestia.Services
+import qs.components.misc
 import qs.services
 import qs.utils
 
@@ -48,6 +49,11 @@ Singleton {
             sink.audio.muted = false;
             sink.audio.volume = Math.max(0, Math.min(GlobalConfig.services.maxVolume, newVolume));
         }
+    }
+
+    function toggleMuted(): void {
+        if (sink?.ready && sink?.audio)
+            sink.audio.muted = !sink.audio.muted;
     }
 
     // Keybind/scroll-wheel steps, as opposed to setVolume above: these shouldn't un-mute, since
@@ -304,6 +310,42 @@ Singleton {
             root.cycleNextAudioOutput();
         }
 
+        function volumeUp(): void {
+            root.incrementVolume(0);
+        }
+
+        function volumeDown(): void {
+            root.decrementVolume(0);
+        }
+
+        function toggleMute(): void {
+            root.toggleMuted();
+        }
+
         target: "audio"
+    }
+
+    // qmllint disable unresolved-type
+    CustomShortcut {
+        // qmllint enable unresolved-type
+        name: "volumeUp"
+        description: "Raise volume"
+        onPressed: root.incrementVolume(0)
+    }
+
+    // qmllint disable unresolved-type
+    CustomShortcut {
+        // qmllint enable unresolved-type
+        name: "volumeDown"
+        description: "Lower volume"
+        onPressed: root.decrementVolume(0)
+    }
+
+    // qmllint disable unresolved-type
+    CustomShortcut {
+        // qmllint enable unresolved-type
+        name: "volumeMute"
+        description: "Toggle mute"
+        onPressed: root.toggleMuted()
     }
 }
