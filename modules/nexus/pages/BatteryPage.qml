@@ -25,20 +25,31 @@ PageBase {
     // Which profile's behaviour the tabbed card is editing
     property string behaviourTab: "powerSaver"
 
-    // Plain objects rather than real MenuItem instances: SelectRow only ever reads text/icon/value
-    // off them, and this list has to track whatever monitors are actually connected
-    readonly property var standbyScreenItems: [
-        {
-            text: Tr.tr("None"),
-            icon: "block",
-            value: ""
-        },
-        ...Hyprctl.monitors.map(m => ({
-                    text: m.name,
-                    icon: "desktop_windows",
-                    value: m.name
-                }))
-    ]
+    // Real MenuItem instances, not plain objects - SplitButton's "active" is strictly typed
+    // MenuItem, and silently renders blank if handed something that isn't one. Rebuilt (and the
+    // old ones explicitly destroyed) whenever the connected monitors change.
+    property list<var> standbyScreenItemObjects: []
+    readonly property var standbyScreenItems: root.standbyScreenItemObjects
+
+    function rebuildStandbyScreenItems(): void {
+        for (const obj of root.standbyScreenItemObjects)
+            obj.destroy();
+
+        const items = [standbyScreenItemComp.createObject(root, {
+                    text: Tr.tr("None"),
+                    icon: "block",
+                    value: ""
+                })];
+        for (const m of Hyprctl.monitors)
+            items.push(standbyScreenItemComp.createObject(root, {
+                        text: m.name,
+                        icon: "desktop_windows",
+                        value: m.name
+                    }));
+        root.standbyScreenItemObjects = items;
+    }
+
+    Component.onCompleted: root.rebuildStandbyScreenItems()
 
     function idleKind(entry: var): string {
         const action = entry.idleAction;
@@ -94,6 +105,20 @@ PageBase {
         anchors.top: parent.top
         width: root.cappedWidth
         spacing: Tokens.spacing.extraSmall / 2
+
+        Component {
+            id: standbyScreenItemComp
+
+            MenuItem {}
+        }
+
+        Connections {
+            function onMonitorsChanged(): void {
+                root.rebuildStandbyScreenItems();
+            }
+
+            target: Hyprctl
+        }
 
         PowerStatusCard {}
 
