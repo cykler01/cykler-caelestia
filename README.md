@@ -51,6 +51,7 @@ Every feature below is our own work on top of upstream.
 | **Taskbar on any edge** | The bar moves to left, right, top or bottom with its own horizontal components, cuts its middle away on an empty workspace so the wallpaper shows through, and can mirror the right-edge panels when it is on the right | *Nexus → Layout*  | [▶](https://cykler.dev/caelestia/demos/bar) |
 | **Desktop widgets & app shortcuts** | Widget cards (calendar, weather, focus timer, resources, now playing, battery) in an ordered grid and application shortcuts, both on the wallpaper with their own settings page | *Nexus → Panels → Desktop* | [▶](https://cykler.dev/caelestia/demos/desktop) |
 | **Updates page** | Checks this fork's repo for new commits and pulls, rebuilds, installs through `pkexec` and restarts the shell from inside the session | *Nexus → Updates* | [▶](https://cykler.dev/caelestia/demos/updates) |
+| **Phone integration** | Pairs with an Android phone over KDE Connect: drop files on a device to send them, browse and download its storage, and mirror its screen with `scrcpy` | *Utilities card* | [▶](https://cykler.dev/caelestia/demos/phone-integration) |
 
 Smaller fixes: The dropdown menu that flips to whichever side has
 room, the update notification that opens the Updates page, and the settings sidebar rework - the pages
@@ -64,10 +65,17 @@ are grouped into categories and have stable keys, so anything can open one by na
 
 Optional dependencies:
 
--   [`kdeconnect`](https://invent.kde.org/network/kdeconnect-kde) - for the phone share utilities card
--   [`sshfs`](https://github.com/libfuse/sshfs) - for browsing and downloading files from a phone in the phone share card
+-   [`kdeconnect`](https://invent.kde.org/network/kdeconnect-kde) - for the phone share card, which needs a
+    systemd user session because the shell runs `kdeconnectd` as its own `caelestia-kdeconnect` unit
+-   [`sshfs`](https://github.com/libfuse/sshfs) - for browsing and downloading files from a phone in the
+    phone share card. This is KDE Connect's own optional dependency, since its SFTP plugin mounts the phone
 -   [`adb`](https://developer.android.com/tools/adb) - for screen mirroring in the phone share card
 -   [`scrcpy`](https://github.com/Genymobile/scrcpy) 4.0 or newer - for screen mirroring in the phone share card
+-   [`qrencode`](https://fukuchi.org/works/qrencode/) - for the QR code shown when pairing a phone for
+    wireless mirroring. Without it the pairing code is shown as text instead
+
+The phone share card is off by default - turn it on under **Cards** in *Nexus → Panels → Utilities*, which
+loads KDE Connect and starts its daemon with it.
 
 > [!IMPORTANT]
 > If you previously installed `caelestia-shell` or `caelestia-shell-git` from the AUR, remove it
@@ -120,6 +128,8 @@ This fork is only worth anything because of the people below.
   [@PixelKhaos](https://github.com/PixelKhaos).
 - **Displays page** - based on [PR #1629](https://github.com/caelestia-dots/shell/pull/1629) by
   [@devalentineomonya](https://github.com/devalentineomonya).
+- **KDE-Connect card** - based on [PR #4](https://github.com/cykler01/cykler-caelestia/pull/4) by
+  [@Mestane](https://github.com/Mestane).
 
 ## License
 
