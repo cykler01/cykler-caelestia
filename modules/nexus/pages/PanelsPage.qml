@@ -165,11 +165,18 @@ PageBase {
 
         ToggleRow {
             first: true
-            last: true
             text: Tr.tr("Show date")
             subtext: Tr.tr("Toggle with the standby keybind (Settings > Keybinds), on whichever screen has focus")
             checked: GlobalConfig.general.standby.showDate
             onToggled: GlobalConfig.general.standby.showDate = checked
+        }
+
+        ToggleRow {
+            last: true
+            text: Tr.tr("Show currently playing")
+            subtext: Tr.tr("Cover, title and artist, if something is playing")
+            checked: GlobalConfig.general.standby.showMusic
+            onToggled: GlobalConfig.general.standby.showMusic = checked
         }
 
         // What sits on the wallpaper

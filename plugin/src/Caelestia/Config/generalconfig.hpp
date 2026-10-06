@@ -54,6 +54,7 @@ class GeneralStandby : public settings::ObjectNode {
     CONFIG_NODE(GeneralStandby, settings::ObjectNode)
 
     CONFIG_GLOBAL_PROPERTY(bool, showDate, true)
+    CONFIG_GLOBAL_PROPERTY(bool, showMusic, true)
 };
 
 // NOTE(fork): Battery power management (ported from feat/low-battery-optimization).
