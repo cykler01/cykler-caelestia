@@ -1,3 +1,4 @@
+import QtQuick
 import Quickshell
 import Quickshell.Hyprland
 import Quickshell.Io
@@ -5,7 +6,9 @@ import qs.components.misc
 import qs.services
 
 // An ambient clock, not a lock - triggered by a keybind on whichever monitor has focus at the
-// time (see StandbyWindow.qml for the actual per-screen window), and dismissed by any input.
+// time (see StandbyWindow.qml for the actual per-screen window), dismissed by keyboard input
+// only (not the mouse, which stays hidden and shouldn't need to move to get it back). Holding
+// the keybind for a second instead shows it on every connected screen at once.
 Scope {
     id: root
 
@@ -18,39 +21,67 @@ Scope {
         return Screens.screens.find(s => s.name === name) ?? null;
     }
 
+    readonly property bool anyOpen: Screens.screens.some(s => ShellState.forScreen(s).standby)
+
     function dismiss(): void {
         for (const screen of Screens.screens)
             ShellState.forScreen(screen).standby = false;
     }
 
+    // Short press: the focused screen only, toggled off if anything at all is currently
+    // showing (a second screen left standing by from the "all" mode otherwise has no way
+    // to be dismissed with a single short press)
     function toggle(): void {
-        const screen = root.focusedScreen();
-        if (!screen)
-            return;
-
-        const state = ShellState.forScreen(screen);
-        if (state.standby) {
-            state.standby = false;
+        if (root.anyOpen) {
+            root.dismiss();
             return;
         }
 
-        // Only one screen stands by at a time - toggling it on a second monitor without
-        // clearing the first would leave that one stuck showing the clock indefinitely
-        root.dismiss();
-        state.standby = true;
+        const screen = root.focusedScreen();
+        if (screen)
+            ShellState.forScreen(screen).standby = true;
+    }
+
+    function toggleAll(): void {
+        if (root.anyOpen) {
+            root.dismiss();
+            return;
+        }
+
+        for (const screen of Screens.screens)
+            ShellState.forScreen(screen).standby = true;
     }
 
     // qmllint disable unresolved-type
     CustomShortcut {
         // qmllint enable unresolved-type
+        id: shortcut
+
         name: "standby"
-        description: "Toggle the standby clock on the focused screen"
-        onPressed: root.toggle()
+        description: "Toggle the standby clock - hold for a second to show it on every screen"
+        onPressed: holdTimer.restart()
+        onReleased: {
+            if (!holdTimer.running)
+                return; // already handled as a hold, by the timer firing
+            holdTimer.stop();
+            root.toggle();
+        }
+    }
+
+    Timer {
+        id: holdTimer
+
+        interval: 1000
+        onTriggered: root.toggleAll()
     }
 
     IpcHandler {
         function toggle(): void {
             root.toggle();
+        }
+
+        function toggleAll(): void {
+            root.toggleAll();
         }
 
         function dismiss(): void {
