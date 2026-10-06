@@ -33,9 +33,11 @@ StyledWindow {
     // press) as well as the keybind or IPC that opened it.
     onOpenChanged: Hypr.extras.message(Hypr.usingLua ? `eval hl.config({ cursor = { invisible = ${root.open} } })` : `keyword cursor:invisible ${root.open ? 1 : 0}`)
 
+    // All screens, not just this one - a key press dismissing only the screen it landed on
+    // would leave the "show on every screen" hold mode stuck on everywhere else
     function dismiss(): void {
-        if (root.screenState)
-            root.screenState.standby = false;
+        for (const s of Screens.screens)
+            ShellState.forScreen(s).standby = false;
     }
 
     name: "standby"
