@@ -53,6 +53,11 @@ Singleton {
     }
 
     function decrementVolume(amount: real): void {
+        if (root.volume <= 0) {
+            Toaster.toast(Tr.tr("Volume"), Tr.tr("Already at 0%"), "volume_off");
+            return;
+        }
+
         setVolume(volume - (amount || GlobalConfig.services.audioIncrement));
         SoundEffects.play("volumeTick");
     }
