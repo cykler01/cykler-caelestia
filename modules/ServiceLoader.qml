@@ -21,5 +21,9 @@ Scope {
 
         if (GlobalConfig.utilities.vpn.enabled)
             VPN;
+
+        // Starts kdeconnectd on shell start when the shell manages it
+        if (GlobalConfig.services.kdeConnect)
+            KdeConnect;
     }
 }

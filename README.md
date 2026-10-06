@@ -62,6 +62,13 @@ are grouped into categories and have stable keys, so anything can open one by na
 > This installs the shell only. For the full Caelestia dotfiles (themes, Hyprland config, keybinds),
 > see [the main dotfiles repo](https://github.com/caelestia-dots/caelestia).
 
+Optional dependencies:
+
+-   [`kdeconnect`](https://invent.kde.org/network/kdeconnect-kde) - for the phone share utilities card
+-   [`sshfs`](https://github.com/libfuse/sshfs) - for browsing and downloading files from a phone in the phone share card
+-   [`adb`](https://developer.android.com/tools/adb) - for screen mirroring in the phone share card
+-   [`scrcpy`](https://github.com/Genymobile/scrcpy) 4.0 or newer - for screen mirroring in the phone share card
+
 > [!IMPORTANT]
 > If you previously installed `caelestia-shell` or `caelestia-shell-git` from the AUR, remove it
 > first - this fork provides the same package and they conflict.

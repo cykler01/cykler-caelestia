@@ -21,6 +21,8 @@ qml_module(caelestia-services
         hyprdevices.cpp
         hyprextras.cpp
         discordrpc.cpp
+        adbdiscovery.cpp
+        kdeconnectdaemon.cpp
     LIBRARIES
         Qt::Concurrent
         Qt::DBus
