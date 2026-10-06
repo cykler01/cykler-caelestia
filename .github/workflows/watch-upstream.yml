@@ -1,0 +1,97 @@
+name: Watch upstream
+
+on:
+  schedule:
+    # Monday mornings, so the drift report is fresh when the week starts
+    - cron: "0 5 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: watch-upstream-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check-upstream:
+    name: Check caelestia-dots/shell for new commits
+    runs-on: ubuntu-slim
+
+    permissions:
+      contents: read
+      issues: write
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v7
+        with:
+          # The count of commits we are behind needs the shared history
+          fetch-depth: 0
+
+      - name: Compare with upstream
+        id: compare
+        env:
+          UPSTREAM_URL: https://github.com/caelestia-dots/shell.git
+        run: |
+          # Outside the checkout, so the report never shows up as a stray
+          # untracked file in anything that inspects the workspace
+          report="${RUNNER_TEMP:-$GITHUB_WORKSPACE}/upstream-report.md"
+
+          git remote add upstream "$UPSTREAM_URL" 2>/dev/null || git remote set-url upstream "$UPSTREAM_URL"
+          git fetch --quiet upstream main
+
+          behind=$(git rev-list --count "HEAD..upstream/main")
+          ahead=$(git rev-list --count "upstream/main..HEAD")
+          echo "behind=$behind" >> "$GITHUB_OUTPUT"
+          echo "ahead=$ahead" >> "$GITHUB_OUTPUT"
+          echo "Behind upstream by $behind commit(s), ahead by $ahead."
+
+          if (( ! behind )); then
+            exit 0
+          fi
+
+          # Anything we already carry may also be a cherry-pick, so the count is
+          # a hint rather than an exact merge cost; the log tells the real story
+          {
+            echo "This fork is **${behind} commit(s) behind** [caelestia-dots/shell](https://github.com/caelestia-dots/shell) (and ${ahead} ahead)."
+            echo
+            echo "Newest upstream commits:"
+            echo
+            git log --no-decorate --format='- [`%h`](https://github.com/caelestia-dots/shell/commit/%H) %s' -15 "HEAD..upstream/main"
+            if (( behind > 15 )); then
+              echo "- ...and $((behind - 15)) more"
+            fi
+            echo
+            echo "Files touched upstream:"
+            echo
+            echo '```'
+            git diff --stat "HEAD...upstream/main" | tail -20
+            echo '```'
+            echo
+            echo "Merge with \`git fetch upstream && git merge upstream/main\`, then re-run the Checks workflow."
+            echo
+            echo "<sub>Updated automatically by the Watch upstream workflow. It edits this issue instead of opening a new one.</sub>"
+          } > "$report"
+
+      - name: Open or update the tracking issue
+        if: steps.compare.outputs.behind != '0'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+          BEHIND: ${{ steps.compare.outputs.behind }}
+        run: |
+          report="${RUNNER_TEMP:-$GITHUB_WORKSPACE}/upstream-report.md"
+          title="Upstream has new commits (${BEHIND} behind)"
+
+          # Match on the stable prefix so a re-run updates the issue it opened
+          # before rather than piling up one issue per week
+          number=$(gh issue list --state open --limit 100 --json number,title \
+            --jq '[.[] | select(.title | startswith("Upstream has new commits"))][0].number')
+
+          if [[ -n "$number" ]]; then
+            gh issue edit "$number" --title "$title" --body-file "$report"
+            echo "Updated issue #$number"
+          else
+            gh issue create --title "$title" --body-file "$report"
+          fi
