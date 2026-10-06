@@ -40,6 +40,9 @@ Singleton {
     readonly property alias cava: cava
     readonly property alias beatTracker: beatTracker
 
+    // A tap on the OSD popping it out even when the value doesn't actually move
+    signal volumeLimitReached()
+
     function setVolume(newVolume: real): void {
         if (sink?.ready && sink?.audio) {
             sink.audio.muted = false;
@@ -47,18 +50,32 @@ Singleton {
         }
     }
 
+    // Keybind/scroll-wheel steps, as opposed to setVolume above: these shouldn't un-mute, since
+    // stepping volume while muted is "change the level for when I unmute", not "unmute me now"
+    function adjustVolume(newVolume: real): void {
+        if (sink?.ready && sink?.audio)
+            sink.audio.volume = Math.max(0, Math.min(GlobalConfig.services.maxVolume, newVolume));
+    }
+
     function incrementVolume(amount: real): void {
-        setVolume(volume + (amount || GlobalConfig.services.audioIncrement));
+        if (root.volume >= GlobalConfig.services.maxVolume) {
+            root.volumeLimitReached();
+            SoundEffects.play("volumeTick");
+            return;
+        }
+
+        adjustVolume(volume + (amount || GlobalConfig.services.audioIncrement));
         SoundEffects.play("volumeTick");
     }
 
     function decrementVolume(amount: real): void {
         if (root.volume <= 0) {
-            Toaster.toast(Tr.tr("Volume"), Tr.tr("Already at 0%"), "volume_off");
+            root.volumeLimitReached();
+            SoundEffects.play("volumeTick");
             return;
         }
 
-        setVolume(volume - (amount || GlobalConfig.services.audioIncrement));
+        adjustVolume(volume - (amount || GlobalConfig.services.audioIncrement));
         SoundEffects.play("volumeTick");
     }
 
