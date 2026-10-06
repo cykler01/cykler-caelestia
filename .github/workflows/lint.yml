@@ -70,12 +70,23 @@ jobs:
           fi
 
           if (( ${#qml_files[@]} )); then
-            echo "::group::Convention violations (scripts/qml-lint-conventions.py)"
+            echo "::group::Convention violations (scripts/qml-lint-ratchet.py)"
+            # Checks the changed files against scripts/qml-lint-baseline.json:
+            # the violations already recorded there are allowed, anything beyond
+            # them fails, so the backlog does not keep every PR red
+            existing=()
             for f in "${qml_files[@]}"; do
-              [[ -f "$f" ]] || continue
-              echo "== $f"
-              python3 scripts/qml-lint-conventions.py --file "$f" || status=1
+              [[ -f "$f" ]] && existing+=("$f")
             done
+
+            if (( ${#existing[@]} )); then
+              for f in "${existing[@]}"; do
+                echo "== $f"
+              done
+              python3 scripts/qml-lint-ratchet.py "${existing[@]}" || status=1
+            else
+              echo "No changed .qml files left on disk."
+            fi
             echo "::endgroup::"
           else
             echo "No changed .qml files to check for convention violations."
@@ -83,5 +94,63 @@ jobs:
 
           if (( status )); then
             echo "::error::Lint failed - see the reports above."
+          fi
+          exit "$status"
+
+  qml-syntax:
+    name: QML syntax (qmllint)
+    runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/${{ github.repository_owner }}/shell-arch-env:latest
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v7
+
+      - name: Check every QML file parses
+        run: |
+          set -uo pipefail
+
+          # qt6-declarative installs the analyzer as /usr/lib/qt6/bin/qmllint.
+          # A plain "qmllint" on PATH is Qt 5's syntax verifier, which rejects
+          # plenty of QML that Qt 6 accepts, so only use it as a last resort.
+          qmllint=""
+          for candidate in qmllint6 /usr/lib/qt6/bin/qmllint qmllint; do
+            if command -v "$candidate" >/dev/null 2>&1; then
+              qmllint="$candidate"
+              break
+            fi
+          done
+
+          if [[ -z "$qmllint" ]]; then
+            echo "::error::No qmllint found. Is qt6-declarative installed in the CI image?"
+            exit 1
+          fi
+          echo "Using $($qmllint --version)"
+
+          # NOT git ls-files: the build image is not guaranteed to carry git
+          mapfile -t files < <(find . \
+            -path ./.git -prune -o \
+            -path ./build -prune -o \
+            -type f \( -name '*.qml' -o -name '*.js' \) -print | sort)
+
+          status=0
+          failed=0
+          for f in "${files[@]}"; do
+            if ! out=$("$qmllint" "$f" 2>&1); then
+              failed=$((failed + 1))
+              echo "::group::$f"
+              printf '%s\n' "$out"
+              echo "::endgroup::"
+            fi
+          done
+
+          # Warnings do not fail (qmllint's default max-warnings is -1) - this
+          # job is about QML that does not parse, which nothing else checks
+          echo "Checked ${#files[@]} file(s), $failed with syntax errors"
+
+          if (( failed )); then
+            status=1
+            echo "::error::$failed file(s) failed to parse - see the groups above."
           fi
           exit "$status"

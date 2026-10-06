@@ -22,6 +22,11 @@ fixed source, and only for `--file - --fix`. Colour is dropped when stderr is
 not a terminal, and never appears in --json output.
 """
 
+# Violation is defined further down but named in annotations above it, so
+# without this the script dies with NameError at import on Pythons that
+# evaluate annotations eagerly (3.13 and older)
+from __future__ import annotations
+
 import argparse
 import json
 import re

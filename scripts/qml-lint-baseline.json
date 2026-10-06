@@ -1,0 +1,151 @@
+{
+  "components/ScreenState.qml": {
+    "section-order": 3
+  },
+  "components/effects/Elevation.qml": {
+    "section-order": 2
+  },
+  "modules/BatteryMonitor.qml": {
+    "missing-section-separator": 2,
+    "section-order": 30
+  },
+  "modules/background/Background.qml": {
+    "section-order": 4
+  },
+  "modules/background/DesktopWidgets.qml": {
+    "section-order": 3
+  },
+  "modules/bar/Bar.qml": {
+    "section-order": 8
+  },
+  "modules/bar/HBar.qml": {
+    "section-order": 11
+  },
+  "modules/bar/components/HWorkspaces.qml": {
+    "section-order": 1
+  },
+  "modules/bar/popouts/ClipWrapper.qml": {
+    "section-order": 7
+  },
+  "modules/dashboard/Media.qml": {
+    "section-order": 3
+  },
+  "modules/dashboard/media/CoverVisualiser.qml": {
+    "section-order": 5
+  },
+  "modules/dashboard/media/LibraryBrowser.qml": {
+    "section-order": 16
+  },
+  "modules/dashboard/media/LocalControls.qml": {
+    "section-order": 1
+  },
+  "modules/drawers/ContentWindow.qml": {
+    "blank-after-open-brace": 1,
+    "section-order": 14
+  },
+  "modules/drawers/Interactions.qml": {
+    "section-order": 6
+  },
+  "modules/drawers/Panels.qml": {
+    "section-order": 1
+  },
+  "modules/lock/Media.qml": {
+    "import-order": 1
+  },
+  "modules/nexus/NavPane.qml": {
+    "blank-before-close-brace": 1,
+    "section-order": 1
+  },
+  "modules/nexus/PageRegistry.qml": {
+    "section-order": 1
+  },
+  "modules/nexus/navpane/NavLocations.qml": {
+    "blank-before-close-brace": 1,
+    "section-order": 5
+  },
+  "modules/nexus/pages/GestureDirectionPicker.qml": {
+    "section-order": 1
+  },
+  "modules/nexus/pages/InputPage.qml": {
+    "section-order": 1
+  },
+  "modules/nexus/pages/KeybindRow.qml": {
+    "section-order": 2
+  },
+  "modules/nexus/pages/KeybindsPage.qml": {
+    "missing-section-separator": 3,
+    "section-order": 5
+  },
+  "modules/nexus/pages/LayoutPage.qml": {
+    "section-order": 10
+  },
+  "modules/nexus/pages/battery/TimeoutRow.qml": {
+    "section-order": 2
+  },
+  "modules/nexus/pages/panels/LockPanel.qml": {
+    "import-order": 1
+  },
+  "modules/nexus/pages/panels/WidgetGridEditor.qml": {
+    "section-order": 14
+  },
+  "modules/notch/Pill.qml": {
+    "section-order": 13
+  },
+  "modules/notch/Wrapper.qml": {
+    "section-order": 19
+  },
+  "modules/notifpopout/Content.qml": {
+    "import-order": 1
+  },
+  "modules/overview/Content.qml": {
+    "section-order": 7
+  },
+  "modules/overview/OverviewWindow.qml": {
+    "section-order": 1
+  },
+  "modules/overview/WindowCard.qml": {
+    "section-order": 13
+  },
+  "modules/overview/WorkspaceCard.qml": {
+    "section-order": 16
+  },
+  "modules/sidebar/Notif.qml": {
+    "section-order": 1
+  },
+  "modules/todopopout/Content.qml": {
+    "blank-before-close-brace": 1,
+    "missing-section-separator": 4,
+    "section-order": 8
+  },
+  "modules/utilities/toasts/Toasts.qml": {
+    "section-order": 1
+  },
+  "services/Equalizer.qml": {
+    "section-order": 2
+  },
+  "services/Hypr.qml": {
+    "section-order": 1
+  },
+  "services/InputSettings.qml": {
+    "missing-section-separator": 1,
+    "section-order": 2
+  },
+  "services/Keybinds.qml": {
+    "section-order": 2
+  },
+  "services/Music.qml": {
+    "missing-section-separator": 2,
+    "section-order": 71
+  },
+  "services/Players.qml": {
+    "missing-section-separator": 2,
+    "section-order": 10
+  },
+  "services/PowerSaving.qml": {
+    "missing-section-separator": 2,
+    "section-order": 4
+  },
+  "services/Recorder.qml": {
+    "section-order": 4
+  }
+}
