@@ -30,15 +30,16 @@ Singleton {
     // The shell runs kdeconnectd as this systemd user unit, so the daemon outlives
     // shell restarts and can be told apart from one started elsewhere
     readonly property string unitName: "caelestia-kdeconnect"
-    readonly property bool runDaemon: GlobalConfig.services.kdeConnect
+    // The phone share card is the feature's only switch, so it runs the daemon too.
+    // A daemon started elsewhere is left alone, which is what makes the card usable
+    // with KDE Connect already running.
+    readonly property bool runDaemon: GlobalConfig.utilities.cards.phoneShare
     // Whether the running daemon is the shell's own unit
     property bool managed
     // True while the daemon is being started or stopped
     property bool daemonBusy
     // The setting changed while busy, so sync again afterwards
     property bool syncPending
-    // Running, but started by something else, e.g. the compositor or a systemd service
-    readonly property bool external: available && !managed
 
     // Keyed by device id
     property var mounts: ({})
