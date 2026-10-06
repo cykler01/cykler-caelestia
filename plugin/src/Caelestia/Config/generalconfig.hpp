@@ -47,13 +47,12 @@ class GeneralIdle : public settings::ObjectNode {
         }))
 };
 
-// NOTE(fork): a plain ambient clock shown fullscreen on one chosen screen after an idle
-// timeout - not a lock, just something to look at instead of a dark/unused monitor. Dismisses
-// on any input. Empty screen = no screen chosen, so it never shows regardless of the timeout.
+// NOTE(fork): a plain ambient clock, not a lock - something to look at instead of a dark/unused
+// monitor, without locking the session. Triggered by a keybind (kbStandby) on whichever monitor
+// had focus at the time, and dismissed by any input.
 class GeneralStandby : public settings::ObjectNode {
     CONFIG_NODE(GeneralStandby, settings::ObjectNode)
 
-    CONFIG_GLOBAL_PROPERTY(QString, screen, QString())
     CONFIG_GLOBAL_PROPERTY(bool, showDate, true)
 };
 

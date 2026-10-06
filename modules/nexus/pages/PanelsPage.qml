@@ -158,6 +158,20 @@ PageBase {
             onMoved: v => GlobalConfig.hotCorners.size = v
         }
 
+        // A plain ambient clock, not a lock - see modules/standby
+        SectionHeader {
+            text: Tr.tr("Standby")
+        }
+
+        ToggleRow {
+            first: true
+            last: true
+            text: Tr.tr("Show date")
+            subtext: Tr.tr("Toggle with the standby keybind (Settings > Keybinds), on whichever screen has focus")
+            checked: GlobalConfig.general.standby.showDate
+            onToggled: GlobalConfig.general.standby.showDate = checked
+        }
+
         // What sits on the wallpaper
         SectionHeader {
             text: Tr.tr("Wallpaper")

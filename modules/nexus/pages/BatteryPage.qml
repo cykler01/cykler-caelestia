@@ -25,32 +25,6 @@ PageBase {
     // Which profile's behaviour the tabbed card is editing
     property string behaviourTab: "powerSaver"
 
-    // Real MenuItem instances, not plain objects - SplitButton's "active" is strictly typed
-    // MenuItem, and silently renders blank if handed something that isn't one. Rebuilt (and the
-    // old ones explicitly destroyed) whenever the connected monitors change.
-    property list<var> standbyScreenItemObjects: []
-    readonly property var standbyScreenItems: root.standbyScreenItemObjects
-
-    function rebuildStandbyScreenItems(): void {
-        for (const obj of root.standbyScreenItemObjects)
-            obj.destroy();
-
-        const items = [standbyScreenItemComp.createObject(root, {
-                    text: Tr.tr("None"),
-                    icon: "block",
-                    value: ""
-                })];
-        for (const m of Hyprctl.monitors)
-            items.push(standbyScreenItemComp.createObject(root, {
-                        text: m.name,
-                        icon: "desktop_windows",
-                        value: m.name
-                    }));
-        root.standbyScreenItemObjects = items;
-    }
-
-    Component.onCompleted: root.rebuildStandbyScreenItems()
-
     function idleKind(entry: var): string {
         const action = entry.idleAction;
         if (action === "lock")
@@ -105,20 +79,6 @@ PageBase {
         anchors.top: parent.top
         width: root.cappedWidth
         spacing: Tokens.spacing.extraSmall / 2
-
-        Component {
-            id: standbyScreenItemComp
-
-            MenuItem {}
-        }
-
-        Connections {
-            function onMonitorsChanged(): void {
-                root.rebuildStandbyScreenItems();
-            }
-
-            target: Hyprctl
-        }
 
         PowerStatusCard {}
 
@@ -394,7 +354,6 @@ PageBase {
         }
 
         TimeoutRow {
-            last: true
             label: Tr.tr("Sleep after")
             subtext: Tr.tr("Idle time before the device suspends")
             value: root.idleTimeout("sleep")
@@ -407,36 +366,6 @@ PageBase {
             subtext: Tr.tr("Show power/reboot/logout buttons while locked")
             checked: GlobalConfig.lock.enableSessionControls
             onToggled: GlobalConfig.lock.enableSessionControls = checked
-        }
-
-        // Standby
-        SectionHeader {
-            text: Tr.tr("Standby")
-        }
-
-        StyledText {
-            Layout.fillWidth: true
-            Layout.bottomMargin: Tokens.spacing.small
-            text: Tr.tr("A plain fullscreen clock on one screen, not a lock - for leaving the machine idle without locking it. Triggered by a keybind (Settings > Keybinds), not a timeout.")
-            color: Colours.palette.m3outline
-            font: Tokens.font.label.small
-            wrapMode: Text.WordWrap
-        }
-
-        SelectRow {
-            first: true
-            label: Tr.tr("Screen")
-            subtext: Tr.tr("Which screen shows it - off if none is chosen")
-            menuItems: root.standbyScreenItems
-            active: root.standbyScreenItems.find(i => i.value === GlobalConfig.general.standby.screen) ?? root.standbyScreenItems[0]
-            onSelected: item => GlobalConfig.general.standby.screen = item.value
-        }
-
-        ToggleRow {
-            last: true
-            text: Tr.tr("Show date")
-            checked: GlobalConfig.general.standby.showDate
-            onToggled: GlobalConfig.general.standby.showDate = checked
         }
 
         Item {
