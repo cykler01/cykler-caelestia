@@ -1,5 +1,13 @@
 name: Check PR approvals
 
+# Fork-local copy of caelestia-dots/.github's reusable check. Upstream wants two
+# current-head approvals from maintainers for anyone without write access, which
+# is unreachable here: this fork has a single maintainer who can approve a pull
+# request only once. One approval is the bar instead, so the check can actually
+# pass while still insisting somebody other than the author looked at it.
+#
+# Kept as close to upstream as possible, so re-syncing it stays a small diff.
+
 on:
   pull_request_target:
     types:
@@ -23,4 +31,182 @@ concurrency:
 
 jobs:
   check-pr-approvals:
-    uses: caelestia-dots/.github/.github/workflows/check-pr-approvals.yml@main
+    runs-on: ubuntu-slim
+
+    steps:
+      - name: Check required maintainer approvals
+        uses: actions/github-script@v9
+        with:
+          script: |
+            let rows = [];
+            let failure = null;
+
+            function hasWrite(permission) {
+              return ['write', 'maintain', 'admin'].includes(permission);
+            }
+
+            function requiredApprovalsFor(permission) {
+              // The maintainer's own pull requests need nobody else
+              return permission === 'admin' ? 0 : 1;
+            }
+
+            async function getPermission(login) {
+              try {
+                const { data } = await github.request(
+                  'GET /repos/{owner}/{repo}/collaborators/{username}/permission',
+                  { ...context.repo, username: login },
+                );
+
+                return data.permission;
+              } catch (error) {
+                if (error.status === 404) {
+                  return 'none';
+                }
+
+                throw error;
+              }
+            }
+
+            function assertHeadUnchanged(expectedHead, actualHead, phase) {
+              if (actualHead !== expectedHead) {
+                throw new Error(
+                  `PR head changed ${phase}: expected ${expectedHead}, found ${actualHead}. `
+                    + 'This run is stale; wait for the check triggered by the latest push.'
+                );
+              }
+            }
+
+            try {
+              if (!context.payload.pull_request) {
+                throw new Error(`No pull request found in ${context.eventName} payload.`);
+              }
+
+              const pullNumber = context.payload.pull_request.number;
+              const expectedHead = context.payload.pull_request.head?.sha;
+
+              if (!expectedHead) {
+                throw new Error('Event payload does not contain a PR head SHA.');
+              }
+
+              const { data: pr } = await github.rest.pulls.get({
+                ...context.repo,
+                pull_number: pullNumber,
+              });
+
+              assertHeadUnchanged(expectedHead, pr.head.sha, 'before evaluation');
+
+              const authorLogin = pr.user.login;
+              const authorPermission = await getPermission(authorLogin);
+              const requiredApprovals = requiredApprovalsFor(authorPermission);
+              const approvals = [];
+              let weightedApprovals = 0;
+
+              if (requiredApprovals > 0) {
+                const reviews = await github.paginate(
+                  github.rest.pulls.listReviews,
+                  { ...context.repo, pull_number: pullNumber, per_page: 100 },
+                );
+                const latestDecisive = new Map();
+
+                // Only the newest of approve / request changes / dismiss counts
+                // per reviewer, so a withdrawn approval cannot linger
+                for (const review of reviews) {
+                  const login = review.user?.login;
+                  const normalizedLogin = login?.toLowerCase();
+                  const state = review.state?.toUpperCase();
+
+                  if (!login || normalizedLogin === authorLogin.toLowerCase()) {
+                    continue;
+                  }
+
+                  if (!['APPROVED', 'CHANGES_REQUESTED', 'DISMISSED'].includes(state)) {
+                    continue;
+                  }
+
+                  const previous = latestDecisive.get(normalizedLogin);
+                  const submitted = Date.parse(review.submitted_at || '') || 0;
+                  const previousSubmitted = Date.parse(previous?.submitted_at || '') || 0;
+
+                  if (
+                    !previous
+                      || submitted > previousSubmitted
+                      || (submitted === previousSubmitted && review.id > previous.id)
+                  ) {
+                    latestDecisive.set(normalizedLogin, review);
+                  }
+                }
+
+                for (const review of latestDecisive.values()) {
+                  if (review.state?.toUpperCase() !== 'APPROVED') {
+                    continue;
+                  }
+
+                  // An approval of an older revision says nothing about this one
+                  if (review.commit_id !== expectedHead) {
+                    continue;
+                  }
+
+                  const permission = await getPermission(review.user.login);
+
+                  if (hasWrite(permission)) {
+                    const weight = permission === 'admin' ? 2 : 1;
+                    weightedApprovals += weight;
+                    approvals.push({ login: review.user.login, weight });
+                  }
+                }
+              }
+
+              approvals.sort((a, b) => a.login.localeCompare(b.login));
+
+              const formattedApprovals = approvals.map(({ login, weight }) =>
+                weight === 2 ? `${login} (adminx2)` : login
+              );
+
+              rows = [
+                ['Author', authorLogin],
+                ['Author permission', authorPermission],
+                ['Required maintainer approvals', String(requiredApprovals)],
+                [
+                  'Current maintainer approvals',
+                  requiredApprovals === 0 ? 'Not evaluated' : String(weightedApprovals),
+                ],
+                [
+                  'Eligible reviewers',
+                  requiredApprovals === 0 ? 'Not evaluated' : approvals.map(({ login }) => login).join(', ') || 'None',
+                ],
+                ['Evaluated head', expectedHead],
+              ];
+
+              if (weightedApprovals < requiredApprovals) {
+                failure = `Requires ${requiredApprovals} current-head approval(s) from maintainers; currently has ${weightedApprovals}.`;
+              }
+
+              const { data: finalPr } = await github.rest.pulls.get({
+                ...context.repo,
+                pull_number: pullNumber,
+              });
+
+              assertHeadUnchanged(expectedHead, finalPr.head.sha, 'during evaluation');
+            } catch (error) {
+              failure = `Approval-policy evaluation error: ${error.message}`;
+              rows = [['Result', failure]];
+            }
+
+            try {
+              await core.summary
+                .addHeading('Review policy')
+                .addTable([
+                  [
+                    { data: 'Property', header: true },
+                    { data: 'Value', header: true },
+                  ],
+                  ...rows,
+                ])
+                .write();
+            } catch (error) {
+              core.warning(`Could not write the review-policy summary: ${error.message}`);
+            }
+
+            if (failure) {
+              core.setFailed(failure);
+            }
