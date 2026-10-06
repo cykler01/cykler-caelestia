@@ -26,6 +26,13 @@ StyledWindow {
     readonly property string trackTitle: root.local ? Music.title : Players.active?.trackTitle ?? ""
     readonly property string trackArtist: root.local ? Music.artist : Players.active?.trackArtist ?? ""
 
+    // MouseArea's cursorShape: Qt.BlankCursor never actually hid it on this Wayland setup -
+    // Hyprland's own cursor:invisible config option does, reliably, so this drives that directly
+    // instead of fighting Qt's per-surface Wayland cursor protocol. Reacts to open rather than
+    // being called from whatever dismissed it, since that can be this window itself (a click, a
+    // key, the mouse moving) as well as the keybind or IPC that opened it.
+    onOpenChanged: Hypr.extras.message(Hypr.usingLua ? `eval hl.config({ cursor = { invisible = ${root.open} } })` : `keyword cursor:invisible ${root.open ? 1 : 0}`)
+
     function dismiss(): void {
         if (root.screenState)
             root.screenState.standby = false;
