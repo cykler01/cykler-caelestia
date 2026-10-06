@@ -47,6 +47,16 @@ class GeneralIdle : public settings::ObjectNode {
         }))
 };
 
+// NOTE(fork): a plain ambient clock shown fullscreen on one chosen screen after an idle
+// timeout - not a lock, just something to look at instead of a dark/unused monitor. Dismisses
+// on any input. Empty screen = no screen chosen, so it never shows regardless of the timeout.
+class GeneralStandby : public settings::ObjectNode {
+    CONFIG_NODE(GeneralStandby, settings::ObjectNode)
+
+    CONFIG_GLOBAL_PROPERTY(QString, screen, QString())
+    CONFIG_GLOBAL_PROPERTY(bool, showDate, true)
+};
+
 // NOTE(fork): Battery power management (ported from feat/low-battery-optimization).
 // The behavior classes intentionally do NOT share a base class: the settings
 // schema only registers properties declared directly on each class, so
@@ -159,6 +169,7 @@ class GeneralConfig : public settings::ObjectNode {
     CONFIG_SUBOBJECT(GeneralApps, apps)
     CONFIG_SUBOBJECT(GeneralIdle, idle)
     CONFIG_SUBOBJECT(GeneralBattery, battery)
+    CONFIG_SUBOBJECT(GeneralStandby, standby)
 };
 
 } // namespace caelestia::config

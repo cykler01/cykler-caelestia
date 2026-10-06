@@ -12,6 +12,9 @@ PersistentProperties {
     property bool utilities
     property bool sidebar
     property bool overview
+    // An ambient fullscreen clock, not a lock - only ever shown on the one screen chosen in
+    // Power & battery settings (general.standby.screen), see modules/standby/Standby.qml
+    property bool standby
 
     // Asks the overview to turn its page (-1 back, 1 forward), for the swipe gestures
     signal overviewPageRequested(int delta)

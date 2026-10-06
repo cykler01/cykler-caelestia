@@ -25,6 +25,21 @@ PageBase {
     // Which profile's behaviour the tabbed card is editing
     property string behaviourTab: "powerSaver"
 
+    // Plain objects rather than real MenuItem instances: SelectRow only ever reads text/icon/value
+    // off them, and this list has to track whatever monitors are actually connected
+    readonly property var standbyScreenItems: [
+        {
+            text: Tr.tr("None"),
+            icon: "block",
+            value: ""
+        },
+        ...Hyprctl.monitors.map(m => ({
+                    text: m.name,
+                    icon: "desktop_windows",
+                    value: m.name
+                }))
+    ]
+
     function idleKind(entry: var): string {
         const action = entry.idleAction;
         if (action === "lock")
@@ -354,6 +369,7 @@ PageBase {
         }
 
         TimeoutRow {
+            last: true
             label: Tr.tr("Sleep after")
             subtext: Tr.tr("Idle time before the device suspends")
             value: root.idleTimeout("sleep")
@@ -366,6 +382,36 @@ PageBase {
             subtext: Tr.tr("Show power/reboot/logout buttons while locked")
             checked: GlobalConfig.lock.enableSessionControls
             onToggled: GlobalConfig.lock.enableSessionControls = checked
+        }
+
+        // Standby
+        SectionHeader {
+            text: Tr.tr("Standby")
+        }
+
+        StyledText {
+            Layout.fillWidth: true
+            Layout.bottomMargin: Tokens.spacing.small
+            text: Tr.tr("A plain fullscreen clock on one screen, not a lock - for leaving the machine idle without locking it. Triggered by a keybind (Settings > Keybinds), not a timeout.")
+            color: Colours.palette.m3outline
+            font: Tokens.font.label.small
+            wrapMode: Text.WordWrap
+        }
+
+        SelectRow {
+            first: true
+            label: Tr.tr("Screen")
+            subtext: Tr.tr("Which screen shows it - off if none is chosen")
+            menuItems: root.standbyScreenItems
+            active: root.standbyScreenItems.find(i => i.value === GlobalConfig.general.standby.screen) ?? root.standbyScreenItems[0]
+            onSelected: item => GlobalConfig.general.standby.screen = item.value
+        }
+
+        ToggleRow {
+            last: true
+            text: Tr.tr("Show date")
+            checked: GlobalConfig.general.standby.showDate
+            onToggled: GlobalConfig.general.standby.showDate = checked
         }
 
         Item {

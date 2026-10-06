@@ -12,6 +12,7 @@ import "modules/notifpopout"
 import "modules/overview"
 import "modules/todopopout"
 import "modules/lock"
+import "modules/standby"
 import QtQuick
 import Quickshell
 import Caelestia
@@ -43,6 +44,7 @@ ShellRoot {
     Lock {
         id: lock
     }
+    Standby {}
 
     Shortcuts {}
     BatteryMonitor {}
