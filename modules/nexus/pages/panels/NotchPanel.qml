@@ -118,6 +118,14 @@ PageBase {
             onToggled: GlobalConfig.notch.showArtist = checked
         }
 
+        ToggleRow {
+            text: Tr.tr("Artist first")
+            subtext: Tr.tr("\"Artist - Title\" instead of \"Title - Artist\"")
+            checked: Config.notch.artistFirst
+            enabled: Config.notch.showArtist
+            onToggled: GlobalConfig.notch.artistFirst = checked
+        }
+
         StepperRow {
             last: true
             label: Tr.tr("Max title width")

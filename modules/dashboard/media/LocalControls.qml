@@ -4,8 +4,10 @@ import QtQuick
 import QtQuick.Layouts
 import Caelestia.Components
 import Caelestia.Config
+import Caelestia.I18n
 import qs.components
 import qs.components.controls
+import qs.components.widgets
 import qs.services
 
 // NOTE(fork): controls for the in-shell player alone, for the places that only ever play local
@@ -41,6 +43,43 @@ ColumnLayout {
 
         const hours = Math.floor(mins / 60);
         return `${hours}:${(mins % 60).toString().padStart(2, "0")}:${secs}`;
+    }
+
+    // Cover art and the current track's title/artist, above the transport controls - the
+    // library list below already names each track, but nothing up here said what was actually
+    // playing
+    RowLayout {
+        Layout.fillWidth: true
+        Layout.bottomMargin: Tokens.spacing.small
+        spacing: Tokens.spacing.medium
+
+        CoverArt {
+            implicitWidth: 56
+            implicitHeight: 56
+            source: Music.coverPath
+            spinning: Music.playing
+        }
+
+        ColumnLayout {
+            Layout.fillWidth: true
+            spacing: 0
+
+            StyledText {
+                Layout.fillWidth: true
+                text: Music.hasTrack ? Music.title : Tr.tr("Nothing playing")
+                font: Tokens.font.title.small
+                elide: Text.ElideRight
+            }
+
+            StyledText {
+                Layout.fillWidth: true
+                visible: Music.hasTrack && Music.artist !== ""
+                text: Music.artist
+                color: Colours.palette.m3onSurfaceVariant
+                font: Tokens.font.body.small
+                elide: Text.ElideRight
+            }
+        }
     }
 
     RowLayout {

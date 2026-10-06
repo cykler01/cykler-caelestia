@@ -281,6 +281,7 @@ StyledClippingRect {
             return;
 
         Music.enqueue([item.path]);
+        Toaster.toast(Tr.tr("Added to queue"), item.name ?? "", "playlist_add");
     }
 
     // The queue is a plain list, so leaving a selection behind while it is up would only make

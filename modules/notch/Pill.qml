@@ -23,6 +23,9 @@ Item {
     property bool showMedia: true
     property bool showClock
 
+    readonly property string trackTitle: root.local ? Music.title : Players.recentPlayer?.trackTitle ?? ""
+    readonly property string trackArtist: root.local ? Music.artist : Players.recentPlayer?.trackArtist ?? ""
+
     // Eased 0..1 versions of the above so the clock (and its divider) grow in and out instead of snapping
     property real clockProg: showClock ? 1 : 0
     property real dividerProg: showClock && showMedia ? 1 : 0
@@ -172,18 +175,36 @@ Item {
         }
 
         StyledText {
+            id: primaryText
+
             visible: root.showMedia
-            // Grows with the track title (and artist, if shown), elided past
-            // this so one long name can't stretch the pill indefinitely
+            // Each of title and artist gets its own budget and elides on its own, so a long
+            // one can't eat into the other's space - they used to share one combined string
             Layout.alignment: Qt.AlignVCenter
             Layout.maximumWidth: root.compact ? Math.min(Config.notch.maxTitleWidth, 200) : Config.notch.maxTitleWidth
-            text: {
-                const title = root.local ? Music.title : Players.recentPlayer?.trackTitle ?? "";
-                const artist = root.local ? Music.artist : Players.recentPlayer?.trackArtist ?? "";
-                return Config.notch.showArtist && artist ? Tr.trCtx("%1 - %2", "track artist and title").arg(artist).arg(title) : title;
-            }
+            // Without showArtist this is just the title - artistFirst only matters once
+            // there are two fields to order
+            text: Config.notch.showArtist && Config.notch.artistFirst ? root.trackArtist : root.trackTitle
             color: Colours.palette.m3onSurface
             font: root.compact ? Tokens.font.label.large : Tokens.font.title.small
+            elide: Text.ElideRight
+        }
+
+        StyledText {
+            visible: root.showMedia && Config.notch.showArtist && root.trackArtist !== "" && root.trackTitle !== ""
+            Layout.alignment: Qt.AlignVCenter
+            text: Tr.trCtx("-", "separates track title and artist")
+            color: Colours.palette.m3outlineVariant
+            font: primaryText.font
+        }
+
+        StyledText {
+            visible: root.showMedia && Config.notch.showArtist && root.trackArtist !== "" && root.trackTitle !== ""
+            Layout.alignment: Qt.AlignVCenter
+            Layout.maximumWidth: root.compact ? Math.min(Config.notch.maxTitleWidth, 200) : Config.notch.maxTitleWidth
+            text: Config.notch.artistFirst ? root.trackTitle : root.trackArtist
+            color: Colours.palette.m3onSurface
+            font: primaryText.font
             elide: Text.ElideRight
         }
 
