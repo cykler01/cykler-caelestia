@@ -6,9 +6,9 @@ import qs.components.misc
 import qs.services
 
 // An ambient clock, not a lock - triggered by a keybind on whichever monitor has focus at the
-// time (see StandbyWindow.qml for the actual per-screen window), dismissed by keyboard input
-// only (not the mouse, which stays hidden and shouldn't need to move to get it back). Holding
-// the keybind for a second instead shows it on every connected screen at once.
+// time (see StandbyWindow.qml for the actual per-screen window), dismissed by a key press or a
+// mouse click. Holding the keybind for a second instead shows it on every connected screen at
+// once.
 Scope {
     id: root
 

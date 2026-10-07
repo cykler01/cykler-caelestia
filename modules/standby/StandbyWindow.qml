@@ -57,11 +57,12 @@ StyledWindow {
         anchors.fill: parent
         color: "black"
 
-        // Only here to swallow clicks so they don't fall through to whatever's underneath -
-        // dismissing is keyboard-only (below), the mouse doesn't do anything at all here
+        // A click anywhere dismisses it, the same as a key press. Also swallows the click so it
+        // doesn't fall through to whatever's underneath
         MouseArea {
             anchors.fill: parent
             acceptedButtons: Qt.AllButtons
+            onClicked: root.dismiss()
         }
 
         ColumnLayout {
