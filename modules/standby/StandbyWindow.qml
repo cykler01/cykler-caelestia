@@ -9,6 +9,7 @@ import qs.components
 import qs.components.containers
 import qs.components.widgets
 import qs.services
+import qs.utils
 import qs.modules.lock.center as LockCenter
 
 // One of these per connected screen (see Standby.qml) - only ever visible on whichever screen
@@ -87,6 +88,26 @@ StyledWindow {
                 text: Time.format("dddd • d MMM").toUpperCase()
                 color: Colours.palette.m3onSurfaceVariant
                 font: Tokens.font.headline.small
+            }
+
+            // Who this screen belongs to - the same face the lock screen and dashboard use
+            // (~/.face), and the username the lock greeting shows
+            RowLayout {
+                Layout.alignment: Qt.AlignHCenter
+                Layout.topMargin: Tokens.spacing.medium
+                spacing: Tokens.spacing.medium
+
+                LockCenter.ProfilePic {
+                    Layout.alignment: Qt.AlignVCenter
+                    centerWidth: 80
+                }
+
+                StyledText {
+                    Layout.alignment: Qt.AlignVCenter
+                    text: SysInfo.user
+                    color: Colours.palette.m3onSurface
+                    font: Tokens.font.title.small
+                }
             }
 
             RowLayout {
