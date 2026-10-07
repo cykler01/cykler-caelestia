@@ -18,6 +18,24 @@ StyledRect {
     id: root
 
     readonly property bool sessionControlsShown: GlobalConfig.lock.enableSessionControls && hover.hovered
+    readonly property var builtinActions: ({
+            logout: {
+                icon: Config.session.icons.logout,
+                command: Config.session.commands.logout
+            },
+            shutdown: {
+                icon: Config.session.icons.shutdown,
+                command: Config.session.commands.shutdown
+            },
+            sleep: {
+                icon: Config.session.icons.sleep,
+                command: Config.session.commands.sleep
+            },
+            reboot: {
+                icon: Config.session.icons.reboot,
+                command: Config.session.commands.reboot
+            }
+        })
     readonly property real fontScale: {
         const diff = width / 391 - 1; // 391 is the width at 1080 height screen
         return 1 + Math.pow(Math.abs(diff), 0.8) * Math.sign(diff);
@@ -163,21 +181,15 @@ StyledRect {
                     Anim {}
                 }
 
-                SessionButton {
-                    icon: Config.session.icons.logout
-                    command: Config.session.commands.logout
-                }
-                SessionButton {
-                    icon: Config.session.icons.shutdown
-                    command: Config.session.commands.shutdown
-                }
-                SessionButton {
-                    icon: Config.session.icons.sleep
-                    command: Config.session.commands.sleep
-                }
-                SessionButton {
-                    icon: Config.session.icons.reboot
-                    command: Config.session.commands.reboot
+                Repeater {
+                    model: GlobalConfig.lock.entries.values.filter(e => e.enabled && root.builtinActions[e.id])
+
+                    delegate: SessionButton {
+                        required property var modelData
+
+                        icon: root.builtinActions[modelData.id].icon
+                        command: root.builtinActions[modelData.id].command
+                    }
                 }
             }
         }

@@ -11,6 +11,13 @@ import qs.services
 PageBase {
     id: root
 
+    readonly property var builtinEntries: ({
+            logout: Tr.tr("Log out"),
+            shutdown: Tr.tr("Shut down"),
+            sleep: Tr.tr("Sleep"),
+            reboot: Tr.tr("Reboot")
+        })
+
     title: Tr.tr("Lock screen")
     isSubPage: true
 
@@ -85,6 +92,71 @@ PageBase {
             value: LockGreeting.night
             placeholderText: Tr.tr("Good night")
             onEditingFinished: value => LockGreeting.set("night", value)
+        }
+
+        // Session controls
+        SectionHeader {
+            text: Tr.tr("Session controls")
+        }
+
+        ToggleRow {
+            first: true
+            last: true
+            text: Tr.tr("Reveal on the lock screen")
+            subtext: Tr.tr("Show the buttons below when hovering the lock screen")
+            checked: GlobalConfig.lock.enableSessionControls
+            onToggled: GlobalConfig.lock.enableSessionControls = checked
+        }
+
+        StyledText {
+            Layout.fillWidth: true
+            Layout.bottomMargin: Tokens.spacing.small
+            text: Tr.tr("What the revealed controls offer, left to right, and in what order. Switch one off to keep it from showing.")
+            color: Colours.palette.m3outline
+            font: Tokens.font.label.small
+            wrapMode: Text.WordWrap
+        }
+
+        ListEditor {
+            function labelFor(item: var): string {
+                return root.builtinEntries[item.id] ?? item.id;
+            }
+
+            function toggledFor(item: var): bool {
+                return item.enabled;
+            }
+
+            z: 1
+            first: true
+            values: GlobalConfig.lock.entries.values
+            onItemMoved: (from, to) => GlobalConfig.lock.entries.move(from, to)
+            onItemRemoved: index => GlobalConfig.lock.entries.remove(index)
+            onItemToggled: (index, checked) => GlobalConfig.lock.entries.at(index).enabled = checked
+        }
+
+        DialogSelectButton {
+            id: addItemContainer
+
+            rootParent: root.flickable
+            icon: "add"
+            label: Tr.tr("Add entry")
+            header: Tr.tr("Add new entry")
+            acceptLabel: Tr.trCtx("Add", "button")
+
+            model: Object.keys(root.builtinEntries).map(k => ({
+                        id: k,
+                        label: root.builtinEntries[k]
+                    }))
+
+            onAccepted: {
+                if (!selectedItem)
+                    return;
+
+                GlobalConfig.lock.entries.insert({
+                    id: selectedItem,
+                    enabled: true
+                });
+            }
         }
     }
 }

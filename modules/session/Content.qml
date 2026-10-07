@@ -15,83 +15,141 @@ Column {
 
     required property ScreenState screenState
 
+    // Everything an entry id can map to. "standby" isn't a command - it's the same ambient clock the
+    // standby keybind shows, on this screen - so it carries an action instead
+    readonly property var builtinActions: ({
+            logout: {
+                icon: Config.session.icons.logout,
+                command: Config.session.commands.logout
+            },
+            shutdown: {
+                icon: Config.session.icons.shutdown,
+                command: Config.session.commands.shutdown
+            },
+            sleep: {
+                icon: Config.session.icons.sleep,
+                command: Config.session.commands.sleep
+            },
+            standby: {
+                icon: "schedule",
+                action: () => {
+                    root.screenState.session = false;
+                    root.screenState.standby = true;
+                }
+            },
+            reboot: {
+                icon: Config.session.icons.reboot,
+                command: Config.session.commands.reboot
+            }
+        })
+
+    // The animation isn't an action, so it stays in a fixed slot while the actions around it are
+    // reordered (and keeps its old spot in the default order)
+    readonly property int gifIndex: 2
+
+    // Enabled actions in their configured order, with the animation slotted back in
+    readonly property var items: {
+        const entries = Config.session.entries.values.filter(e => e.enabled && root.builtinActions[e.id]);
+        return entries.slice(0, root.gifIndex).concat([{ id: "__gif" }], entries.slice(root.gifIndex));
+    }
+
+    readonly property int firstActionIndex: {
+        for (let i = 0; i < root.items.length; i++) {
+            if (root.items[i].id !== "__gif")
+                return i;
+        }
+        return -1;
+    }
+
+    function buttonAt(index: int): var {
+        const item = repeater.itemAt(index);
+        return item && item.isAction ? item.buttonItem : null;
+    }
+
+    // Move focus to the next/previous action, skipping the animation and anything switched off
+    function focusSibling(from: int, delta: int): void {
+        for (let i = from + delta; i >= 0 && i < root.items.length; i += delta) {
+            const button = root.buttonAt(i);
+            if (button) {
+                button.forceActiveFocus();
+                return;
+            }
+        }
+    }
+
+    function focusFirst(): void {
+        for (let i = 0; i < root.items.length; i++) {
+            const button = root.buttonAt(i);
+            if (button) {
+                button.forceActiveFocus();
+                return;
+            }
+        }
+    }
+
     padding: Tokens.padding.large
     rightPadding: CUtils.clamp(padding - Config.border.thickness, 0, padding)
     spacing: Tokens.spacing.large
 
-    SessionButton {
-        id: logout
+    Connections {
+        function onLauncherChanged(): void {
+            if (!root.screenState.launcher)
+                root.focusFirst();
+        }
 
-        icon: Config.session.icons.logout
-        command: Config.session.commands.logout
+        target: root.screenState
+    }
 
-        KeyNavigation.down: shutdown
+    Repeater {
+        id: repeater
 
-        Component.onCompleted: forceActiveFocus()
+        model: root.items
 
-        Connections {
-            function onLauncherChanged(): void {
-                if (!root.screenState.launcher)
-                    logout.forceActiveFocus();
+        delegate: Item {
+            id: delegateItem
+
+            required property var modelData
+            required property int index
+
+            readonly property bool isAction: delegateItem.modelData.id !== "__gif"
+            readonly property var action: root.builtinActions[delegateItem.modelData.id] ?? null
+
+            property alias buttonItem: sessionButton
+
+            width: Tokens.sizes.session.button
+            height: width
+            implicitWidth: Tokens.sizes.session.button
+            implicitHeight: Tokens.sizes.session.button
+
+            Component.onCompleted: {
+                if (delegateItem.index === root.firstActionIndex)
+                    sessionButton.forceActiveFocus();
             }
 
-            target: root.screenState
+            SessionButton {
+                id: sessionButton
+
+                anchors.fill: parent
+                visible: delegateItem.isAction
+                displayIndex: delegateItem.index
+                icon: delegateItem.action?.icon ?? ""
+                command: delegateItem.action?.command ?? []
+                action: delegateItem.action?.action ?? null
+            }
+
+            AnimatedImage {
+                anchors.fill: parent
+                visible: !delegateItem.isAction
+
+                playing: visible
+                asynchronous: true
+                speed: Config.general.sessionGifSpeed
+                source: Paths.absolutePath(Config.paths.sessionGif)
+                fillMode: AnimatedImage.PreserveAspectFit
+
+                sourceSize.width: width * ((QsWindow.window as QsWindow)?.devicePixelRatio ?? 1)
+            }
         }
-    }
-
-    SessionButton {
-        id: shutdown
-
-        icon: Config.session.icons.shutdown
-        command: Config.session.commands.shutdown
-
-        KeyNavigation.up: logout
-        KeyNavigation.down: sleep
-    }
-
-    AnimatedImage {
-        width: Tokens.sizes.session.button
-        height: Tokens.sizes.session.button
-        sourceSize.width: width * ((QsWindow.window as QsWindow)?.devicePixelRatio ?? 1)
-
-        playing: visible
-        asynchronous: true
-        speed: Config.general.sessionGifSpeed
-        source: Paths.absolutePath(Config.paths.sessionGif)
-        fillMode: AnimatedImage.PreserveAspectFit
-    }
-
-    SessionButton {
-        id: sleep
-
-        icon: Config.session.icons.sleep
-        command: Config.session.commands.sleep
-
-        KeyNavigation.up: shutdown
-        KeyNavigation.down: standby
-    }
-
-    SessionButton {
-        id: standby
-
-        icon: "schedule"
-        // Not a command - just the same ambient clock the standby keybind shows, on this screen
-        action: () => {
-            root.screenState.session = false;
-            root.screenState.standby = true;
-        }
-
-        KeyNavigation.up: sleep
-        KeyNavigation.down: reboot
-    }
-
-    SessionButton {
-        id: reboot
-
-        icon: Config.session.icons.reboot
-        command: Config.session.commands.reboot
-
-        KeyNavigation.up: standby
     }
 
     component SessionButton: IconButton {
@@ -100,6 +158,8 @@ Column {
         property list<string> command: []
         // When set, called instead of running command - for actions that aren't an external process
         property var action: null
+        // Where this button sits in root.items, so the keys below can find its neighbours
+        property int displayIndex: -1
 
         function exec(): void {
             if (button.action) {
@@ -127,21 +187,19 @@ Column {
                 return;
 
             if (event.modifiers & Qt.ControlModifier) {
-                if ((event.key === Qt.Key_J || event.key === Qt.Key_N) && KeyNavigation.down) {
-                    KeyNavigation.down.focus = true;
+                if (event.key === Qt.Key_J || event.key === Qt.Key_N) {
+                    root.focusSibling(button.displayIndex, 1);
                     event.accepted = true;
-                } else if ((event.key === Qt.Key_K || event.key === Qt.Key_P) && KeyNavigation.up) {
-                    KeyNavigation.up.focus = true;
+                } else if (event.key === Qt.Key_K || event.key === Qt.Key_P) {
+                    root.focusSibling(button.displayIndex, -1);
                     event.accepted = true;
                 }
-            } else if (event.key === Qt.Key_Tab && KeyNavigation.down) {
-                KeyNavigation.down.focus = true;
+            } else if (event.key === Qt.Key_Tab && !(event.modifiers & Qt.ShiftModifier)) {
+                root.focusSibling(button.displayIndex, 1);
                 event.accepted = true;
             } else if (event.key === Qt.Key_Backtab || (event.key === Qt.Key_Tab && (event.modifiers & Qt.ShiftModifier))) {
-                if (KeyNavigation.up) {
-                    KeyNavigation.up.focus = true;
-                    event.accepted = true;
-                }
+                root.focusSibling(button.displayIndex, -1);
+                event.accepted = true;
             }
         }
     }

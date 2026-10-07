@@ -113,6 +113,11 @@ QtObject {
                 Component {
                     BarLayout {}
                 }
+
+                // Session menu actions sub-page
+                Component {
+                    SessionPanel {}
+                }
             }
         },
         Component {

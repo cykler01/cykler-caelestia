@@ -96,6 +96,13 @@ PageBase {
         }
 
         NavRow {
+            icon: "logout"
+            text: Tr.tr("Session menu")
+            subtext: Config.session.enabled ? Tr.trCtx("Enabled", "panel status") : Tr.trCtx("Disabled", "panel status")
+            onClicked: root.nState.openSubPage(16)
+        }
+
+        NavRow {
             last: true
             icon: "lock"
             text: Tr.tr("Lock screen")
