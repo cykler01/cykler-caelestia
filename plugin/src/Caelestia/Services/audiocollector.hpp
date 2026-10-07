@@ -77,6 +77,7 @@ private:
     void reload();
     void start() override;
     void stop() override;
+    void teardown();
 };
 
 } // namespace caelestia::services

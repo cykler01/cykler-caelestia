@@ -248,7 +248,7 @@ AudioCollector::AudioCollector(QObject* parent)
     , m_writeBuffer(&m_buffer2) {}
 
 AudioCollector::~AudioCollector() {
-    AudioCollector::stop();
+    teardown();
 }
 
 void AudioCollector::start() {
@@ -263,7 +263,16 @@ void AudioCollector::start() {
     });
 }
 
-void AudioCollector::stop() {
+// Deliberately not the inverse of start(): consumers (cava, the beat tracker) ref-count this
+// service, and the naive thing would tear the PipeWire stream down whenever the last one lets go.
+// Reconnecting it on the next ref means a fresh capture link onto whatever is the default sink,
+// and on a filter-chain sink (the equalizer) that relink is audible as a pop through headphones
+// every time the media popout or the notch bring cava back. The stream is passive and goes
+// quiet on its own once nothing is playing, so there is nothing worth tearing down - only the
+// real destructor (teardown(), at app shutdown) does that.
+void AudioCollector::stop() {}
+
+void AudioCollector::teardown() {
     if (m_thread.joinable()) {
         m_thread.request_stop();
         m_thread.join();
