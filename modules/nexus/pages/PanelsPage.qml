@@ -11,7 +11,7 @@ PageBase {
     id: root
 
     // What a hot corner can be set to open, ordered to match config::HotCornerAction (None, Overview,
-    // Sidebar). A corner opens one panel at most, so this is a choice rather than a set of toggles
+    // Sidebar, Standby). A corner opens one panel at most, so this is a choice rather than a set of toggles
     readonly property list<MenuItem> cornerItems: [
         MenuItem {
             text: Tr.trCtx("Nothing", "hot corner action")
@@ -24,6 +24,10 @@ PageBase {
         MenuItem {
             text: Tr.trCtx("Sidebar", "hot corner action")
             icon: "dock_to_right"
+        },
+        MenuItem {
+            text: Tr.trCtx("Standby", "hot corner action")
+            icon: "bedtime"
         }
     ]
 

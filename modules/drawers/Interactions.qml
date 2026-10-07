@@ -23,8 +23,8 @@ CustomMouseArea {
     property bool osdShortcutActive
     property bool utilitiesShortcutActive
 
-    // Hot corners: each corner of the screen can be given a panel to open when the pointer comes to
-    // rest in it (set in settings, under Panels)
+    // Hot corners: each corner of the screen can be given a panel (or the standby clock) to open
+    // when the pointer comes to rest in it (set in settings, under Panels)
     readonly property int hotCornerSize: GlobalConfig.hotCorners.size
     // What the corner the pointer is resting in is set to open, or None while it is in none of them
     property int armedAction: HotCornerAction.None
@@ -192,7 +192,8 @@ CustomMouseArea {
             else if (root.armedAction === HotCornerAction.Sidebar) {
                 root.sidebarCornerActive = true;
                 root.screenState.sidebar = true;
-            }
+            } else if (root.armedAction === HotCornerAction.Standby)
+                root.screenState.standby = true;
         }
     }
 
@@ -206,8 +207,13 @@ CustomMouseArea {
 
     onContainsMouseChanged: {
         if (!containsMouse) {
-            root.armedAction = HotCornerAction.None;
-            hotCornerTimer.stop();
+            // Standby covers the whole screen and takes the pointer with it, so a corner it opened
+            // from hasn't really been left. Holding it armed keeps the next stray mouse move after
+            // a key press dismisses it from immediately re-opening it
+            if (!root.screenState.standby) {
+                root.armedAction = HotCornerAction.None;
+                hotCornerTimer.stop();
+            }
 
             // Only hide if not activated by shortcut
             if (!osdShortcutActive) {
