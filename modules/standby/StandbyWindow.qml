@@ -8,8 +8,8 @@ import Caelestia.Config
 import qs.components
 import qs.components.containers
 import qs.components.widgets
-import qs.modules.lock.center as LockCenter
 import qs.services
+import qs.modules.lock.center as LockCenter
 
 // One of these per connected screen (see Standby.qml) - only ever visible on whichever screen
 // had focus when the standby keybind was pressed, via its own ScreenState.standby.
@@ -26,19 +26,19 @@ StyledWindow {
     readonly property string trackTitle: root.local ? Music.title : Players.active?.trackTitle ?? ""
     readonly property string trackArtist: root.local ? Music.artist : Players.active?.trackArtist ?? ""
 
-    // MouseArea's cursorShape: Qt.BlankCursor never actually hid it on this Wayland setup -
-    // Hyprland's own cursor:invisible config option does, reliably, so this drives that directly
-    // instead of fighting Qt's per-surface Wayland cursor protocol. Reacts to open rather than
-    // being called from whatever dismissed it, since that can be this window itself (a key
-    // press) as well as the keybind or IPC that opened it.
-    onOpenChanged: Hypr.extras.message(Hypr.usingLua ? `eval hl.config({ cursor = { invisible = ${root.open} } })` : `keyword cursor:invisible ${root.open ? 1 : 0}`)
-
     // All screens, not just this one - a key press dismissing only the screen it landed on
     // would leave the "show on every screen" hold mode stuck on everywhere else
     function dismiss(): void {
         for (const s of Screens.screens)
             ShellState.forScreen(s).standby = false;
     }
+
+    // MouseArea's cursorShape: Qt.BlankCursor never actually hid it on this Wayland setup -
+    // Hyprland's own cursor:invisible config option does, reliably, so this drives that directly
+    // instead of fighting Qt's per-surface Wayland cursor protocol. Reacts to open rather than
+    // being called from whatever dismissed it, since that can be this window itself (a key
+    // press) as well as the keybind or IPC that opened it.
+    onOpenChanged: Hypr.extras.message(Hypr.usingLua ? `eval hl.config({ cursor = { invisible = ${root.open} } })` : `keyword cursor:invisible ${root.open ? 1 : 0}`)
 
     name: "standby"
     visible: root.open

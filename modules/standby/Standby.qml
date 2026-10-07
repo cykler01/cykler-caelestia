@@ -12,6 +12,8 @@ import qs.services
 Scope {
     id: root
 
+    readonly property bool anyOpen: Screens.screens.some(s => ShellState.forScreen(s).standby)
+
     function focusedScreen(): ShellScreen {
         // Hypr.focusedMonitor can sit stale until some other event nudges Hyprland's IPC
         // connection - forcing a refresh first is what every other place in this shell that
@@ -20,8 +22,6 @@ Scope {
         const name = Hypr.focusedMonitor?.name;
         return Screens.screens.find(s => s.name === name) ?? null;
     }
-
-    readonly property bool anyOpen: Screens.screens.some(s => ShellState.forScreen(s).standby)
 
     function dismiss(): void {
         for (const screen of Screens.screens)
