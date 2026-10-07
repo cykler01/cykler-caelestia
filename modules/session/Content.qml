@@ -68,6 +68,20 @@ Column {
         command: Config.session.commands.sleep
 
         KeyNavigation.up: shutdown
+        KeyNavigation.down: standby
+    }
+
+    SessionButton {
+        id: standby
+
+        icon: "schedule"
+        // Not a command - just the same ambient clock the standby keybind shows, on this screen
+        action: () => {
+            root.screenState.session = false;
+            root.screenState.standby = true;
+        }
+
+        KeyNavigation.up: sleep
         KeyNavigation.down: reboot
     }
 
@@ -77,15 +91,21 @@ Column {
         icon: Config.session.icons.reboot
         command: Config.session.commands.reboot
 
-        KeyNavigation.up: sleep
+        KeyNavigation.up: standby
     }
 
     component SessionButton: IconButton {
         id: button
 
-        required property list<string> command
+        property list<string> command: []
+        // When set, called instead of running command - for actions that aren't an external process
+        property var action: null
 
         function exec(): void {
+            if (button.action) {
+                button.action();
+                return;
+            }
             if (!SessionManager.exec(command))
                 Quickshell.execDetached(command);
         }
