@@ -7,16 +7,28 @@ import Caelestia.I18n
 import Caelestia.Services
 import qs.components
 import qs.components.controls
-import qs.components.widgets
+import qs.components.widgets as Widgets
 import qs.services
 import qs.utils
+import qs.modules.dashboard.media
 
 Item {
     id: root
 
+    // NOTE(fork): the in-shell local player is not an MPRIS player, so it never showed up here.
+    // Whichever side is actually making sound right now wins outright; if neither is, both keep
+    // what was last playing for a while after it pauses, and the one that stopped most recently
+    // (Music.lastPlayedAt vs Players.rememberedAt) wins - the same rule the notch, lock screen and
+    // desktop widget use to pick what to show.
+    readonly property bool local: Music.playing || (Players.active?.isPlaying !== true && Music.recentlyPlaying && (!Players.recentPlayer || Music.lastPlayedAt >= Players.rememberedAt))
+    readonly property MediaSource source: MediaSource {
+        local: root.local
+        mpris: root.local ? null : Players.recentPlayer
+    }
+
     property real playerProgress: {
-        const active = Players.active;
-        return active?.length ? (active.position % active.length) / active.length : 0;
+        const length = root.source.length;
+        return length ? (root.source.position % length) / length : 0;
     }
 
     readonly property real arcCoverGap: Tokens.spacing.extraSmall
@@ -32,11 +44,11 @@ Item {
     }
 
     Timer {
-        running: Players.active?.isPlaying ?? false
+        running: root.source.isPlaying
         interval: GlobalConfig.dashboard.mediaUpdateInterval
         triggeredOnStart: true
         repeat: true
-        onTriggered: Players.active?.positionChanged()
+        onTriggered: root.source.refresh()
     }
 
     ServiceRef {
@@ -58,10 +70,12 @@ Item {
         wavy: true
         waveFrequency: 8
         waveDuration: 2000
-        wavePaused: !Players.active?.isPlaying
+        wavePaused: !root.source.isPlaying
     }
 
-    CoverArt {
+    // Qualified: qs.modules.dashboard.media also exports a CoverArt (one based on a track's path),
+    // and being imported after qs.components.widgets it would otherwise shadow the widgets one
+    Widgets.CoverArt {
         id: cover
 
         anchors.top: parent.top
@@ -69,6 +83,9 @@ Item {
         anchors.right: parent.right
         anchors.margins: Tokens.padding.medium + root.arcCoverGap + prog.thickness
         implicitHeight: width
+
+        source: root.source.coverSource
+        spinning: root.source.isPlaying
     }
 
     StyledText {
@@ -80,7 +97,7 @@ Item {
 
         animate: true
         horizontalAlignment: Text.AlignHCenter
-        text: (Players.active?.trackTitle ?? Tr.tr("No media")) || Tr.tr("Unknown title")
+        text: root.source.available ? root.source.title || Tr.tr("Unknown title") : Tr.tr("No media")
         color: Colours.palette.m3primary
         font: Tokens.font.title.small
 
@@ -97,7 +114,7 @@ Item {
 
         animate: true
         horizontalAlignment: Text.AlignHCenter
-        text: (Players.active?.trackAlbum ?? Tr.tr("No media")) || Tr.tr("Unknown album")
+        text: root.source.available ? root.source.album || Tr.tr("Unknown album") : Tr.tr("No media")
         color: Colours.palette.m3outline
         font: Tokens.font.body.small
 
@@ -114,7 +131,7 @@ Item {
 
         animate: true
         horizontalAlignment: Text.AlignHCenter
-        text: (Players.active?.trackArtist ?? Tr.tr("No media")) || Tr.tr("Unknown artist")
+        text: root.source.available ? root.source.artist || Tr.tr("Unknown artist") : Tr.tr("No media")
         color: Colours.palette.m3secondary
 
         width: parent.implicitWidth - Tokens.padding.extraLargeIncreased
@@ -137,18 +154,18 @@ Item {
             icon: "skip_previous"
             isRound: true
             shapeMorph: true
-            disabled: !Players.active?.canGoPrevious
-            onClicked: Players.active?.previous()
+            disabled: !root.source.canGoPrevious
+            onClicked: root.source.previous()
         }
 
         IconButton {
             fillWidth: true
-            icon: Players.active?.isPlaying ? "pause" : "play_arrow"
+            icon: root.source.isPlaying ? "pause" : "play_arrow"
             isRound: true
             shapeMorph: true
-            checked: Players.active?.isPlaying ?? false
-            disabled: !Players.active?.canTogglePlaying
-            onClicked: Players.active?.togglePlaying()
+            checked: root.source.isPlaying
+            disabled: !root.source.canTogglePlaying
+            onClicked: root.source.togglePlaying()
         }
 
         IconButton {
@@ -156,8 +173,8 @@ Item {
             icon: "skip_next"
             isRound: true
             shapeMorph: true
-            disabled: !Players.active?.canGoNext
-            onClicked: Players.active?.next()
+            disabled: !root.source.canGoNext
+            onClicked: root.source.next()
         }
     }
 
@@ -172,7 +189,7 @@ Item {
         anchors.bottomMargin: Tokens.padding.large
         anchors.margins: Tokens.padding.extraLargeIncreased
 
-        playing: Players.active?.isPlaying ?? false
+        playing: root.source.isPlaying
         speed: Audio.beatTracker.bpm / Config.general.mediaGifSpeedAdjustment // qmllint disable unresolved-type
         source: Paths.absolutePath(Config.paths.mediaGif)
         asynchronous: true
