@@ -53,7 +53,7 @@ class DiscordConfig : public settings::ObjectNode {
 class SoundEffectsConfig : public settings::ObjectNode {
     CONFIG_NODE(SoundEffectsConfig, settings::ObjectNode)
 
-    CONFIG_GLOBAL_PROPERTY(bool, enabled, true)
+    CONFIG_GLOBAL_PROPERTY(bool, enabled, false)
     CONFIG_GLOBAL_PROPERTY(qreal, sfxVolume, 0.9)
     CONFIG_GLOBAL_PROPERTY(qreal, notificationVolume, 0.5)
     CONFIG_GLOBAL_PROPERTY(bool, cameraClick, true)
