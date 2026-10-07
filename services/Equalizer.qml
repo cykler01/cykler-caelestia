@@ -49,6 +49,10 @@ Singleton {
     // filter chain is the default sink (see syncRouting)
     property string previousSink: ""
 
+    // The device being pinned to unity volume once pinUnityTimer fires (see syncRouting) - not a
+    // node that needs saving, just a handoff between the two
+    property PwNode pinUnityTarget: null
+
     readonly property var presets: [
         {
             key: "flat",
@@ -206,8 +210,27 @@ Singleton {
             // the one picked last is not around. Otherwise the pick from an earlier session stands: after a
             // restart the default is briefly whichever device ranks highest, which says nothing about the choice
             const current = Pipewire.defaultAudioSink;
-            if (current !== null && !root.isInternalNode(current) && (adoptCurrent || root.routeTarget === null))
+            if (current !== null && !root.isInternalNode(current) && (adoptCurrent || root.routeTarget === null)) {
                 root.previousSink = current.name;
+                if (current.audio && root.node.audio) {
+                    // The chain's own sink keeps its own volume, separate from the device's -
+                    // carrying the device's level onto it here is what keeps the switch from
+                    // being audible as a jump
+                    root.node.audio.volume = current.audio.volume;
+                    root.node.audio.muted = current.audio.muted;
+                    // The device's own volume still applies underneath the chain's output (every
+                    // sink attenuates whatever plays through it, the chain's playback included),
+                    // so leaving it wherever it happened to be stacks a second, invisible
+                    // attenuation under the one the slider now shows - pinning it to unity is what
+                    // makes the chain's sink the one real volume control from here on. Not done
+                    // right here: streams are still playing directly on the device at this point
+                    // (the default-sink switch below has not taken effect yet), so pinning it to
+                    // unity immediately is briefly audible as a blast at full volume. pinUnityTimer
+                    // waits for that switch to actually happen first.
+                    root.pinUnityTarget = current;
+                    pinUnityTimer.restart();
+                }
+            }
 
             Pipewire.preferredDefaultAudioSink = root.node;
             root.routeOutput();
@@ -226,8 +249,16 @@ Singleton {
         // sink that no longer exists leaves behind) is only replaced with a device we knew about,
         // so a graph that hasn't picked one yet is left to pick for itself
         const restore = root.sinkByName(root.previousSink) ?? (current !== null ? root.firstSink() : null);
-        if (restore)
+        if (restore) {
+            // Same hand-off as switching on, in reverse: carry the level the slider was actually
+            // showing back onto the device, instead of leaving it at whatever that device's own
+            // volume last happened to be
+            if (current && current.audio && restore.audio) {
+                restore.audio.volume = current.audio.volume;
+                restore.audio.muted = current.audio.muted;
+            }
             Pipewire.preferredDefaultAudioSink = restore;
+        }
     }
 
     // Writes every band into the running node in one call, which is what the filter chain wants:
@@ -318,6 +349,22 @@ Singleton {
 
         interval: 80
         onTriggered: root.apply()
+    }
+
+    // Gives the default-sink switch time to actually move playback onto the chain before the
+    // device it was just taken off is pinned to unity (see syncRouting) - pinning it in the same
+    // tick as the switch means it briefly plays whatever was already running at full volume
+    Timer {
+        id: pinUnityTimer
+
+        interval: 300
+        onTriggered: {
+            if (root.pinUnityTarget && root.pinUnityTarget.audio) {
+                root.pinUnityTarget.audio.volume = 1;
+                root.pinUnityTarget.audio.muted = false;
+            }
+            root.pinUnityTarget = null;
+        }
     }
 
     Timer {
