@@ -4,7 +4,7 @@ import Quickshell.Io
 import qs.services
 
 // The notepad's own IPC target: `qs -c caelestia ipc call notepad open|close|toggle`, or the
-// `caelestia:notepadPopout` global shortcut. The buffer itself is the sidebar's fourth tab
+// `caelestia:notepadPopout` global shortcut. The notepad itself is the sidebar's fourth tab
 // (see modules/notifpopout/Content.qml, modules/notepadpopout/Content.qml) rather than a panel
 // of its own, so this just points the shared sidebar/notifPopoutTab state at it.
 Scope {

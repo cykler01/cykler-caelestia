@@ -5,30 +5,64 @@ import Quickshell
 import Quickshell.Io
 import qs.utils
 
-// NOTE(fork): the notepad. One free-form text buffer, autosaved to
-// `${Paths.data}/notepad.txt` as it is typed, so it survives the shell reloading.
-// It is the store behind the notepad tab of the notification popout (see
-// modules/notepadpopout/Content.qml). There is no list of notes and no formatting,
-// just the one buffer.
+// NOTE(fork): the notepad. A note is a plain file in a directory of the user's
+// choosing (Documents by default), browsed and edited by the notepad tab of the
+// notification popout (see modules/notepadpopout/Content.qml). This holds only that
+// directory and the file last opened, so both survive the shell reloading; the file
+// contents are read and written by the tab itself.
 Singleton {
     id: root
 
-    readonly property string storePath: `${Paths.data}/notepad.txt`
+    readonly property string storePath: `${Paths.data}/notepad.json`
+    readonly property string defaultDir: Paths.documents
 
-    // The whole buffer, and whether it has been written to yet. `edited` keeps a
-    // slow first load from overwriting something typed in the meantime.
-    property string text
-    property bool edited
+    property string dir: root.defaultDir
+    property string lastFile: ""
+    property bool loaded
 
-    function save(value: string): void {
-        if (root.text === value)
-            return;
-
-        root.text = value;
-        root.edited = true;
+    function save(): void {
+        const data = JSON.stringify({
+            version: 1,
+            dir: root.dir,
+            lastFile: root.lastFile
+        });
         // Deferred so writing right after the file turns out not to exist yet is
         // safe, like the other services that seed a state file
-        Qt.callLater(() => storage.setText(root.text));
+        Qt.callLater(() => storage.setText(data));
+    }
+
+    function setDir(path: string): void {
+        if (!path || path === root.dir)
+            return;
+
+        root.dir = path;
+        // The open file belonged to the old directory, so it is not carried over
+        root.lastFile = "";
+        root.save();
+    }
+
+    function setLastFile(path: string): void {
+        if ((path ?? "") === root.lastFile)
+            return;
+
+        root.lastFile = path ?? "";
+        root.save();
+    }
+
+    function load(text: string): void {
+        try {
+            const data = JSON.parse(text);
+            if (data && typeof data === "object") {
+                if (typeof data.dir === "string" && data.dir)
+                    root.dir = data.dir;
+                if (typeof data.lastFile === "string")
+                    root.lastFile = data.lastFile;
+            }
+        } catch (e) {
+            console.warn(lc, `Unable to parse the notepad state: ${e}`);
+        }
+
+        root.loaded = true;
     }
 
     LoggingCategory {
@@ -43,15 +77,12 @@ Singleton {
 
         printErrors: false
         path: root.storePath
-        onLoaded: {
-            if (!root.edited)
-                root.text = text();
-        }
+        onLoaded: root.load(text())
         onLoadFailed: err => {
-            // A missing file is the normal first run: an empty notepad, and the file
-            // itself is created on the first keystroke
+            // No state file yet is the normal first run: Documents and no open file
             if (err !== FileViewError.FileNotFound)
-                console.warn(lc, `Unable to load the notepad: ${err}`);
+                console.warn(lc, `Unable to load the notepad state: ${err}`);
+            root.loaded = true;
         }
     }
 }
