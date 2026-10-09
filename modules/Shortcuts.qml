@@ -86,7 +86,8 @@ Scope {
     CustomShortcut {
         // qmllint enable unresolved-type
         // Notifications, the media library and the to-do list are tabs of the sidebar's own top
-        // card (see modules/sidebar/Content.qml) rather than a separate popout
+        // card (see modules/sidebar/Content.qml), along with the notepad, rather than a separate
+        // popout
         name: "notifPopoutOpen"
         description: "Open the sidebar"
         onPressed: {
@@ -129,8 +130,8 @@ Scope {
                 return;
             }
 
-            // Notifications, the media library, then the to-do list, then back to the first
-            screenState.notifPopoutTab = (screenState.notifPopoutTab + 1) % 3;
+            // Notifications, the media library, the to-do list and the notepad, then back to the first
+            screenState.notifPopoutTab = (screenState.notifPopoutTab + 1) % 4;
         }
     }
 
@@ -181,6 +182,26 @@ Scope {
                 if (root.hasFullscreen)
                     return;
                 screenState.notifPopoutTab = 2;
+                screenState.sidebar = true;
+            }
+        }
+    }
+
+    // qmllint disable unresolved-type
+    CustomShortcut {
+        // qmllint enable unresolved-type
+        // The notepad is the sidebar's fourth tab rather than a panel of its own
+        name: "notepadPopout"
+        description: "Toggle the notepad"
+        onPressed: {
+            const screenState = ShellState.forActive();
+            const isNotepadOpen = screenState.sidebar && screenState.notifPopoutTab === 3;
+            if (isNotepadOpen) {
+                screenState.sidebar = false;
+            } else {
+                if (root.hasFullscreen)
+                    return;
+                screenState.notifPopoutTab = 3;
                 screenState.sidebar = true;
             }
         }

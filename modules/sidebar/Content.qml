@@ -24,8 +24,8 @@ Item {
             radius: Tokens.rounding.large
             color: Colours.tPalette.m3surfaceContainerLow
 
-            // Notifications, the local music library and the to-do list, as tabs of one card
-            // (see modules/notifpopout/Content.qml, shared with the swipe gesture)
+            // Notifications, the local music library, the to-do list and the notepad, as tabs
+            // of one card (see modules/notifpopout/Content.qml, shared with the swipe gesture)
             NotifPopout.Content {
                 objectName: "sidebarNotifications"
                 anchors.fill: parent

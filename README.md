@@ -41,6 +41,7 @@ Every feature below is our own work on top of upstream.
 | **Keybinds page** | Lists every `kb*` bind from the Hyprland Lua config, grouped and searchable, and writes your changes back and reloads | *Nexus → Keybinds* | [▶](https://cykler.dev/caelestia/demos/keybinds) |
 | **OCR & Google Lens** | Select a screen region to copy the text in it with `tesseract`, or upload it and open it in Google Lens | Launcher `>ocr` / `>lens` | [▶](https://cykler.dev/caelestia/demos/launcher-ocr-lens) |
 | **To-do list** | Multiple lists with deadlines and reminders, wrapping task text and inline editing, as the notification popout's third tab | *Notif popout → To-do* | [▶](https://cykler.dev/caelestia/demos/launcher-todo) |
+| **Notepad** | Sidebar notepad with relatively simple functionality but can be very useful without needing to open an app | *Notif popout → Notepad* | [repo](https://github.com/cykler01/cykler-caelestia) |
 | **SSH hosts** | Lists the non-wildcard hosts from `~/.ssh/config` and connects to one in your terminal | Launcher `>ssh` | [▶](https://cykler.dev/caelestia/demos/launcher-ssh) |
 | **GPU modes** | Switches `supergfxctl` graphics modes and offers to restart or log out for them to take effect | Launcher `>gpu` | [▶](https://cykler.dev/caelestia/demos/launcher-gpu) |
 | **Screenshot preview** | Screenshots go straight to the clipboard and show a framed thumbnail instead of a notification; click it to annotate, save to `~/Desktop`, or let it clear | After a capture | [▶](https://cykler.dev/caelestia/demos/screenshot) |

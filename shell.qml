@@ -11,6 +11,7 @@ import "modules/areapicker"
 import "modules/notifpopout"
 import "modules/overview"
 import "modules/todopopout"
+import "modules/notepadpopout"
 import "modules/lock"
 import "modules/standby"
 import QtQuick
@@ -41,6 +42,7 @@ ShellRoot {
     NotifPopout {}
     Overview {}
     TodoPopout {}
+    NotepadPopout {}
     Lock {
         id: lock
     }
