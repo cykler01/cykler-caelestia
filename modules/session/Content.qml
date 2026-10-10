@@ -15,8 +15,7 @@ Column {
 
     required property ScreenState screenState
 
-    // Everything an entry id can map to. "standby" isn't a command - it's the same ambient clock the
-    // standby keybind shows, on this screen - so it carries an action instead
+    // Everything an entry id can map to
     readonly property var builtinActions: ({
             logout: {
                 icon: Config.session.icons.logout,
@@ -29,13 +28,6 @@ Column {
             sleep: {
                 icon: Config.session.icons.sleep,
                 command: Config.session.commands.sleep
-            },
-            standby: {
-                icon: "schedule",
-                action: () => {
-                    root.screenState.session = false;
-                    root.screenState.standby = true;
-                }
             },
             reboot: {
                 icon: Config.session.icons.reboot,

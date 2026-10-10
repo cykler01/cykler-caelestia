@@ -11,7 +11,7 @@ PageBase {
     id: root
 
     // What a hot corner can be set to open, ordered to match config::HotCornerAction (None, Overview,
-    // Sidebar, Standby). A corner opens one panel at most, so this is a choice rather than a set of toggles
+    // Sidebar). A corner opens one panel at most, so this is a choice rather than a set of toggles
     readonly property list<MenuItem> cornerItems: [
         MenuItem {
             text: Tr.trCtx("Nothing", "hot corner action")
@@ -24,10 +24,6 @@ PageBase {
         MenuItem {
             text: Tr.trCtx("Sidebar", "hot corner action")
             icon: "dock_to_right"
-        },
-        MenuItem {
-            text: Tr.trCtx("Standby", "hot corner action")
-            icon: "bedtime"
         }
     ]
 
@@ -167,27 +163,6 @@ PageBase {
             to: 40
             stepSize: 2
             onMoved: v => GlobalConfig.hotCorners.size = v
-        }
-
-        // A plain ambient clock, not a lock - see modules/standby
-        SectionHeader {
-            text: Tr.tr("Standby")
-        }
-
-        ToggleRow {
-            first: true
-            text: Tr.tr("Show date")
-            subtext: Tr.tr("Toggle with the standby keybind (Settings > Keybinds), on whichever screen has focus")
-            checked: GlobalConfig.general.standby.showDate
-            onToggled: GlobalConfig.general.standby.showDate = checked
-        }
-
-        ToggleRow {
-            last: true
-            text: Tr.tr("Show currently playing")
-            subtext: Tr.tr("Cover, title and artist, if something is playing")
-            checked: GlobalConfig.general.standby.showMusic
-            onToggled: GlobalConfig.general.standby.showMusic = checked
         }
 
         // What sits on the wallpaper

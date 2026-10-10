@@ -39,14 +39,13 @@ class SessionConfig : public settings::ObjectNode {
     CONFIG_PROPERTY(bool, vimKeybinds, false)
     CONFIG_SUBOBJECT(SessionIcons, icons)
     CONFIG_SUBOBJECT(SessionCommands, commands)
-    // Which actions show on the session menu and in what order (ids: logout, shutdown, sleep, standby, reboot).
+    // Which actions show on the session menu and in what order (ids: logout, shutdown, sleep, reboot).
     // The animation between the buttons is not part of this - it always stays where it is
     CONFIG_LIST(EntryList, entries,
         DEFAULT_ARG({
             LIST_ENTRY(logout, true),
             LIST_ENTRY(shutdown, true),
             LIST_ENTRY(sleep, true),
-            LIST_ENTRY(standby, true),
             LIST_ENTRY(reboot, true),
         }))
 };

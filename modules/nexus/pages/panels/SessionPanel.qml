@@ -16,7 +16,6 @@ PageBase {
             logout: Tr.tr("Log out"),
             shutdown: Tr.tr("Shut down"),
             sleep: Tr.tr("Sleep"),
-            standby: Tr.tr("Standby"),
             reboot: Tr.tr("Reboot")
         })
 

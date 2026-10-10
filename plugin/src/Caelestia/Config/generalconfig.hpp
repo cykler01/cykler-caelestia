@@ -47,16 +47,6 @@ class GeneralIdle : public settings::ObjectNode {
         }))
 };
 
-// NOTE(fork): a plain ambient clock, not a lock - something to look at instead of a dark/unused
-// monitor, without locking the session. Triggered by a keybind (kbStandby) on whichever monitor
-// had focus at the time, and dismissed by any input.
-class GeneralStandby : public settings::ObjectNode {
-    CONFIG_NODE(GeneralStandby, settings::ObjectNode)
-
-    CONFIG_GLOBAL_PROPERTY(bool, showDate, true)
-    CONFIG_GLOBAL_PROPERTY(bool, showMusic, true)
-};
-
 // NOTE(fork): Battery power management (ported from feat/low-battery-optimization).
 // The behavior classes intentionally do NOT share a base class: the settings
 // schema only registers properties declared directly on each class, so
@@ -169,7 +159,6 @@ class GeneralConfig : public settings::ObjectNode {
     CONFIG_SUBOBJECT(GeneralApps, apps)
     CONFIG_SUBOBJECT(GeneralIdle, idle)
     CONFIG_SUBOBJECT(GeneralBattery, battery)
-    CONFIG_SUBOBJECT(GeneralStandby, standby)
 };
 
 } // namespace caelestia::config
