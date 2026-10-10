@@ -2,7 +2,6 @@ pragma ComponentBehavior: Bound
 
 import QtQuick
 import QtQuick.Layouts
-import Quickshell.Services.UPower
 import Caelestia
 import Caelestia.Config
 import Caelestia.I18n
@@ -91,30 +90,19 @@ StyledRect {
                 Repeater {
                     model: {
                         const items = [];
-                        const hasBatt = UPower.displayDevice.isLaptopBattery;
                         const rHeight = root.rootHeight;
 
-                        if (!hasBatt && rHeight > Tokens.sizes.lock.fetch4LinesHeight)
+                        // Battery and uptime have their own display next to Resources now
+                        if (rHeight > Tokens.sizes.lock.fetch4LinesHeight)
                             // TRANSLATORS: keep the label padded to 4 chars so the column stays aligned
                             items.push(Tr.tr("OS  : %1").arg(SysInfo.osPrettyName || SysInfo.osName));
 
-                        if (rHeight > (hasBatt ? Tokens.sizes.lock.fetch4LinesHeight : Tokens.sizes.lock.fetch3LinesHeight))
+                        if (rHeight > Tokens.sizes.lock.fetch3LinesHeight)
                             // TRANSLATORS: keep the label padded to 4 chars so the column stays aligned
                             items.push(Tr.tr("WM  : %1").arg(SysInfo.wm));
 
-                        if (!hasBatt || rHeight > Tokens.sizes.lock.fetch3LinesHeight)
-                            // TRANSLATORS: keep the label padded to 4 chars so the column stays aligned
-                            items.push(Tr.tr("USER: %1").arg(SysInfo.user));
-
                         // TRANSLATORS: keep the label padded to 4 chars so the column stays aligned
-                        items.push(Tr.tr("UP  : %1").arg(SysInfo.uptime));
-
-                        if (hasBatt) {
-                            const charging = [UPowerDeviceState.Charging, UPowerDeviceState.FullyCharged, UPowerDeviceState.PendingCharge].includes(UPower.displayDevice.state);
-                            const pct = Math.round(UPower.displayDevice.percentage * 100);
-                            // TRANSLATORS: keep the label padded to 4 chars, (+) marks charging
-                            items.push(charging ? Tr.tr("BATT: (+) %1%").arg(pct) : Tr.tr("BATT: %1%").arg(pct));
-                        }
+                        items.push(Tr.tr("USER: %1").arg(SysInfo.user));
 
                         return items;
                     }

@@ -91,12 +91,13 @@ StyledRect {
                 }
             }
 
-            RowLayout {
+            ColumnLayout {
                 id: layout
 
                 anchors.left: parent.left
                 anchors.right: parent.right
-                spacing: Tokens.spacing.large
+                anchors.verticalCenter: parent.verticalCenter
+                spacing: Tokens.spacing.medium
 
                 transform: resourcesTranslate
                 opacity: root.sessionControlsShown ? 0 : 1
@@ -105,63 +106,76 @@ StyledRect {
                     Anim {}
                 }
 
-                Resource {
-                    id: cpu
+                RowLayout {
+                    Layout.fillWidth: true
+                    spacing: Tokens.spacing.large
 
-                    icon: "memory"
-                    value: Strings.percentOne(Cpu.percentage)
-                    fillValue: Cpu.percentage
-                    colour: Colours.palette.m3primary
-                    shapeColour: Colours.palette.m3primaryContainer
-                    fillColour: Qt.alpha(Colours.palette.m3secondary, 0.3)
-                    shape: MaterialShape.Pentagon
+                    Resource {
+                        id: cpu
 
-                    MaterialShape {
-                        x: cpu.mShape.pointAtAngle(45).x - implicitSize / 2 + Tokens.padding.medium
-                        y: Math.max(cpu.mShape.pointAtAngle(45).y - implicitSize / 2, 1 - Tokens.padding.large)
+                        icon: "memory"
+                        value: Strings.percentOne(Cpu.percentage)
+                        fillValue: Cpu.percentage
+                        colour: Colours.palette.m3primary
+                        shapeColour: Colours.palette.m3primaryContainer
+                        fillColour: Qt.alpha(Colours.palette.m3secondary, 0.3)
+                        shape: MaterialShape.Pentagon
 
-                        shape: Cpu.temperature > 90 ? MaterialShape.SoftBurst : MaterialShape.Circle
-                        color: Cpu.temperature > 90 ? Colours.palette.m3errorContainer : Colours.palette.m3secondaryContainer
-                        implicitSize: {
-                            const size = Math.round(tempLabel.implicitHeight * 2);
-                            return size % 2 === 0 ? size : size + 1; // Ensure even size so center works properly
+                        MaterialShape {
+                            x: cpu.mShape.pointAtAngle(45).x - implicitSize / 2 + Tokens.padding.medium
+                            y: Math.max(cpu.mShape.pointAtAngle(45).y - implicitSize / 2, 1 - Tokens.padding.large)
+
+                            shape: Cpu.temperature > 90 ? MaterialShape.SoftBurst : MaterialShape.Circle
+                            color: Cpu.temperature > 90 ? Colours.palette.m3errorContainer : Colours.palette.m3secondaryContainer
+                            implicitSize: {
+                                const size = Math.round(tempLabel.implicitHeight * 2);
+                                return size % 2 === 0 ? size : size + 1; // Ensure even size so center works properly
+                            }
+
+                            Behavior on color {
+                                CAnim {}
+                            }
+
+                            StyledText {
+                                id: tempLabel
+
+                                anchors.centerIn: parent
+                                anchors.verticalCenterOffset: Math.round(fontInfo.pointSize * 0.04)
+
+                                text: Units.formatSensorTemp(Cpu.temperature)
+                                color: Cpu.temperature > 90 ? Colours.palette.m3onErrorContainer : Colours.palette.m3secondary
+                                font: Tokens.font.title.builders.medium.scale(cpu.width / 112).width(50).build()
+                            }
                         }
+                    }
 
-                        Behavior on color {
-                            CAnim {}
-                        }
+                    Resource {
+                        icon: "memory_alt"
+                        value: Strings.percentOne(Memory.percentage)
+                        fillValue: Memory.percentage
+                        colour: Colours.palette.m3tertiary
+                        shapeColour: Colours.palette.m3onTertiary
+                        fillColour: Qt.alpha(Colours.palette.m3tertiary, 0.3)
+                        shape: MaterialShape.Slanted
+                    }
 
-                        StyledText {
-                            id: tempLabel
-
-                            anchors.centerIn: parent
-                            anchors.verticalCenterOffset: Math.round(fontInfo.pointSize * 0.04)
-
-                            text: Units.formatSensorTemp(Cpu.temperature)
-                            color: Cpu.temperature > 90 ? Colours.palette.m3onErrorContainer : Colours.palette.m3secondary
-                            font: Tokens.font.title.builders.medium.scale(cpu.width / 112).width(50).build()
-                        }
+                    Resource {
+                        icon: "hard_disk"
+                        value: Strings.percentOne(Storage.percentage)
+                        fillValue: Storage.percentage
+                        colour: Colours.palette.m3secondary
+                        shapeColour: Colours.palette.m3secondaryContainer
+                        fillColour: Qt.alpha(Colours.palette.m3secondary, 0.4)
+                        shape: MaterialShape.Gem
                     }
                 }
 
-                Resource {
-                    icon: "memory_alt"
-                    value: Strings.percentOne(Memory.percentage)
-                    fillValue: Memory.percentage
-                    colour: Colours.palette.m3tertiary
-                    shapeColour: Colours.palette.m3onTertiary
-                    fillColour: Qt.alpha(Colours.palette.m3tertiary, 0.3)
-                    shape: MaterialShape.Slanted
-                }
+                StyledText {
+                    Layout.alignment: Qt.AlignHCenter
 
-                Resource {
-                    icon: "hard_disk"
-                    value: Strings.percentOne(Storage.percentage)
-                    fillValue: Storage.percentage
-                    colour: Colours.palette.m3secondary
-                    shapeColour: Colours.palette.m3secondaryContainer
-                    fillColour: Qt.alpha(Colours.palette.m3secondary, 0.4)
-                    shape: MaterialShape.Gem
+                    text: Tr.tr("Up %1").arg(SysInfo.uptimeShort)
+                    color: Colours.palette.m3onSurfaceVariant
+                    font: Tokens.font.label.builders.small.scale(root.fontScale).build()
                 }
             }
 

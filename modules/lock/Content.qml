@@ -42,6 +42,11 @@ RowLayout {
 
         Resources {
             Layout.fillWidth: true
+            Layout.preferredHeight: Math.max(implicitHeight, root.height * 0.3)
+        }
+
+        Battery {
+            Layout.fillWidth: true
         }
 
         StyledRect {
