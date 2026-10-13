@@ -42,18 +42,14 @@ StyledClippingRect {
         }
 
         layer.enabled: true
-        opacity: status === Image.Ready ? 1 : 0
 
+        // FadeImage fades itself in once loaded (and re-fades on a source change) - an opacity
+        // binding/Behavior here would fight that internal animation over the same property and
+        // could leave it stuck invisible, so the dimming overlay is all that's added on top
         StyledRect {
             anchors.fill: parent
             color: Colours.palette.m3surface
             opacity: 0.7
-        }
-
-        Behavior on opacity {
-            Anim {
-                type: Anim.StandardExtraLarge
-            }
         }
     }
 
@@ -63,7 +59,7 @@ StyledClippingRect {
         anchors.left: parent.left
         anchors.right: parent.right
         anchors.verticalCenter: parent.verticalCenter
-        anchors.margins: Tokens.padding.extraLarge
+        anchors.margins: Tokens.padding.large
         spacing: Tokens.spacing.extraSmall
 
         StyledText {

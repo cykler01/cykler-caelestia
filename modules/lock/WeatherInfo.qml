@@ -1,5 +1,6 @@
 import "weather"
 import QtQuick
+import QtQuick.Layouts
 import Caelestia.Config
 import qs.components
 import qs.services
@@ -8,16 +9,23 @@ StyledRect {
     id: root
 
     required property int rootHeight
-    readonly property bool showForecast: rootHeight >= Tokens.sizes.lock.showForecastHeight
+    // Whether the forecast fits is decided from its real, measured height (loaded eagerly just
+    // to measure it) rather than a flat pixel constant - and it's an all-or-nothing decision: if
+    // it doesn't fully fit, hide it rather than show a partially cropped sliver of it
+    readonly property bool showForecast: forecast.item !== null && root.rootHeight >= content.anchors.topMargin + brief.implicitHeight + content.spacing + forecast.item.implicitHeight + content.anchors.bottomMargin
 
     implicitHeight: {
-        const base = brief.implicitHeight + brief.anchors.topMargin;
+        const base = brief.implicitHeight + content.anchors.topMargin;
         if (showForecast)
-            return base + Tokens.spacing.largeIncreased + forecast.implicitHeight + forecast.anchors.margins;
-        return base + brief.anchors.topMargin;
+            return base + content.spacing + forecast.implicitHeight + content.anchors.bottomMargin;
+        return base + content.anchors.bottomMargin;
     }
-    radius: Tokens.rounding.extraExtraLarge
+    radius: Tokens.rounding.extraLarge
     color: Colours.tPalette.m3surfaceContainer
+    // The card's actual height is a fixed share of its column, not this implicitHeight - if the
+    // forecast threshold is a bit generous for that share, clip rather than overlap or bleed into
+    // the widget below
+    clip: true
 
     Timer {
         running: true
@@ -27,27 +35,58 @@ StyledRect {
         onTriggered: Weather.reload()
     }
 
-    BriefInfo {
-        id: brief
+    ColumnLayout {
+        id: content
 
-        anchors.horizontalCenter: parent.horizontalCenter
-        anchors.top: parent.top
-        anchors.topMargin: Tokens.padding.extraLarge
-
-        rootHeight: root.rootHeight
-    }
-
-    Loader {
-        id: forecast
-
+        // Stacked top-to-bottom (rather than BriefInfo anchored to the top and the forecast
+        // anchored to the bottom independently) so when the card's actual height is smaller than
+        // both wanted together, the forecast just gets clipped instead of overlapping BriefInfo
         anchors.left: parent.left
         anchors.right: parent.right
-        anchors.bottom: parent.bottom
-        anchors.margins: Tokens.padding.large
+        anchors.top: parent.top
+        anchors.topMargin: Tokens.padding.large
+        anchors.bottomMargin: Tokens.padding.large
+        spacing: Tokens.spacing.largeIncreased
 
-        active: root.showForecast
-        asynchronous: true
+        // With no forecast to fill the card, top-anchored brief info looks stranded near the top
+        // of whatever share this widget got - centre it instead
+        states: State {
+            name: "noForecast"
+            when: !root.showForecast
 
-        sourceComponent: Forecast {}
+            AnchorChanges {
+                target: content
+                anchors.top: undefined
+                anchors.verticalCenter: root.verticalCenter
+            }
+        }
+
+        transitions: Transition {
+            AnchorAnimation {}
+        }
+
+        BriefInfo {
+            id: brief
+
+            Layout.alignment: Qt.AlignHCenter
+
+            rootHeight: root.rootHeight
+        }
+
+        Loader {
+            id: forecast
+
+            Layout.fillWidth: true
+            // Excluded from the layout entirely when hidden (rather than just invisible) so it
+            // doesn't leave a dangling gap of spacing below BriefInfo once centred. Loaded
+            // eagerly regardless, purely so its real implicitHeight is known for showForecast's
+            // fits-or-doesn't comparison above
+            visible: root.showForecast
+
+            active: true
+            asynchronous: true
+
+            sourceComponent: Forecast {}
+        }
     }
 }

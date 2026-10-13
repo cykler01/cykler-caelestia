@@ -194,14 +194,18 @@ class LockTokens : public settings::ObjectNode {
     CONFIG_PROPERTY(qreal, heightMult, 0.7)
     CONFIG_PROPERTY(qreal, ratio, 16.0 / 9.0)
     CONFIG_PROPERTY(int, centerWidth, 600)
-    CONFIG_PROPERTY(int, showWeatherDetailsHeight, 550)
-    CONFIG_PROPERTY(int, showForecastHeight, 975)
+    // NOTE(fork): these used to compare against the whole lock card's height (WeatherInfo and
+    // Fetch got the full root.height). Now that the side columns are weighted stacks
+    // (modules/lock/Content.qml), each widget only sees its own share of that - a few hundred
+    // px, not the whole card - so these are scaled down to match or they'd never trip
+    CONFIG_PROPERTY(int, showWeatherDetailsHeight, 70)
+    CONFIG_PROPERTY(int, showForecastHeight, 110)
     CONFIG_PROPERTY(int, forecastItemWidth, 51)
     CONFIG_PROPERTY(int, largeLogoWidth, 320)
     CONFIG_PROPERTY(int, largeFontWidth, 400)
-    CONFIG_PROPERTY(int, fetch4LinesHeight, 600)
-    CONFIG_PROPERTY(int, fetch3LinesHeight, 500)
-    CONFIG_PROPERTY(int, showColourBoxRowHeight, 570)
+    CONFIG_PROPERTY(int, fetch4LinesHeight, 90)
+    CONFIG_PROPERTY(int, fetch3LinesHeight, 55)
+    CONFIG_PROPERTY(int, showColourBoxRowHeight, 70)
 };
 
 class WInfoTokens : public settings::ObjectNode {

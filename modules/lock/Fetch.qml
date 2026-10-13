@@ -16,122 +16,123 @@ StyledRect {
     required property real rootHeight
     readonly property int cBoxSize: Tokens.font.body.medium.pointSize * 2
 
-    implicitHeight: layout.implicitHeight + layout.anchors.topMargin + layout.anchors.margins
-    radius: Tokens.rounding.medium
+    implicitHeight: layout.implicitHeight + content.anchors.margins * 2
+    radius: Tokens.rounding.extraLarge
     color: Colours.tPalette.m3surfaceContainer
+    clip: true
 
-    ColumnLayout {
-        id: layout
+    Item {
+        id: content
 
         anchors.fill: parent
-        anchors.margins: Tokens.padding.extraLarge
-        anchors.topMargin: Tokens.padding.extraLarge
-        anchors.bottomMargin: Tokens.padding.extraLarge
+        anchors.margins: Tokens.padding.large
 
-        spacing: Tokens.spacing.small
+        // Everything (OS/WM/USER lines, the colour swatches) is always shown now - rather than
+        // dropping lines one by one as the share shrinks, the whole block is scaled down
+        // uniformly so it still fits, same idea as a browser's page zoom. Never scaled up past 1
+        // though - a generous share just means more empty margin, not an oversized card
+        readonly property real fitScale: Math.min(1, content.width / Math.max(1, layout.implicitWidth), content.height / Math.max(1, layout.implicitHeight))
 
-        RowLayout {
-            Layout.fillWidth: true
-            Layout.fillHeight: false
-            spacing: Tokens.spacing.medium
+        ColumnLayout {
+            id: layout
 
-            StyledRect {
-                implicitWidth: prompt.implicitWidth + Tokens.padding.medium * 2
-                implicitHeight: prompt.implicitHeight + Tokens.padding.small * 2
+            width: layout.implicitWidth
+            height: layout.implicitHeight
+            scale: content.fitScale
+            transformOrigin: Item.TopLeft
 
-                color: Colours.palette.m3primary
-                radius: Tokens.rounding.medium
+            spacing: Tokens.spacing.small
 
-                MonoText {
-                    id: prompt
-
-                    anchors.centerIn: parent
-                    text: ">"
-                    color: Colours.palette.m3onPrimary
-                }
-            }
-
-            MonoText {
+            RowLayout {
                 Layout.fillWidth: true
-                text: "caelestiafetch.sh"
-                elide: Text.ElideRight
-            }
-
-            WrappedLoader {
-                Layout.fillHeight: true
-                Layout.preferredWidth: height
-                Layout.preferredHeight: 0
-                active: !iconLoader.active
-
-                sourceComponent: SysInfo.isDefaultLogo ? caelestiaLogo : distroIcon
-            }
-        }
-
-        RowLayout {
-            Layout.fillWidth: true
-            Layout.fillHeight: true
-            spacing: Tokens.spacing.extraLarge
-
-            WrappedLoader {
-                id: iconLoader
-
-                Layout.fillHeight: true
-                active: root.width > Tokens.sizes.lock.largeLogoWidth
-
-                sourceComponent: SysInfo.isDefaultLogo ? caelestiaLogo : distroIcon
-            }
-
-            ColumnLayout {
-                Layout.fillWidth: true
-                Layout.topMargin: Tokens.padding.medium
-                Layout.bottomMargin: iconLoader.active || colourRowLoader.active ? Tokens.padding.medium : 0
+                Layout.fillHeight: false
                 spacing: Tokens.spacing.medium
 
-                Repeater {
-                    model: {
-                        const items = [];
-                        const rHeight = root.rootHeight;
+                StyledRect {
+                    implicitWidth: prompt.implicitWidth + Tokens.padding.medium * 2
+                    implicitHeight: prompt.implicitHeight + Tokens.padding.small * 2
 
-                        // Battery and uptime have their own display next to Resources now
-                        if (rHeight > Tokens.sizes.lock.fetch4LinesHeight)
-                            // TRANSLATORS: keep the label padded to 4 chars so the column stays aligned
-                            items.push(Tr.tr("OS  : %1").arg(SysInfo.osPrettyName || SysInfo.osName));
-
-                        if (rHeight > Tokens.sizes.lock.fetch3LinesHeight)
-                            // TRANSLATORS: keep the label padded to 4 chars so the column stays aligned
-                            items.push(Tr.tr("WM  : %1").arg(SysInfo.wm));
-
-                        // TRANSLATORS: keep the label padded to 4 chars so the column stays aligned
-                        items.push(Tr.tr("USER: %1").arg(SysInfo.user));
-
-                        return items;
-                    }
+                    color: Colours.palette.m3primary
+                    radius: Tokens.rounding.medium
 
                     MonoText {
-                        required property string modelData
+                        id: prompt
 
-                        Layout.fillWidth: true
-                        text: modelData
-                        elide: Text.ElideRight
+                        anchors.centerIn: parent
+                        text: ">"
+                        color: Colours.palette.m3onPrimary
+                    }
+                }
+
+                MonoText {
+                    Layout.fillWidth: true
+                    text: "caelestiafetch.sh"
+                    elide: Text.ElideRight
+                }
+
+                WrappedLoader {
+                    Layout.fillHeight: true
+                    Layout.preferredWidth: height
+                    Layout.preferredHeight: 0
+                    active: !iconLoader.active
+
+                    sourceComponent: SysInfo.isDefaultLogo ? caelestiaLogo : distroIcon
+                }
+            }
+
+            RowLayout {
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+                spacing: Tokens.spacing.extraLarge
+
+                WrappedLoader {
+                    id: iconLoader
+
+                    Layout.fillHeight: true
+                    active: root.width > Tokens.sizes.lock.largeLogoWidth
+
+                    sourceComponent: SysInfo.isDefaultLogo ? caelestiaLogo : distroIcon
+                }
+
+                ColumnLayout {
+                    Layout.fillWidth: true
+                    Layout.topMargin: Tokens.padding.medium
+                    Layout.bottomMargin: Tokens.padding.medium
+                    spacing: Tokens.spacing.medium
+
+                    Repeater {
+                        model: [
+                            // TRANSLATORS: keep the label padded to 4 chars so the column stays aligned
+                            Tr.tr("OS  : %1").arg(SysInfo.osPrettyName || SysInfo.osName),
+                            // TRANSLATORS: keep the label padded to 4 chars so the column stays aligned
+                            Tr.tr("WM  : %1").arg(SysInfo.wm),
+                            // TRANSLATORS: keep the label padded to 4 chars so the column stays aligned
+                            Tr.tr("USER: %1").arg(SysInfo.user),
+                        ]
+
+                        MonoText {
+                            required property string modelData
+
+                            Layout.fillWidth: true
+                            text: modelData
+                            elide: Text.ElideRight
+                        }
                     }
                 }
             }
-        }
 
-        WrappedLoader {
-            id: colourRowLoader
-
-            Layout.topMargin: iconLoader.active ? Tokens.spacing.small : 0
-            Layout.alignment: Qt.AlignHCenter
-            active: root.rootHeight > Tokens.sizes.lock.showColourBoxRowHeight
-
-            sourceComponent: RowLayout {
+            RowLayout {
                 id: coloursRow
+
+                Layout.alignment: Qt.AlignHCenter
 
                 spacing: Tokens.spacing.largeIncreased
 
                 Repeater {
-                    model: CUtils.clamp(Math.floor((layout.width + coloursRow.spacing) / (root.cBoxSize + coloursRow.spacing)), 0, 8)
+                    // Based on the card's real (pre-scale) width, not layout.width - layout's
+                    // own width is derived from its children's implicit sizes, including this
+                    // row, so sizing it off layout.width here would be circular
+                    model: CUtils.clamp(Math.floor((content.width + coloursRow.spacing) / (root.cBoxSize + coloursRow.spacing)), 0, 8)
 
                     StyledRect {
                         required property int index

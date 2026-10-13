@@ -158,5 +158,19 @@ PageBase {
                 });
             }
         }
+
+        // Side widgets
+        SectionHeader {
+            text: Tr.tr("Widgets")
+        }
+
+        NavRow {
+            first: true
+            last: true
+            icon: "widgets"
+            text: Tr.tr("Widgets")
+            subtext: Tr.tr("Reorder, resize and show or hide what's on the side columns")
+            onClicked: root.nState.openSubPage(17)
+        }
     }
 }

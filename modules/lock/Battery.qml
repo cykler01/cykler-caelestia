@@ -23,6 +23,7 @@ StyledRect {
     implicitHeight: row.implicitHeight + Tokens.padding.large * 2
     radius: Tokens.rounding.extraLarge
     color: Colours.tPalette.m3surfaceContainer
+    clip: true
 
     RowLayout {
         id: row

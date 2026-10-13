@@ -118,6 +118,11 @@ QtObject {
                 Component {
                     SessionPanel {}
                 }
+
+                // Lock screen widgets sub-page
+                Component {
+                    LockWidgetsPanel {}
+                }
             }
         },
         Component {
