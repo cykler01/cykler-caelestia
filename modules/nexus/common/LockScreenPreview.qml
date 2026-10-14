@@ -6,6 +6,7 @@ import Caelestia.Config
 import qs.components
 import qs.services
 import qs.modules.lock as Lock
+import qs.modules.lock.center as LockCenter
 
 // A live, read-only miniature of the actual lock screen - the real widgets (weather, fetch,
 // media, ...), rendered with WidgetColumn.qml (the exact same component Content.qml itself uses),
@@ -73,11 +74,25 @@ Item {
                 Layout.alignment: Qt.AlignVCenter
                 spacing: Tokens.spacing.extraSmall
 
+                // The real centre placeholder in digital mode, but the actual analogue dial
+                // (dimmed like the placeholder, still non-interactive) in analogue mode - so the
+                // preview reflects what the lock screen will actually show for either setting
+                Loader {
+                    asynchronous: true
+                    active: Config.lock.analogueClock
+
+                    sourceComponent: LockCenter.AnalogueClock {
+                        centerScale: Math.min(1, root.screenHeight / 1440)
+                        opacity: 0.35
+                    }
+                }
+
                 MaterialIcon {
                     Layout.alignment: Qt.AlignHCenter
                     text: "lock_clock"
                     color: Qt.alpha(Colours.palette.m3onSurface, 0.35)
                     fontStyle: Tokens.font.icon.large
+                    visible: !Config.lock.analogueClock
                 }
 
                 StyledText {

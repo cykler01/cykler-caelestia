@@ -35,6 +35,8 @@ class LockConfig : public settings::ObjectNode {
     CONFIG_GLOBAL_PROPERTY(int, maxHowdyTries, 3)
     CONFIG_GLOBAL_PROPERTY(bool, triggerHowdyOnWake, true)
     CONFIG_PROPERTY(bool, hideNotifs, false)
+    // Analogue dial instead of the digital readout in the centre column (modules/lock/Center.qml)
+    CONFIG_PROPERTY(bool, analogueClock, false)
     CONFIG_GLOBAL_PROPERTY(bool, enableSessionControls, false)
     // Which actions show while the session controls are revealed, and in what order
     // (ids: logout, shutdown, sleep, reboot)

@@ -27,8 +27,22 @@ PageBase {
         width: root.cappedWidth
         spacing: Tokens.spacing.extraSmall / 2
 
+        // Clock
         SectionHeader {
             first: true
+            text: Tr.tr("Clock")
+        }
+
+        ToggleRow {
+            first: true
+            last: true
+            text: Tr.tr("Analogue clock")
+            subtext: Tr.tr("Show an analogue dial instead of the digital readout")
+            checked: GlobalConfig.lock.analogueClock
+            onToggled: GlobalConfig.lock.analogueClock = checked
+        }
+
+        SectionHeader {
             text: Tr.tr("Greeting")
         }
 

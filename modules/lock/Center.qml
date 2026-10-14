@@ -22,6 +22,14 @@ ColumnLayout {
         Layout.alignment: Qt.AlignHCenter
         Layout.topMargin: Tokens.padding.large
         centerScale: root.centerScale
+        visible: !Config.lock.analogueClock
+    }
+
+    AnalogueClock {
+        Layout.alignment: Qt.AlignHCenter
+        Layout.topMargin: Tokens.padding.large
+        centerScale: root.centerScale
+        visible: Config.lock.analogueClock
     }
 
     StyledText {
