@@ -15,6 +15,38 @@ Item {
     required property int centerWidth
     readonly property color bgColour: Colours.tPalette.m3surfaceContainerHighest
 
+    // The configured shape name (Config.lock.profileShape) mapped to MaterialShape's enum - keep
+    // this mapping in sync with the picker's list in modules/nexus/pages/panels/LockPanel.qml, and
+    // with the full enum use in modules/bar/components/workspaces/Workspace.qml. Falls back to the
+    // original ClamShell for an empty/unknown name (e.g. a shape M3Shapes later drops)
+    readonly property int shapeEnum: ({
+            Arch: MaterialShape.Arch,
+            Arrow: MaterialShape.Arrow,
+            ClamShell: MaterialShape.ClamShell,
+            Circle: MaterialShape.Circle,
+            Clover4Leaf: MaterialShape.Clover4Leaf,
+            Cookie: MaterialShape.Cookie,
+            Cookie4Sided: MaterialShape.Cookie4Sided,
+            Cookie6Sided: MaterialShape.Cookie6Sided,
+            Cookie7Sided: MaterialShape.Cookie7Sided,
+            Cookie9Sided: MaterialShape.Cookie9Sided,
+            Cookie12Sided: MaterialShape.Cookie12Sided,
+            Diamond: MaterialShape.Diamond,
+            Fan: MaterialShape.Fan,
+            Gem: MaterialShape.Gem,
+            Ghostish: MaterialShape.Ghostish,
+            Oval: MaterialShape.Oval,
+            Pentagon: MaterialShape.Pentagon,
+            Pill: MaterialShape.Pill,
+            SemiCircle: MaterialShape.SemiCircle,
+            Slanted: MaterialShape.Slanted,
+            SoftBurst: MaterialShape.SoftBurst,
+            Square: MaterialShape.Square,
+            Sunny: MaterialShape.Sunny,
+            Triangle: MaterialShape.Triangle,
+            VerySunny: MaterialShape.VerySunny
+        })[Config.lock.profileShape] ?? MaterialShape.ClamShell
+
     implicitWidth: Math.round(centerWidth * 0.7)
     implicitHeight: {
         shape.height; // Force update when shape height changes
@@ -27,7 +59,7 @@ Item {
         anchors.centerIn: parent
         implicitSize: root.implicitWidth
 
-        shape: MaterialShape.ClamShell
+        shape: root.shapeEnum
         color: Qt.alpha(root.bgColour, 1)
         opacity: root.bgColour.a
         layer.enabled: true

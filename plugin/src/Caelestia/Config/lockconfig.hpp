@@ -37,6 +37,9 @@ class LockConfig : public settings::ObjectNode {
     CONFIG_PROPERTY(bool, hideNotifs, false)
     // Analogue dial instead of the digital readout in the centre column (modules/lock/Center.qml)
     CONFIG_PROPERTY(bool, analogueClock, false)
+    // MaterialShape name (M3Shapes) the profile picture is clipped to - resolved against the
+    // enum in modules/lock/center/ProfilePic.qml
+    CONFIG_PROPERTY(QString, profileShape, u"ClamShell"_s)
     CONFIG_GLOBAL_PROPERTY(bool, enableSessionControls, false)
     // Which actions show while the session controls are revealed, and in what order
     // (ids: logout, shutdown, sleep, reboot)

@@ -5,6 +5,7 @@ import QtQuick.Layouts
 import Caelestia.Config
 import Caelestia.I18n
 import qs.components
+import qs.components.controls
 import qs.modules.nexus.common
 import qs.services
 
@@ -40,6 +41,121 @@ PageBase {
             subtext: Tr.tr("Show an analogue dial instead of the digital readout")
             checked: GlobalConfig.lock.analogueClock
             onToggled: GlobalConfig.lock.analogueClock = checked
+        }
+
+        // Profile picture
+        SectionHeader {
+            text: Tr.tr("Profile picture")
+        }
+
+        SelectRow {
+            first: true
+            last: true
+            label: Tr.tr("Shape")
+            subtext: Tr.tr("What the profile picture is clipped to on the lock screen")
+
+            menuItems: [
+                // Keep in sync with the name->enum mapping in modules/lock/center/ProfilePic.qml,
+                // and with the full enum use in modules/bar/components/workspaces/Workspace.qml
+                MenuItem {
+                    text: "Arch"
+                    value: "Arch"
+                },
+                MenuItem {
+                    text: "Arrow"
+                    value: "Arrow"
+                },
+                MenuItem {
+                    text: "ClamShell"
+                    value: "ClamShell"
+                },
+                MenuItem {
+                    text: "Circle"
+                    value: "Circle"
+                },
+                MenuItem {
+                    text: "Clover4Leaf"
+                    value: "Clover4Leaf"
+                },
+                MenuItem {
+                    text: "Cookie4Sided"
+                    value: "Cookie4Sided"
+                },
+                MenuItem {
+                    text: "Cookie6Sided"
+                    value: "Cookie6Sided"
+                },
+                MenuItem {
+                    text: "Cookie7Sided"
+                    value: "Cookie7Sided"
+                },
+                MenuItem {
+                    text: "Cookie9Sided"
+                    value: "Cookie9Sided"
+                },
+                MenuItem {
+                    text: "Cookie12Sided"
+                    value: "Cookie12Sided"
+                },
+                MenuItem {
+                    text: "Diamond"
+                    value: "Diamond"
+                },
+                MenuItem {
+                    text: "Fan"
+                    value: "Fan"
+                },
+                MenuItem {
+                    text: "Gem"
+                    value: "Gem"
+                },
+                MenuItem {
+                    text: "Ghostish"
+                    value: "Ghostish"
+                },
+                MenuItem {
+                    text: "Oval"
+                    value: "Oval"
+                },
+                MenuItem {
+                    text: "Pentagon"
+                    value: "Pentagon"
+                },
+                MenuItem {
+                    text: "Pill"
+                    value: "Pill"
+                },
+                MenuItem {
+                    text: "SemiCircle"
+                    value: "SemiCircle"
+                },
+                MenuItem {
+                    text: "Slanted"
+                    value: "Slanted"
+                },
+                MenuItem {
+                    text: "SoftBurst"
+                    value: "SoftBurst"
+                },
+                MenuItem {
+                    text: "Square"
+                    value: "Square"
+                },
+                MenuItem {
+                    text: "Sunny"
+                    value: "Sunny"
+                },
+                MenuItem {
+                    text: "Triangle"
+                    value: "Triangle"
+                },
+                MenuItem {
+                    text: "VerySunny"
+                    value: "VerySunny"
+                }
+            ]
+            active: menuItems.find(i => i.value === GlobalConfig.lock.profileShape)
+            onSelected: item => GlobalConfig.lock.profileShape = item.value
         }
 
         SectionHeader {
