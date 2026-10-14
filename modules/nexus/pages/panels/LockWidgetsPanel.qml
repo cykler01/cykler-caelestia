@@ -18,7 +18,9 @@ PageBase {
             media: Tr.tr("Now playing"),
             resources: Tr.tr("System resources"),
             battery: Tr.tr("Battery"),
-            notifs: Tr.tr("Notifications")
+            notifs: Tr.tr("Notifications"),
+            network: Tr.tr("Network"),
+            audio: Tr.tr("Volume")
         })
 
     readonly property var widgetIcons: ({
@@ -27,7 +29,9 @@ PageBase {
             media: "music_note",
             resources: "monitoring",
             battery: "bolt",
-            notifs: "notifications"
+            notifs: "notifications",
+            network: "wifi",
+            audio: "volume_up"
         })
 
     // Mirrors the C++ defaults in lockconfig.hpp, for the reset button below
@@ -67,7 +71,7 @@ PageBase {
         StyledText {
             Layout.fillWidth: true
             Layout.bottomMargin: Tokens.spacing.small
-            text: Tr.tr("Drag a widget's handle to reorder it, or drag it across to the other column to move it there. Drag the thin strip under a widget to resize it against the one below. The switch shows or hides it without losing its place.")
+            text: Tr.tr("Drag a widget's handle to reorder it, or drag it across to the other column to move it there. Drag the thin strip under a widget to resize it against the one below. The delete button removes it entirely - the add button below brings it back.")
             color: Colours.palette.m3outline
             font: Tokens.font.label.small
             wrapMode: Text.WordWrap
@@ -88,15 +92,44 @@ PageBase {
             type: TextButton.Tonal
             onClicked: {
                 const list = GlobalConfig.lock.widgets;
-                const values = list.values;
                 for (const id in root.defaults) {
-                    const index = values.findIndex(e => e.id === id);
+                    const index = list.values.findIndex(e => e.id === id);
                     if (index < 0)
-                        continue;
-                    list.at(index).enabled = true;
-                    list.at(index).column = root.defaults[id].column;
-                    list.at(index).weight = root.defaults[id].weight;
+                        // Deleted from the list entirely - re-add it in its default column
+                        list.insert({
+                            id: id,
+                            enabled: true,
+                            column: root.defaults[id].column,
+                            weight: root.defaults[id].weight
+                        });
+                    else {
+                        list.at(index).column = root.defaults[id].column;
+                        list.at(index).weight = root.defaults[id].weight;
+                    }
                 }
+            }
+        }
+
+        DialogSelectButton {
+            rootParent: root.flickable
+            icon: "add"
+            label: Tr.tr("Add widget")
+            header: Tr.tr("Add a widget")
+            acceptLabel: Tr.trCtx("Add", "button")
+
+            // Only widgets that aren't in the list already
+            model: Object.keys(root.widgetNames).filter(id => !GlobalConfig.lock.widgets.values.some(e => e.id === id)).map(id => ({
+                        id: id,
+                        label: root.widgetNames[id]
+                    }))
+
+            onAccepted: {
+                if (!selectedItem)
+                    return;
+                GlobalConfig.lock.widgets.insert({
+                    id: selectedItem,
+                    enabled: true
+                });
             }
         }
     }

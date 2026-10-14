@@ -23,18 +23,23 @@ ColumnLayout {
     required property real rootHeight
     required property var lock
 
+    // Ids this column knows how to render - anything else in the config (a widget removed
+    // from the code, say) is skipped rather than falling through the DelegateChooser below
+    readonly property var knownIds: [...col.autoSized, "weather", "media", "notifs"]
+
     // Every entry's enabled/column/weight is read here so this is worked out again
     // whenever one changes, same as the desktop widgets' own placements property
     readonly property var items: {
         const entries = Config.lock.widgets.values;
         for (const e of entries)
             void [e.enabled, e.column, e.weight];
-        return entries.filter(e => e.enabled && e.column === col.side);
+        return entries.filter(e => e.enabled && e.column === col.side && col.knownIds.includes(e.id));
     }
 
     // Ids of the widgets whose size is fixed to their natural content height rather than a
-    // weight share - their weights are ignored
-    readonly property var autoSized: ["fetch", "resources", "battery"]
+    // weight share - their weights are ignored. Audio and network read live service state whose
+    // card height doesn't depend on it, so they size naturally too
+    readonly property var autoSized: ["fetch", "resources", "battery", "network", "audio"]
 
     // Every delegate's modelData is its config entry, so visible delegates are counted from
     // the actual children rather than `items` - an invisible one (battery on a desktop, say)
@@ -130,6 +135,20 @@ ColumnLayout {
             }
 
             DelegateChoice {
+                roleValue: "network"
+                delegate: NetworkCard {
+                    id: networkWidget
+
+                    required property var modelData
+
+                    Layout.fillWidth: true
+                    // Fixed natural height, as above for Fetch
+                    Layout.preferredHeight: networkWidget.implicitHeight
+                    Layout.minimumHeight: networkWidget.implicitHeight
+                }
+            }
+
+            DelegateChoice {
                 roleValue: "media"
                 delegate: Media {
                     id: mediaWidget
@@ -170,6 +189,19 @@ ColumnLayout {
                     // which the shares above recompute around via col.autoHeight
                     Layout.preferredHeight: batteryWidget.implicitHeight
                     Layout.minimumHeight: batteryWidget.implicitHeight
+                }
+            }
+
+            DelegateChoice {
+                roleValue: "audio"
+                delegate: AudioCard {
+                    id: audioWidget
+
+                    required property var modelData
+
+                    Layout.fillWidth: true
+                    Layout.preferredHeight: audioWidget.implicitHeight
+                    Layout.minimumHeight: audioWidget.implicitHeight
                 }
             }
 

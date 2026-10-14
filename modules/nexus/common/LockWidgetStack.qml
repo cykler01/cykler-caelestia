@@ -10,7 +10,8 @@ import qs.services
 // Two side-by-side mini columns mirroring the lock screen's own left/right widget stacks
 // (modules/lock/Content.qml). Drag a tile's handle to reorder it, or drag it across the gap to
 // move it to the other column; drag the thin strip under a tile to resize it against its
-// neighbour below. A switch per tile shows or hides it without removing it from the list.
+// neighbour below. A delete button per tile removes it from the list entirely - the panel's
+// add button brings it back.
 //
 // Built on a ListView + DelegateModel + ScriptModel per column (the same combination
 // ListEditor.qml uses for its own reorderable list) rather than a plain Repeater, specifically so
@@ -32,13 +33,18 @@ Item {
     readonly property real minWeight: 0.2
     readonly property real tileSpacing: Tokens.spacing.extraSmall / 2
 
+    // Ids the lock screen actually renders (WidgetColumn.qml filters on the same set) -
+    // anything else left in the config (a widget since removed from the code, say) is hidden
+    // here too, or the editor would list tiles the preview and lock screen never show
+    readonly property var knownIds: ["weather", "fetch", "media", "resources", "battery", "notifs", "network", "audio"]
+
     // Every entry's enabled/column/weight is read here so this is worked out again whenever
     // one changes, same trick Content.qml's own WidgetColumn uses
     readonly property var entries: {
         const vals = root.list.values;
         for (const e of vals)
             void [e.enabled, e.column, e.weight];
-        return vals;
+        return vals.filter(e => root.knownIds.includes(e.id));
     }
 
     readonly property var leftEntries: root.entries.filter(e => e.column === "left")
@@ -64,8 +70,13 @@ Item {
     // the dragged entry into its place
     function nearestOther(column: string, globalY: real, excludeId: string): var {
         const view = column === "left" ? leftArea : rightArea;
-        const local = view.mapFromItem(root, view.width / 2, globalY);
-        const item = view.itemAt(local.x, local.y) as Tile;
+        // Only the y matters for row detection (a column is one row wide), so map the drop point
+        // through on y and then probe the view's own centre on x - passing view.width / 2 as an
+        // x in ROOT coordinates instead mapped the probe point into whatever sits left of the
+        // right-hand column, where itemAt found no tile and every right-column reorder was
+        // silently dropped
+        const dropY = view.mapFromItem(root, 0, globalY).y;
+        const item = view.itemAt(view.width / 2, dropY) as Tile;
         if (!item || item.entry.id === excludeId)
             return null;
         return item.entry;
@@ -147,7 +158,7 @@ Item {
         interactive: false
 
         readonly property var items: root.entriesFor(columnArea.column)
-        readonly property real totalWeight: columnArea.items.filter(e => e.enabled).reduce((sum, e) => sum + e.weight, 0) || 1
+        readonly property real totalWeight: columnArea.items.reduce((sum, e) => sum + e.weight, 0) || 1
 
         Behavior on implicitHeight {
             Anim {}
@@ -228,8 +239,8 @@ Item {
             return tile.entry.weight;
         }
 
-        readonly property real shareHeight: tile.entry.enabled ? tile.liveWeight / tile.area.totalWeight * root.previewHeight : 44
-        readonly property bool resizable: tile.entry.enabled && !tile.isLast && root.entriesFor(tile.area.column)[tile.tileIndex + 1]?.enabled
+        readonly property real shareHeight: tile.liveWeight / tile.area.totalWeight * root.previewHeight
+        readonly property bool resizable: !tile.isLast
 
         property bool held
 
@@ -267,7 +278,6 @@ Item {
                 implicitHeight: Math.max(44, tile.shareHeight)
                 radius: Tokens.rounding.extraLarge
                 color: tile.held ? Colours.palette.m3primaryContainer : Colours.tPalette.m3surfaceContainer
-                opacity: tile.entry.enabled ? 1 : 0.5
 
                 Behavior on implicitHeight {
                     enabled: !root.activeResize
@@ -281,7 +291,6 @@ Item {
                     id: dragHandle
 
                     anchors.fill: parent
-                    enabled: tile.entry.enabled
                     preventStealing: true
 
                     property point pressPos
@@ -343,9 +352,14 @@ Item {
                         elide: Text.ElideRight
                     }
 
-                    StyledSwitch {
-                        checked: tile.entry.enabled
-                        onToggled: root.list.at(root.realIndexOf(tile.entry.id)).enabled = checked
+                    // Membership is the switch now: every tile in the list renders on the lock
+                    // screen, so removing it here is the off switch and the panel's add button
+                    // brings it back
+                    IconButton {
+                        type: IconButton.Text
+                        icon: "delete"
+                        font: Tokens.font.icon.medium
+                        onClicked: root.list.remove(root.realIndexOf(tile.entry.id))
                     }
                 }
             }
