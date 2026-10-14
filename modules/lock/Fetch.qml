@@ -24,14 +24,14 @@ StyledRect {
     Item {
         id: content
 
-        anchors.fill: parent
-        anchors.margins: Tokens.padding.large
-
         // Everything (OS/WM/USER lines, the colour swatches) is always shown now - rather than
         // dropping lines one by one as the share shrinks, the whole block is scaled down
         // uniformly so it still fits, same idea as a browser's page zoom. Never scaled up past 1
         // though - a generous share just means more empty margin, not an oversized card
         readonly property real fitScale: Math.min(1, content.width / Math.max(1, layout.implicitWidth), content.height / Math.max(1, layout.implicitHeight))
+
+        anchors.fill: parent
+        anchors.margins: Tokens.padding.extraLarge
 
         ColumnLayout {
             id: layout
@@ -39,18 +39,23 @@ StyledRect {
             width: layout.implicitWidth
             height: layout.implicitHeight
             scale: content.fitScale
+            // Scaled from the top-left, so the visual bounding box ends up implicitWidth*scale 
+            // wide - y is offset from that to centre it vertically, but x is pinned to the
+            // content item's left edge (content.anchors.margins in, the same margin as
+            // top/bottom) so the title row's left padding equals the vertical one
+            y: (content.height - layout.implicitHeight * content.fitScale) / 2
             transformOrigin: Item.TopLeft
 
-            spacing: Tokens.spacing.small
+            spacing: Tokens.spacing.medium
 
             RowLayout {
                 Layout.fillWidth: true
                 Layout.fillHeight: false
-                spacing: Tokens.spacing.medium
+                spacing: Tokens.spacing.large
 
                 StyledRect {
-                    implicitWidth: prompt.implicitWidth + Tokens.padding.medium * 2
-                    implicitHeight: prompt.implicitHeight + Tokens.padding.small * 2
+                    implicitWidth: prompt.implicitWidth + Tokens.padding.large * 2
+                    implicitHeight: prompt.implicitHeight + Tokens.padding.medium * 2
 
                     color: Colours.palette.m3primary
                     radius: Tokens.rounding.medium
@@ -83,7 +88,7 @@ StyledRect {
             RowLayout {
                 Layout.fillWidth: true
                 Layout.fillHeight: true
-                spacing: Tokens.spacing.extraLarge
+                spacing: Tokens.spacing.extraLargeIncreased
 
                 WrappedLoader {
                     id: iconLoader
@@ -96,9 +101,9 @@ StyledRect {
 
                 ColumnLayout {
                     Layout.fillWidth: true
-                    Layout.topMargin: Tokens.padding.medium
-                    Layout.bottomMargin: Tokens.padding.medium
-                    spacing: Tokens.spacing.medium
+                    Layout.topMargin: Tokens.padding.large
+                    Layout.bottomMargin: Tokens.padding.large
+                    spacing: Tokens.spacing.large
 
                     Repeater {
                         model: [
@@ -126,7 +131,7 @@ StyledRect {
 
                 Layout.alignment: Qt.AlignHCenter
 
-                spacing: Tokens.spacing.largeIncreased
+                spacing: Tokens.spacing.extraLarge
 
                 Repeater {
                     // Based on the card's real (pre-scale) width, not layout.width - layout's
