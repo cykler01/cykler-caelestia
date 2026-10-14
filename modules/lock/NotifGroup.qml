@@ -226,6 +226,27 @@ StyledRect {
                 NotifLine {
                     id: notif
 
+                    // Gate for the entrance reveal: while false the line sits at zero height
+                    // and pops open to its real height once marked true
+                    property bool revealed: false
+
+                    // A live binding all the way down; the entrance animation used to freeze
+                    // preferredHeight at whatever the text measured at creation time - before
+                    // the dock had settled its final width - so a line whose text later got
+                    // taller than that frozen slot painted over the next one, which every
+                    // multi-notification group did. The Behavior animates the reveal without
+                    // breaking the binding, and it stands down while the close animation
+                    // drives the same property explicitly
+                    Layout.preferredHeight: notif.revealed ? notif.implicitHeight : 0
+
+                    Component.onCompleted: notif.revealed = true
+
+                    Behavior on Layout.preferredHeight {
+                        enabled: !notif.modelData.closed
+
+                        Anim {}
+                    }
+
                     ParallelAnimation {
                         running: true
 
@@ -241,12 +262,6 @@ StyledRect {
                             property: "scale"
                             from: 0.7
                             to: 1
-                        }
-                        Anim {
-                            target: notif.Layout
-                            property: "preferredHeight"
-                            from: 0
-                            to: notif.implicitHeight
                         }
                     }
 
