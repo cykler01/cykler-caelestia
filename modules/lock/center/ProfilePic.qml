@@ -16,8 +16,8 @@ Item {
     readonly property color bgColour: Colours.tPalette.m3surfaceContainerHighest
 
     // The configured shape name (Config.lock.profileShape) mapped to MaterialShape's enum - keep
-    // this mapping in sync with the picker's list in modules/nexus/pages/panels/LockPanel.qml, and
-    // with the full enum use in modules/bar/components/workspaces/Workspace.qml. Falls back to the
+    // this mapping in sync with the picker's list in modules/nexus/pages/panels/ProfileShapePicker.qml,
+    // and with the full enum use in modules/bar/components/workspaces/Workspace.qml. Falls back to the
     // original ClamShell for an empty/unknown name (e.g. a shape M3Shapes later drops)
     readonly property int shapeEnum: ({
             Arch: MaterialShape.Arch,

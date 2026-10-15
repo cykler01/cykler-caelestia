@@ -82,9 +82,6 @@
   "modules/nexus/pages/battery/TimeoutRow.qml": {
     "section-order": 2
   },
-  "modules/nexus/pages/panels/LockPanel.qml": {
-    "import-order": 1
-  },
   "modules/nexus/pages/panels/WidgetGridEditor.qml": {
     "section-order": 14
   },
