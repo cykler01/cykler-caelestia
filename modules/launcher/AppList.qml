@@ -32,7 +32,7 @@ StyledListView {
             if (text.startsWith(`${prefix}calc `))
                 return "calc";
 
-            if (text === `${prefix}ai` || text.startsWith(`${prefix}ai `))
+            if (GlobalConfig.launcher.enableAiSearch && (text === `${prefix}ai` || text.startsWith(`${prefix}ai `)))
                 return "ai";
 
             if (text === `${prefix}gpu` || text.startsWith(`${prefix}gpu `))

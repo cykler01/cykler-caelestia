@@ -143,11 +143,18 @@ PageBase {
         }
 
         ToggleRow {
-            last: true
             text: Tr.tr("Enable Supergfxctl")
             subtext: Tr.tr("Show GPU mode switching for ASUS laptops")
             checked: GlobalConfig.launcher.enableSupergfxctl
             onToggled: GlobalConfig.launcher.enableSupergfxctl = checked
+        }
+
+        ToggleRow {
+            last: true
+            text: Tr.tr("Enable AI search")
+            subtext: Tr.tr("Ask Google Gemini questions from the launcher with the AI action")
+            checked: GlobalConfig.launcher.enableAiSearch
+            onToggled: GlobalConfig.launcher.enableAiSearch = checked
         }
 
         // Fuzzy search

@@ -38,6 +38,7 @@ class LauncherConfig : public settings::ObjectNode {
     CONFIG_GLOBAL_PROPERTY(bool, enableDangerousActions, false)
     CONFIG_GLOBAL_PROPERTY(bool, enableSupergfxctl, false)
     // Gemini API key and model for the launcher's AI search (">ai ")
+    CONFIG_GLOBAL_PROPERTY(bool, enableAiSearch, false)
     CONFIG_GLOBAL_PROPERTY(QString, aiApiKey, u""_s)
     CONFIG_GLOBAL_PROPERTY(QString, aiModel, u"gemini-3.5-flash-lite"_s)
     CONFIG_PROPERTY(int, dragThreshold, 50)
