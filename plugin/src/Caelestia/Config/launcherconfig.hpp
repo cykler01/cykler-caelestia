@@ -37,6 +37,9 @@ class LauncherConfig : public settings::ObjectNode {
     CONFIG_GLOBAL_PROPERTY(QString, actionPrefix, u">"_s)
     CONFIG_GLOBAL_PROPERTY(bool, enableDangerousActions, false)
     CONFIG_GLOBAL_PROPERTY(bool, enableSupergfxctl, false)
+    // Gemini API key and model for the launcher's AI search (">ai ")
+    CONFIG_GLOBAL_PROPERTY(QString, aiApiKey, u""_s)
+    CONFIG_GLOBAL_PROPERTY(QString, aiModel, u"gemini-2.5-flash"_s)
     CONFIG_PROPERTY(int, dragThreshold, 50)
     CONFIG_GLOBAL_PROPERTY(bool, vimKeybinds, false)
     CONFIG_GLOBAL_PROPERTY(QStringList, favouriteApps, {})
@@ -49,6 +52,12 @@ class LauncherConfig : public settings::ObjectNode {
                 { u"icon"_s, u"calculate"_s },
                 { u"description"_s, mark(u"Do simple maths equations (powered by Qalc)"_s) },
                 { u"command"_s, QStringList{ u"autocomplete"_s, u"calc"_s } },
+            }),
+            vmap({
+                { u"name"_s, markCtx(u"AI search"_s, u"launcher action"_s) },
+                { u"icon"_s, u"auto_awesome"_s },
+                { u"description"_s, mark(u"Ask a question with Google Gemini"_s) },
+                { u"command"_s, QStringList{ u"autocomplete"_s, u"ai"_s } },
             }),
             vmap({
                 { u"name"_s, markCtx(u"SSH"_s, u"launcher action"_s) },

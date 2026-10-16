@@ -74,7 +74,7 @@ Item {
                     Wallpapers.setWallpaper(currentItem.modelData.path);
                     root.screenState.launcher = false;
                 } else if (text.startsWith(GlobalConfig.launcher.actionPrefix)) {
-                    if (text.startsWith(`${GlobalConfig.launcher.actionPrefix}calc `))
+                    if (text.startsWith(`${GlobalConfig.launcher.actionPrefix}calc `) || list.currentList?.state === "ai")
                         currentItem.onClicked();
                     else
                         currentItem.modelData.onClicked(list.currentList);

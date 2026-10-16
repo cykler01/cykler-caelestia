@@ -42,12 +42,7 @@ Requests::Requests(QObject* parent)
     : QObject(parent)
     , m_manager(new QNetworkAccessManager(this)) {}
 
-void Requests::get(const QUrl& url, const QJSValue& onSuccess, const QJSValue& onError, const QJSValue& headers) const {
-    if (!onSuccess.isCallable()) {
-        qCWarning(lcRequests) << "get: onSuccess is not callable";
-        return;
-    }
-
+QNetworkRequest Requests::buildRequest(const QUrl& url, const QJSValue& headers) {
     QNetworkRequest request(url);
     request.setAttribute(QNetworkRequest::CacheLoadControlAttribute, QNetworkRequest::AlwaysNetwork);
     request.setAttribute(QNetworkRequest::CookieSaveControlAttribute, QNetworkRequest::Manual);
@@ -63,24 +58,55 @@ void Requests::get(const QUrl& url, const QJSValue& onSuccess, const QJSValue& o
         }
     }
 
-    auto* reply = m_manager->get(request);
+    return request;
+}
 
-    QObject::connect(reply, &QNetworkReply::finished, this, [this, reply, onSuccess, onError] {
-        const QString body = QString::fromUtf8(reply->readAll());
+void Requests::handleReply(QNetworkReply* reply, const QJSValue& onSuccess, const QJSValue& onError) const {
+    const QString body = QString::fromUtf8(reply->readAll());
 
-        QJSValue metadata;
+    QJSValue metadata;
+    if (auto* engine = qmlEngine(this))
+        metadata = engine->toScriptValue(responseMetadata(reply));
+
+    if (reply->error() == QNetworkReply::NoError) {
+        onSuccess.call({ body, metadata });
+    } else if (onError.isCallable()) {
+        QJSValue bodyValue;
         if (auto* engine = qmlEngine(this))
-            metadata = engine->toScriptValue(responseMetadata(reply));
+            bodyValue = engine->toScriptValue(body);
 
-        if (reply->error() == QNetworkReply::NoError) {
-            onSuccess.call({ body, metadata });
-        } else if (onError.isCallable()) {
-            onError.call({ reply->errorString(), metadata });
-        } else {
-            qCWarning(lcRequests) << "get: request failed with error" << reply->errorString();
-        }
+        // The body is passed after the metadata so existing handlers, which
+        // expect the metadata as the second argument, keep working
+        onError.call({ reply->errorString(), metadata, bodyValue });
+    } else {
+        qCWarning(lcRequests) << reply->errorString();
+    }
 
-        reply->deleteLater();
+    reply->deleteLater();
+}
+
+void Requests::get(const QUrl& url, const QJSValue& onSuccess, const QJSValue& onError, const QJSValue& headers) const {
+    if (!onSuccess.isCallable()) {
+        qCWarning(lcRequests) << "get: onSuccess is not callable";
+        return;
+    }
+
+    auto* reply = m_manager->get(buildRequest(url, headers));
+    QObject::connect(reply, &QNetworkReply::finished, this, [this, reply, onSuccess, onError] {
+        handleReply(reply, onSuccess, onError);
+    });
+}
+
+void Requests::post(const QUrl& url, const QString& body, const QJSValue& onSuccess, const QJSValue& onError,
+    const QJSValue& headers) const {
+    if (!onSuccess.isCallable()) {
+        qCWarning(lcRequests) << "post: onSuccess is not callable";
+        return;
+    }
+
+    auto* reply = m_manager->post(buildRequest(url, headers), body.toUtf8());
+    QObject::connect(reply, &QNetworkReply::finished, this, [this, reply, onSuccess, onError] {
+        handleReply(reply, onSuccess, onError);
     });
 }
 

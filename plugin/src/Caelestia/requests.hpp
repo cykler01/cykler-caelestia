@@ -16,10 +16,15 @@ public:
 
     Q_INVOKABLE void get(const QUrl& url, const QJSValue& onSuccess, const QJSValue& onError = QJSValue(),
         const QJSValue& headers = QJSValue()) const;
+    Q_INVOKABLE void post(const QUrl& url, const QString& body, const QJSValue& onSuccess,
+        const QJSValue& onError = QJSValue(), const QJSValue& headers = QJSValue()) const;
     Q_INVOKABLE void resetCookies() const;
 
 private:
     QNetworkAccessManager* m_manager;
+
+    [[nodiscard]] static QNetworkRequest buildRequest(const QUrl& url, const QJSValue& headers);
+    void handleReply(QNetworkReply* reply, const QJSValue& onSuccess, const QJSValue& onError) const;
 };
 
 } // namespace caelestia

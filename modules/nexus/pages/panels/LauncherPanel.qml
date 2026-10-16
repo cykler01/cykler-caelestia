@@ -174,5 +174,30 @@ PageBase {
             checked: GlobalConfig.launcher.useFuzzy.wallpapers
             onToggled: GlobalConfig.launcher.useFuzzy.wallpapers = checked
         }
+
+        // AI search
+        SectionHeader {
+            text: Tr.tr("AI search")
+        }
+
+        TextFieldRow {
+            first: true
+            label: Tr.tr("API key")
+            subtext: Tr.tr("Google Gemini API key for the launcher's AI search")
+            value: GlobalConfig.launcher.aiApiKey
+            onEditingFinished: value => GlobalConfig.launcher.aiApiKey = value.trim()
+        }
+
+        TextFieldRow {
+            last: true
+            label: Tr.tr("Model")
+            subtext: Tr.tr("Gemini model to ask, e.g. gemini-2.5-flash")
+            value: GlobalConfig.launcher.aiModel
+            onEditingFinished: value => {
+                const trimmed = value.trim();
+                if (trimmed)
+                    GlobalConfig.launcher.aiModel = trimmed;
+            }
+        }
     }
 }

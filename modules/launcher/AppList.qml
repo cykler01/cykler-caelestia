@@ -32,6 +32,9 @@ StyledListView {
             if (text.startsWith(`${prefix}calc `))
                 return "calc";
 
+            if (text === `${prefix}ai` || text.startsWith(`${prefix}ai `))
+                return "ai";
+
             if (text === `${prefix}gpu` || text.startsWith(`${prefix}gpu `))
                 return "gpu";
 
@@ -49,6 +52,8 @@ StyledListView {
         case "actions":
             return Actions.query(text);
         case "calc":
+            return [0];
+        case "ai":
             return [0];
         case "gpu":
             return Supergfxctl.modeData;
@@ -71,7 +76,10 @@ StyledListView {
 
     spacing: Tokens.spacing.small
     orientation: Qt.Vertical
-    implicitHeight: (Tokens.sizes.launcher.itemHeight + spacing) * Math.min(Config.launcher.maxShown, count) - spacing
+    // The AI answer is one tall wrapping row, so its real content height is
+    // used there; every other delegate is a fixed-height row, still capped by
+    // maxShown. ContentList clamps the whole thing to maxHeight either way.
+    implicitHeight: state === "ai" ? contentHeight : (Tokens.sizes.launcher.itemHeight + spacing) * Math.min(Config.launcher.maxShown, count) - spacing
 
     preferredHighlightBegin: 0
     preferredHighlightEnd: height
@@ -123,6 +131,13 @@ StyledListView {
 
             PropertyChanges {
                 root.delegate: calcItem
+            }
+        },
+        State {
+            name: "ai"
+
+            PropertyChanges {
+                root.delegate: aiItem
             }
         },
         State {
@@ -279,6 +294,14 @@ StyledListView {
         id: calcItem
 
         CalcItem {
+            list: root
+        }
+    }
+
+    Component {
+        id: aiItem
+
+        AiItem {
             list: root
         }
     }
