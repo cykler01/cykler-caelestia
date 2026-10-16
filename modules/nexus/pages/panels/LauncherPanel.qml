@@ -191,7 +191,7 @@ PageBase {
         TextFieldRow {
             last: true
             label: Tr.tr("Model")
-            subtext: Tr.tr("Gemini model to ask, e.g. gemini-2.5-flash")
+            subtext: Tr.tr("Gemini model to ask, e.g. gemini-3.5-flash-lite")
             value: GlobalConfig.launcher.aiModel
             onEditingFinished: value => {
                 const trimmed = value.trim();
