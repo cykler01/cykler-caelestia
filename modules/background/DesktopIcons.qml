@@ -2,9 +2,9 @@ pragma ComponentBehavior: Bound
 
 import QtQuick
 import Quickshell
+import Quickshell.Widgets
 import Caelestia.Config
 import qs.components
-import qs.components.images
 import qs.services
 import qs.modules.launcher.services
 
@@ -38,7 +38,7 @@ Flow {
                 anchors.centerIn: parent
                 spacing: Tokens.spacing.small
 
-                CachingIconImage {
+                IconImage {
                     anchors.horizontalCenter: parent.horizontalCenter
                     implicitSize: root.iconSize
                     source: Quickshell.iconPath(tile.modelData.icon, "image-missing")

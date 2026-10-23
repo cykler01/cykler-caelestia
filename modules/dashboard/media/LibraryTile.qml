@@ -32,7 +32,7 @@ Item {
 
     implicitHeight: art.height + Tokens.spacing.small + labels.implicitHeight
 
-    StyledClippingRect {
+    ClipRect {
         id: art
 
         anchors.top: parent.top

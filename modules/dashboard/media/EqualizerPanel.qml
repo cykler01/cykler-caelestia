@@ -12,7 +12,7 @@ import qs.services
 // NOTE(fork): the media tab's equalizer drawer, the second thing that can live under the player
 // next to the library. The bands are PipeWire's, applied live through the Equalizer service (see
 // assets/pipewire/caelestia-eq.conf for the audio side of it).
-StyledClippingRect {
+ClipRect {
     id: root
 
     readonly property bool available: Equalizer.available

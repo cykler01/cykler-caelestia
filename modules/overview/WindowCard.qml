@@ -12,7 +12,7 @@ import qs.utils
 // One window inside a workspace tile: a capture of the window drawn at the position and
 // size Hyprland reports for it, scaled from its monitor into the tile, with the app's
 // own icon over the middle of it. Clicking it focuses the window and closes the overview.
-StyledClippingRect {
+ClipRect {
     id: root
 
     required property var client

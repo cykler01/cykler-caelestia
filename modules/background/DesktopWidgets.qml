@@ -420,7 +420,7 @@ Item {
             Layout.fillWidth: true
             spacing: Tokens.spacing.medium
 
-            StyledClippingRect {
+            ClipRect {
                 implicitWidth: 76
                 implicitHeight: 76
                 radius: Tokens.rounding.large

@@ -10,7 +10,7 @@ import qs.services
 // A scaled-down picture of one workspace: every window on it is drawn at the position
 // and size Hyprland reports, scaled down from its monitor into this tile. Clicking a
 // window focuses it, clicking anywhere else on the tile focuses the workspace.
-StyledClippingRect {
+ClipRect {
     id: root
 
     required property int wsId

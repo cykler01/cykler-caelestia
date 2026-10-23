@@ -63,7 +63,7 @@ Singleton {
 
         running: true
         command: ["pidof", "gpu-screen-recorder"]
-        onExited: code => { // qmllint disable signal-handler-parameters
+        onExited: code => {
             const running = code === 0;
 
             if (running && root.needsStop) {
@@ -98,7 +98,7 @@ Singleton {
         // The command owns the transition: `caelestia record` blocks on slurp for
         // region captures, and waits for the recorder to finalise the file when
         // stopping. Reconcile once it has actually finished.
-        onExited: checkProc.running = true // qmllint disable signal-handler-parameters
+        onExited: checkProc.running = true
     }
 
     // Only poll while something is showing the state, i.e. the utilities drawer is open
@@ -117,6 +117,6 @@ Singleton {
         }
 
         enabled: props.running && !props.paused
-        target: Time // qmllint disable incompatible-type
+        target: Time
     }
 }

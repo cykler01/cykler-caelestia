@@ -5,7 +5,7 @@
   "components/effects/Elevation.qml": {
     "section-order": 2
   },
-  "modules/BatteryMonitor.qml": {
+  "daemons/BatteryMonitor.qml": {
     "missing-section-separator": 2,
     "section-order": 30
   },

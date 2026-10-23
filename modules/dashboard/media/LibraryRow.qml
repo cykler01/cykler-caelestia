@@ -72,7 +72,7 @@ Item {
             anchors.rightMargin: Tokens.padding.small
             spacing: Tokens.spacing.medium
 
-            StyledClippingRect {
+            ClipRect {
                 id: cover
 
                 Layout.alignment: Qt.AlignVCenter

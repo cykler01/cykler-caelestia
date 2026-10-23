@@ -690,7 +690,7 @@ Item {
         }
 
         // Clips the progress fill to the rounded corners
-        StyledClippingRect {
+        ClipRect {
             Layout.fillWidth: true
             visible: root.selectedPath !== "" || root.downloadingHere || root.downloadStatus !== ""
             implicitHeight: fileLayout.implicitHeight + Tokens.padding.medium * 2

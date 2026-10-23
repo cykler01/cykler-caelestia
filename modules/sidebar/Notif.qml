@@ -54,7 +54,7 @@ StyledRect {
 
     readonly property real avatarSpace: hasImage ? avatar.width + Tokens.spacing.small : 0
 
-    StyledClippingRect {
+    ClipRect {
         id: avatar
 
         anchors.top: parent.top

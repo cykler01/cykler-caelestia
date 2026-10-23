@@ -19,7 +19,7 @@ PageBase {
         width: root.cappedWidth
         spacing: Tokens.spacing.large
 
-        StyledClippingRect {
+        ClipRect {
             id: arranger
 
             // Nothing is sent to Hyprland until Apply, so the arrangement is a

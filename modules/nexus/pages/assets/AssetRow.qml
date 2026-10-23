@@ -191,7 +191,7 @@ ConnectedRect {
         anchors.rightMargin: Tokens.padding.largeIncreased
         spacing: Tokens.spacing.medium
 
-        StyledClippingRect {
+        ClipRect {
             implicitWidth: Tokens.padding.extraExtraLarge
             implicitHeight: Tokens.padding.extraExtraLarge
             radius: Tokens.rounding.large
