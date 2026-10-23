@@ -2,6 +2,7 @@ pragma ComponentBehavior: Bound
 
 import QtQuick
 import QtQuick.Layouts
+import Quickshell.Widgets
 import Caelestia.Config
 import qs.components
 import qs.components.controls
@@ -19,7 +20,7 @@ PageBase {
         width: root.cappedWidth
         spacing: Tokens.spacing.large
 
-        ClipRect {
+        ClippingRectangle {
             id: arranger
 
             // Nothing is sent to Hyprland until Apply, so the arrangement is a
