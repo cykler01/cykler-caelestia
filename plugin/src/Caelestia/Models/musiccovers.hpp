@@ -7,7 +7,7 @@
 #include <qstringlist.h>
 #include <qvariantmap.h>
 
-namespace caelestia::models {
+namespace caelestia::shell::models {
 
 // NOTE(fork): pulls the picture embedded in an audio file (an m4a's covr atom, an mp3's APIC
 // frame, a FLAC or Ogg picture block) out to a file in the cache, so the music library can show
@@ -51,4 +51,4 @@ private:
     static QString extractOne(const QString& path);
 };
 
-} // namespace caelestia::models
+} // namespace caelestia::shell::models

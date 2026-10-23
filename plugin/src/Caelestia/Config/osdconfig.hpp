@@ -4,7 +4,7 @@
 #include "common.hpp"
 #include "enums.hpp"
 
-namespace caelestia::config {
+namespace caelestia::shell::config {
 
 class OsdConfig : public settings::ObjectNode {
     CONFIG_NODE(OsdConfig, settings::ObjectNode)
@@ -16,4 +16,4 @@ class OsdConfig : public settings::ObjectNode {
     CONFIG_PROPERTY(bool, enableMicrophone, false)
 };
 
-} // namespace caelestia::config
+} // namespace caelestia::shell::config

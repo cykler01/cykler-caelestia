@@ -12,7 +12,7 @@
 class QDBusPendingCallWatcher;
 class QFileSystemWatcher;
 
-namespace caelestia::services {
+namespace caelestia::shell::services {
 
 // A single calendar incident as exposed to QML: {start, end, summary, colour, calendar}
 struct CalendarEvent {
@@ -90,4 +90,4 @@ private slots:
     void onEventsAddedOrUpdated(const QDBusMessage& message);
 };
 
-} // namespace caelestia::services
+} // namespace caelestia::shell::services

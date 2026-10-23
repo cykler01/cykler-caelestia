@@ -8,7 +8,7 @@
 #include "common.hpp"
 #include "enums.hpp"
 
-namespace caelestia::config {
+namespace caelestia::shell::config {
 
 using Qt::StringLiterals::operator""_s;
 using settings::vmap;
@@ -150,4 +150,4 @@ class BarConfig : public settings::ObjectNode {
     CONFIG_PROPERTY(QStringList, excludedScreens, {})
 };
 
-} // namespace caelestia::config
+} // namespace caelestia::shell::config

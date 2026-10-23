@@ -26,7 +26,7 @@
 #include <filesystem>
 #include <system_error>
 
-namespace caelestia::services {
+namespace caelestia::shell::services {
 
 using Qt::StringLiterals::operator""_s;
 
@@ -710,4 +710,4 @@ void KdeConnectDaemon::setDownloadDevice(const QString& deviceId) {
     emit downloadDeviceChanged();
 }
 
-} // namespace caelestia::services
+} // namespace caelestia::shell::services

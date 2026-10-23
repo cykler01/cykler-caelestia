@@ -9,7 +9,7 @@
 #include "common.hpp"
 #include "enums.hpp"
 
-namespace caelestia::config {
+namespace caelestia::shell::config {
 
 using Qt::StringLiterals::operator""_s;
 using settings::vmap;
@@ -144,4 +144,4 @@ class LauncherConfig : public settings::ObjectNode {
         }))
 };
 
-} // namespace caelestia::config
+} // namespace caelestia::shell::config

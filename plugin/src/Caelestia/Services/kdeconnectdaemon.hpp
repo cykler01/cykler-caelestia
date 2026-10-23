@@ -8,7 +8,7 @@
 #include <qthreadpool.h>
 #include <qvariant.h>
 
-namespace caelestia::services {
+namespace caelestia::shell::services {
 
 class KdeConnectDaemon : public QObject {
     Q_OBJECT
@@ -95,4 +95,4 @@ private:
     void dropDeadMount(const QString& deviceId);
 };
 
-} // namespace caelestia::services
+} // namespace caelestia::shell::services

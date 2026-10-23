@@ -4,7 +4,7 @@
 #include <qqmlintegration.h>
 #include <qvariant.h>
 
-namespace caelestia::images {
+namespace caelestia::shell::images {
 
 class IUtils : public QObject {
     Q_OBJECT
@@ -21,4 +21,4 @@ public:
     Q_INVOKABLE static QString saveImageToCache(const QVariant& image);
 };
 
-} // namespace caelestia::images
+} // namespace caelestia::shell::images

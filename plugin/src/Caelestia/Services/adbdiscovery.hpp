@@ -10,7 +10,7 @@
 #include <qudpsocket.h>
 #include <qvariant.h>
 
-namespace caelestia::services {
+namespace caelestia::shell::services {
 
 // Finds Android wireless debugging services over mDNS, so connecting and pairing
 // do not depend on adb being built with mDNS support
@@ -76,4 +76,4 @@ private:
     void publish();
 };
 
-} // namespace caelestia::services
+} // namespace caelestia::shell::services

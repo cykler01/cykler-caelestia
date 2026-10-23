@@ -6,7 +6,7 @@
 #include "common.hpp"
 #include "enums.hpp"
 
-namespace caelestia::config {
+namespace caelestia::shell::config {
 
 using Qt::StringLiterals::operator""_s;
 
@@ -47,4 +47,4 @@ class DashboardConfig : public settings::ObjectNode {
     CONFIG_SUBOBJECT(DashboardPerformance, performance)
 };
 
-} // namespace caelestia::config
+} // namespace caelestia::shell::config

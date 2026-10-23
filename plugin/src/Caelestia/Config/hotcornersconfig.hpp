@@ -4,7 +4,7 @@
 #include "common.hpp"
 #include "enums.hpp"
 
-namespace caelestia::config {
+namespace caelestia::shell::config {
 
 class HotCornersConfig : public settings::ObjectNode {
     CONFIG_NODE(HotCornersConfig, settings::ObjectNode)
@@ -19,4 +19,4 @@ class HotCornersConfig : public settings::ObjectNode {
     CONFIG_ENUM_PROPERTY(HotCornerAction, bottomRight, HotCornerAction::None)
 };
 
-} // namespace caelestia::config
+} // namespace caelestia::shell::config

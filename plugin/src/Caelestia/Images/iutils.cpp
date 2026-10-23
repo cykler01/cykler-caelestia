@@ -21,7 +21,7 @@ QString cacheDir() {
 
 } // namespace
 
-namespace caelestia::images {
+namespace caelestia::shell::images {
 
 IUtils::IUtils(QObject* parent)
     : QObject(parent) {}
@@ -60,4 +60,4 @@ QString IUtils::saveImageToCache(const QVariant& image) {
     return path;
 }
 
-} // namespace caelestia::images
+} // namespace caelestia::shell::images

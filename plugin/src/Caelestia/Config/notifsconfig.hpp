@@ -6,7 +6,7 @@
 #include "common.hpp"
 #include "enums.hpp"
 
-namespace caelestia::config {
+namespace caelestia::shell::config {
 
 using Qt::StringLiterals::operator""_s;
 
@@ -49,4 +49,4 @@ class NotifsConfig : public settings::ObjectNode {
     CONFIG_GLOBAL_PROPERTY(QStringList, silencedApps, DEFAULT_ARG({}))
 };
 
-} // namespace caelestia::config
+} // namespace caelestia::shell::config

@@ -4,7 +4,7 @@
 
 #include "common.hpp"
 
-namespace caelestia::config {
+namespace caelestia::shell::config {
 
 Config::Config(QObject* parent)
     : QQuickAttachedPropertyPropagator(parent) {
@@ -96,4 +96,4 @@ Config* Config::qmlAttachedProperties(QObject* object) {
     return new Config(object);
 }
 
-} // namespace caelestia::config
+} // namespace caelestia::shell::config

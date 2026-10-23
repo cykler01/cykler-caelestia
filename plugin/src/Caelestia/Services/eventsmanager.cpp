@@ -23,7 +23,7 @@
 
 #include <algorithm>
 
-namespace caelestia::services {
+namespace caelestia::shell::services {
 
 using Qt::StringLiterals::operator""_s;
 
@@ -499,4 +499,4 @@ void EventsManager::applyEvents(const QVariantList& events, bool fromDbus) {
     emit variantsChanged();
 }
 
-} // namespace caelestia::services
+} // namespace caelestia::shell::services

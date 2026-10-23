@@ -4,7 +4,7 @@
 #include "common.hpp"
 #include "enums.hpp"
 
-namespace caelestia::config {
+namespace caelestia::shell::config {
 
 class NotchConfig : public settings::ObjectNode {
     CONFIG_NODE(NotchConfig, settings::ObjectNode)
@@ -27,4 +27,4 @@ class NotchConfig : public settings::ObjectNode {
     CONFIG_PROPERTY(bool, showMusic, true)
 };
 
-} // namespace caelestia::config
+} // namespace caelestia::shell::config

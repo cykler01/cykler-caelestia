@@ -4,7 +4,7 @@
 #include <qobject.h>
 #include <qqmlengine.h>
 
-namespace caelestia {
+namespace caelestia::shell {
 
 class Requests : public QObject {
     Q_OBJECT
@@ -27,4 +27,4 @@ private:
     void handleReply(QNetworkReply* reply, const QJSValue& onSuccess, const QJSValue& onError) const;
 };
 
-} // namespace caelestia
+} // namespace caelestia::shell

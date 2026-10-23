@@ -6,7 +6,7 @@
 #include "settings/objectnode.hpp"
 #include "common.hpp"
 
-namespace caelestia::config {
+namespace caelestia::shell::config {
 
 using Qt::StringLiterals::operator""_s;
 using settings::vmap;
@@ -64,4 +64,4 @@ class LockConfig : public settings::ObjectNode {
         }))
 };
 
-} // namespace caelestia::config
+} // namespace caelestia::shell::config

@@ -13,7 +13,7 @@
 #include "util/ringbuffer.hpp"
 #include "service.hpp"
 
-namespace caelestia::services {
+namespace caelestia::shell::services {
 
 namespace ac {
 
@@ -97,4 +97,4 @@ private:
     void teardown();
 };
 
-} // namespace caelestia::services
+} // namespace caelestia::shell::services

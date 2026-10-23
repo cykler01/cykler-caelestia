@@ -9,7 +9,7 @@
 #include <qtimer.h>
 #include <qvariantmap.h>
 
-namespace caelestia::services {
+namespace caelestia::shell::services {
 
 // NOTE(fork): a client for Discord's local IPC rich presence. Discord listens on a
 // unix socket (discord-ipc-0..9) and speaks small binary-framed JSON messages, so this
@@ -72,4 +72,4 @@ private:
     void setReady(bool ready);
 };
 
-} // namespace caelestia::services
+} // namespace caelestia::shell::services

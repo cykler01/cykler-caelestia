@@ -3,7 +3,7 @@
 #include "settings/objectnode.hpp"
 #include "common.hpp"
 
-namespace caelestia::config {
+namespace caelestia::shell::config {
 
 class OverviewConfig : public settings::ObjectNode {
     CONFIG_NODE(OverviewConfig, settings::ObjectNode)
@@ -20,4 +20,4 @@ class OverviewConfig : public settings::ObjectNode {
     CONFIG_GLOBAL_PROPERTY(bool, onlyInUse, false)
 };
 
-} // namespace caelestia::config
+} // namespace caelestia::shell::config

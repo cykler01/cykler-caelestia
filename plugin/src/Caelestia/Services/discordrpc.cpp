@@ -24,7 +24,7 @@ bool rpcDebug() {
 
 } // namespace
 
-namespace caelestia::services {
+namespace caelestia::shell::services {
 
 using Qt::StringLiterals::operator""_s;
 
@@ -266,4 +266,4 @@ void DiscordRpc::setReady(bool ready) {
     emit connectedChanged();
 }
 
-} // namespace caelestia::services
+} // namespace caelestia::shell::services

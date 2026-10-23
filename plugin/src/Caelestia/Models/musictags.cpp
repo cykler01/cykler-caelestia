@@ -20,7 +20,7 @@ QString tagString(const TagLib::String& value) {
 
 } // namespace
 
-namespace caelestia::models {
+namespace caelestia::shell::models {
 
 using Qt::StringLiterals::operator""_s;
 
@@ -139,4 +139,4 @@ QVariantMap MusicTags::read(const QStringList& paths) {
     return tags;
 }
 
-} // namespace caelestia::models
+} // namespace caelestia::shell::models

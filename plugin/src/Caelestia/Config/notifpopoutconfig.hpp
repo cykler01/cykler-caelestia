@@ -4,7 +4,7 @@
 #include "common.hpp"
 #include "enums.hpp"
 
-namespace caelestia::config {
+namespace caelestia::shell::config {
 
 class NotifPopoutConfig : public settings::ObjectNode {
     CONFIG_NODE(NotifPopoutConfig, settings::ObjectNode)
@@ -17,4 +17,4 @@ class NotifPopoutConfig : public settings::ObjectNode {
     CONFIG_GLOBAL_PROPERTY(int, gestureFingers, 4)
 };
 
-} // namespace caelestia::config
+} // namespace caelestia::shell::config

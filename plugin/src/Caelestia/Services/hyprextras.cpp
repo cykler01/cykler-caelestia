@@ -29,7 +29,7 @@ QString luaValue(const QVariant& value) {
 
 } // namespace
 
-namespace caelestia::services::hypr {
+namespace caelestia::shell::services::hypr {
 
 using Qt::StringLiterals::operator""_s;
 
@@ -248,4 +248,4 @@ HyprExtras::SocketPtr HyprExtras::makeRequest(
     return socket;
 }
 
-} // namespace caelestia::services::hypr
+} // namespace caelestia::shell::services::hypr

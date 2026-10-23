@@ -5,7 +5,7 @@
 #include <qqmlintegration.h>
 #include <qvariantmap.h>
 
-namespace caelestia::models {
+namespace caelestia::shell::models {
 
 // NOTE(fork): reads artist/title/album out of audio files, which is what lets the music
 // library group tracks by artist instead of by the folder they happen to sit in. TagLib
@@ -59,4 +59,4 @@ private:
     static QVariantMap read(const QStringList& paths);
 };
 
-} // namespace caelestia::models
+} // namespace caelestia::shell::models

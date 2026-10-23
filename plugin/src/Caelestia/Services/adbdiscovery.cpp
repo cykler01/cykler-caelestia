@@ -7,7 +7,7 @@
 #include <optional>
 #include <string_view>
 
-namespace caelestia::services {
+namespace caelestia::shell::services {
 
 using Qt::StringLiterals::operator""_s;
 
@@ -321,4 +321,4 @@ void AdbDiscovery::publish() {
     }
 }
 
-} // namespace caelestia::services
+} // namespace caelestia::shell::services

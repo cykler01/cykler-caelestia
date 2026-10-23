@@ -41,7 +41,7 @@ QString extensionFor(const QByteArray& data) {
 
 } // namespace
 
-namespace caelestia::models {
+namespace caelestia::shell::models {
 
 MusicCovers::MusicCovers(QObject* parent)
     : QObject(parent) {}
@@ -158,4 +158,4 @@ QString MusicCovers::extractOne(const QString& path) {
     return target;
 }
 
-} // namespace caelestia::models
+} // namespace caelestia::shell::models
