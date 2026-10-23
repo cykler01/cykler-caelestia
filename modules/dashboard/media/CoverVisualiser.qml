@@ -4,6 +4,7 @@ import QtQuick
 import QtQuick.Shapes
 import Quickshell
 import M3Shapes
+import Caelestia
 import Caelestia.Config
 import Caelestia.Services
 import qs.components

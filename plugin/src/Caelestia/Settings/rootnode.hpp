@@ -12,7 +12,7 @@ class RootNode : public ObjectNode {
     Q_PROPERTY(QList<caelestia::settings::Diagnostic> diagnostics READ diagnostics NOTIFY diagnosticsChanged)
 
 public:
-    explicit RootNode(const QString& path, RootNode* fallback, QObject* parent = nullptr);
+    explicit RootNode(bool watch, const QString& path, RootNode* fallback, QObject* parent = nullptr);
 
     [[nodiscard]] QList<Diagnostic> diagnostics() const;
 
@@ -20,9 +20,9 @@ public:
 
 signals:
     void diagnosticsChanged();
-    void treeLoaded(RootNode* self);
-    void treeLoadFailed(RootNode* self, const QString& error);
-    void treeSaveFailed(RootNode* self, const QString& error);
+    void treeLoaded(caelestia::settings::RootNode* self);
+    void treeLoadFailed(caelestia::settings::RootNode* self, const QString& error);
+    void treeSaveFailed(caelestia::settings::RootNode* self, const QString& error);
 
 private:
     SettingsFile* const m_file;

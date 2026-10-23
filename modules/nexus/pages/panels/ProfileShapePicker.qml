@@ -4,9 +4,9 @@ import QtQuick
 import M3Shapes
 import Caelestia.Config
 import Caelestia.I18n
+import Caelestia.Multimedia
 import qs.components
 import qs.components.effects
-import qs.components.images
 import qs.services
 import qs.utils
 import qs.modules.nexus.common
@@ -188,14 +188,14 @@ DialogRowButton {
                             text: "person"
                             color: Colours.palette.m3onSecondaryContainer
                             fontStyle: Tokens.font.icon.size(root.previewSize / 3).build()
-                            visible: pfpImage.status !== Image.Ready
+                            visible: !pfpImage.ready
                         }
 
-                        CachingImage {
+                        Visual {
                             id: pfpImage
 
                             anchors.fill: previewShape
-                            path: `${Paths.home}/.face`
+                            source: `${Paths.home}/.face`
 
                             layer.enabled: true
                             layer.effect: Mask {

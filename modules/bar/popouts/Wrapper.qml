@@ -147,7 +147,7 @@ Item {
         shouldBeActive: root.detachedMode === "any"
         anchors.centerIn: parent
 
-        sourceComponent: StyledClippingRect {
+        sourceComponent: ClipRect {
             radius: Tokens.rounding.extraLarge
             implicitWidth: nexusInner.implicitWidth
             implicitHeight: nexusInner.implicitHeight

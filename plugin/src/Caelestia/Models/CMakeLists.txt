@@ -7,6 +7,7 @@ qml_module(caelestia-models
         musiccovers.cpp
     LIBRARIES
         Qt::Gui
+        Qt::Multimedia
         Qt::Concurrent
         Qt::Sql
         PkgConfig::Taglib

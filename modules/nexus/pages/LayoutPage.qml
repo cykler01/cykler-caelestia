@@ -391,7 +391,7 @@ PageBase {
             }
         }
 
-        StyledClippingRect {
+        ClipRect {
             id: preview
 
             Layout.fillWidth: true

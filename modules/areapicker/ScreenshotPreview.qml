@@ -186,7 +186,7 @@ StyledWindow {
             level: 3
         }
 
-        StyledClippingRect {
+        ClipRect {
             id: captureImage
 
             anchors.top: parent.top

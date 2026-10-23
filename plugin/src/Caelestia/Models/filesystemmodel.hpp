@@ -75,7 +75,7 @@ class FileSystemModel : public QAbstractListModel {
     Q_PROPERTY(bool watchChanges READ watchChanges WRITE setWatchChanges NOTIFY watchChangesChanged)
     Q_PROPERTY(bool showHidden READ showHidden WRITE setShowHidden NOTIFY showHiddenChanged)
     Q_PROPERTY(bool sortReverse READ sortReverse WRITE setSortReverse NOTIFY sortReverseChanged)
-    Q_PROPERTY(Filter filter READ filter WRITE setFilter NOTIFY filterChanged)
+    Q_PROPERTY(caelestia::models::FileSystemModel::Filters filter READ filter WRITE setFilter NOTIFY filterChanged)
     Q_PROPERTY(QStringList nameFilters READ nameFilters WRITE setNameFilters NOTIFY nameFiltersChanged)
     // Whether a scan is running. A scan that finds nothing changes no entries, so
     // this is the only way to tell an empty folder from one still being scanned.
@@ -85,12 +85,14 @@ class FileSystemModel : public QAbstractListModel {
 
 public:
     enum class Filter : quint8 {
-        NoFilter,
-        Images,
-        Files,
-        Dirs,
+        NoFilter = 0x0,
+        Images = 0x1,
+        Videos = 0x2,
+        Files = 0x4,
+        Dirs = 0x8,
     };
-    Q_ENUM(Filter)
+    Q_DECLARE_FLAGS(Filters, Filter)
+    Q_FLAG(Filters)
 
     explicit FileSystemModel(QObject* parent = nullptr);
 
@@ -113,8 +115,8 @@ public:
     [[nodiscard]] bool sortReverse() const;
     void setSortReverse(bool sortReverse);
 
-    [[nodiscard]] Filter filter() const;
-    void setFilter(Filter filter);
+    [[nodiscard]] Filters filter() const;
+    void setFilter(Filters filter);
 
     [[nodiscard]] QStringList nameFilters() const;
     void setNameFilters(const QStringList& nameFilters);
@@ -159,7 +161,7 @@ private:
     bool m_watchChanges;
     bool m_showHidden;
     bool m_sortReverse = false;
-    Filter m_filter;
+    Filters m_filter;
     QStringList m_nameFilters;
 
     void watchDirIfRecursive(const QString& path);
@@ -169,7 +171,7 @@ private:
     void updateEntriesForDir(const QString& dir);
     void scanStarted();
     void scanEnded();
-    [[nodiscard]] static ScanFilters filtersFor(Filter filter, const QStringList& nameFilters, bool showHidden);
+    [[nodiscard]] static ScanFilters filtersFor(Filters filter, const QStringList& nameFilters, bool showHidden);
     [[nodiscard]] static std::optional<QHash<QString, QFileInfo>> scanDir(const QString& dir,
         const ScanFilters& filters, QDirIterator::IteratorFlags flags, const QPromise<PathDiff>& promise);
     void applyChanges(const QSet<QString>& removedPaths, const QHash<QString, QFileInfo>& added);
@@ -177,3 +179,5 @@ private:
 };
 
 } // namespace caelestia::models
+
+Q_DECLARE_OPERATORS_FOR_FLAGS(caelestia::models::FileSystemModel::Filters)

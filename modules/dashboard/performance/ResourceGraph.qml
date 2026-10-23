@@ -241,7 +241,7 @@ StyledRect {
             Layout.fillHeight: true
             spacing: Tokens.spacing.small
 
-            StyledClippingRect {
+            ClipRect {
                 Layout.fillWidth: true
                 Layout.fillHeight: true
 

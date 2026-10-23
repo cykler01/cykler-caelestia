@@ -42,6 +42,10 @@ Column {
     // Enabled actions in their configured order, with the animation slotted back in
     readonly property var items: {
         const entries = Config.session.entries.values.filter(e => e.enabled && root.builtinActions[e.id]);
+        // The animation's slot is dropped entirely when no gif is configured, so it does not
+        // leave a gap between the actions around it
+        if (Config.paths.sessionGif.trim() === "")
+            return entries;
         return entries.slice(0, root.gifIndex).concat([{ id: "__gif" }], entries.slice(root.gifIndex));
     }
 

@@ -22,7 +22,7 @@ import qs.services
 //
 // The mode bar at the top swaps the whole pane over to what has been queued, in the
 // order it will play, where songs can be moved around and taken back out.
-StyledClippingRect {
+ClipRect {
     id: root
 
     // Showing the queue rather than the library

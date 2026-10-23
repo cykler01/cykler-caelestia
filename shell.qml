@@ -16,12 +16,33 @@ import "modules/lock"
 import QtQuick
 import Quickshell
 import Caelestia
+import Caelestia.Config
 import qs.services
+import qs.modules.areapicker
+import qs.modules.background
+import qs.modules.drawers
+import qs.modules.lock
+import qs.daemons
 
 ShellRoot {
     id: root
 
     settings.watchFiles: false
+
+    Component.onCompleted: {
+        // Force certain singletons to load on shell init instead of lazily
+        Notifs;
+        Players;
+        Brightness;
+        Weather.reload();
+
+        if (GlobalConfig.utilities.vpn.enabled)
+            VPN;
+    }
+
+    FontLoader {
+        source: Quickshell.shellPath("assets/google-sans-flex/GoogleSansFlex-VariableFont_GRAD,ROND,opsz,slnt,wdth,wght.ttf")
+    }
 
     Binding {
         target: ShellState
@@ -29,10 +50,11 @@ ShellRoot {
         value: root
     }
 
+    // Modules
+
     // Scales continuous (trackpad) scroll deltas for every scrollable in the shell
     ScrollGain {}
 
-    GSFLoader {}
     ServiceLoader {}
 
     Background {}
@@ -46,6 +68,7 @@ ShellRoot {
         id: lock
     }
 
+    // Daemons
     Shortcuts {}
     BatteryMonitor {}
     IdleMonitors {

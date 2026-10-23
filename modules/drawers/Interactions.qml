@@ -341,7 +341,8 @@ CustomMouseArea {
                     root.sidebarHoverActive = true;
                     screenState.sidebar = true;
                 } else if (root.sidebarHoverActive || root.sidebarCornerActive) {
-                    const inSidebarArea = inRestingSidePanel(panels.sidebar, panels.stackLeft, x, y) || (panels.sessionWithStack && inRestingSidePanel(panels.sessionWrapper, panels.sessionLeft, x, y));
+                    // Hovering the utilities panel that shares the stack keeps the sidebar open too
+                    const inSidebarArea = inRestingSidePanel(panels.sidebar, panels.stackLeft, x, y) || (panels.sessionWithStack && inRestingSidePanel(panels.sessionWrapper, panels.sessionLeft, x, y)) || inRestingSidePanel(panels.utilities, panels.stackLeft, x, y);
                     if (!inSidebarArea)
                         screenState.sidebar = false;
                 }

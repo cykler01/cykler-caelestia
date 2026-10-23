@@ -72,7 +72,7 @@ ColumnLayout {
         }
     }
 
-    ClippingRectangle {
+    ClipRect {
         id: clipRect
 
         Layout.fillWidth: true

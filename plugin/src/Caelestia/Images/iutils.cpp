@@ -7,56 +7,24 @@
 #include <qimage.h>
 #include <qloggingcategory.h>
 #include <qsavefile.h>
-
-#include "cachingimageprovider.hpp"
-#include "imagecacher.hpp"
+#include <qstandardpaths.h>
 
 namespace {
 
 Q_LOGGING_CATEGORY(lcIUtils, "caelestia.images.utils", QtInfoMsg)
 
+using Qt::StringLiterals::operator""_s;
+
+QString cacheDir() {
+    return QStandardPaths::writableLocation(QStandardPaths::GenericCacheLocation) + u"/caelestia/multimedia/art"_s;
+}
+
 } // namespace
 
 namespace caelestia::images {
 
-using Qt::StringLiterals::operator""_s;
-
 IUtils::IUtils(QObject* parent)
     : QObject(parent) {}
-
-IUtils* IUtils::create(QQmlEngine* engine, QJSEngine* jsEngine) {
-    Q_UNUSED(jsEngine);
-
-    engine->addImageProvider(u"ccache"_s, new CachingImageProvider(CachingImageProvider::FillMode::Crop));
-    engine->addImageProvider(u"fcache"_s, new CachingImageProvider(CachingImageProvider::FillMode::Fit));
-    engine->addImageProvider(u"scache"_s, new CachingImageProvider(CachingImageProvider::FillMode::Stretch));
-
-    return new IUtils(engine);
-}
-
-QUrl IUtils::urlForPath(const QString& path, int fillMode) {
-    if (path.isEmpty())
-        return {};
-
-    QString prefix;
-    switch (fillMode) {
-    case 1: // Image.PreserveAspectFit
-        prefix = u"fcache"_s;
-        break;
-    case 2: // Image.PreserveAspectCrop
-        prefix = u"ccache"_s;
-        break;
-    default: // Image.Stretch or any other ones
-        prefix = u"scache"_s;
-        break;
-    }
-
-    QUrl url;
-    url.setScheme(u"image"_s);
-    url.setHost(prefix);
-    url.setPath(path.startsWith(u'/') ? path : u'/' + path);
-    return url;
-}
 
 QString IUtils::saveImageToCache(const QVariant& image) {
     if (!image.canConvert<QImage>())
@@ -73,12 +41,12 @@ QString IUtils::saveImageToCache(const QVariant& image) {
     hash.addData(QByteArrayView(reinterpret_cast<const char*>(img.constBits()), img.sizeInBytes()));
     const QString sha = QString::fromLatin1(hash.result().toHex());
 
-    const QString path = ImageCacher::cacheDir() + u'/' + sha + u"-art.png"_s;
+    const QString path = cacheDir() + u'/' + sha + u"-art.png"_s;
     if (QFile::exists(path))
         return path;
 
-    if (!QDir().mkpath(ImageCacher::cacheDir())) {
-        qCWarning(lcIUtils).noquote() << "Failed to create cache dir" << ImageCacher::cacheDir();
+    if (!QDir().mkpath(cacheDir())) {
+        qCWarning(lcIUtils).noquote() << "Failed to create cache dir" << cacheDir();
         return {};
     }
 
