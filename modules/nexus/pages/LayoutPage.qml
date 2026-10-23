@@ -2,6 +2,7 @@ pragma ComponentBehavior: Bound
 
 import QtQuick
 import QtQuick.Layouts
+import Quickshell.Widgets
 import Caelestia.Config
 import Caelestia.I18n
 import qs.components
@@ -391,7 +392,7 @@ PageBase {
             }
         }
 
-        ClipRect {
+        ClippingRectangle {
             id: preview
 
             Layout.fillWidth: true

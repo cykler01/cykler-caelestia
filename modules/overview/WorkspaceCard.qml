@@ -3,6 +3,7 @@ pragma ComponentBehavior: Bound
 import "geometry.js" as Geometry
 import QtQuick
 import Quickshell
+import Quickshell.Widgets
 import Caelestia.Config
 import qs.components
 import qs.services
@@ -10,7 +11,7 @@ import qs.services
 // A scaled-down picture of one workspace: every window on it is drawn at the position
 // and size Hyprland reports, scaled down from its monitor into this tile. Clicking a
 // window focuses it, clicking anywhere else on the tile focuses the workspace.
-ClipRect {
+ClippingRectangle {
     id: root
 
     required property int wsId
