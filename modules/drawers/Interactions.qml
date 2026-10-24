@@ -283,7 +283,7 @@ CustomMouseArea {
             const showSidebar = pressed && atSideEdge(dragStart.x, panels.sidebar, panels.stackLeft);
 
             // Show sidebar on hover (top-right corner, bounded by notification panel height)
-            if (Config.sidebar.showOnHover) {
+            if (Config.sidebar.showOnHover && Config.sidebar.enabled) {
                 const sidebarTriggerY = Math.max(Config.sidebar.minHoverThreshold, panels.notifsWithStack && panels.notifsTop ? panels.notifications.y + panels.notifications.height + borderThickness : 0);
                 const showSidebarHover = atSideEdge(x, panels.sidebar, panels.stackLeft) && y <= sidebarTriggerY;
                 if (showSidebarHover && !screenState.sidebar) {
@@ -334,7 +334,7 @@ CustomMouseArea {
             // again when this is what opened it in the first place (sidebarHoverActive/
             // sidebarCornerActive) - one opened by a keybind instead stays open regardless of
             // where the pointer happens to be, same as before showOnHover existed
-            if ((Config.sidebar.showOnHover || root.sidebarCornerActive) && !pressed) {
+            if (((Config.sidebar.showOnHover && Config.sidebar.enabled) || root.sidebarCornerActive) && !pressed) {
                 const sidebarTriggerY = Math.max(Config.sidebar.minHoverThreshold, panels.notifsWithStack && panels.notifsTop ? panels.notifications.y + panels.notifications.height + borderThickness : 0);
                 const showSidebarHover = Config.sidebar.showOnHover && atSideEdge(x, panels.sidebar, panels.stackLeft) && y <= sidebarTriggerY;
                 if (showSidebarHover && !screenState.sidebar) {
