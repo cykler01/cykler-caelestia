@@ -88,6 +88,21 @@ Singleton {
         Quickshell.execDetached(["caelestia", "shell", "-r"]);
     }
 
+    // Unload the shell; detached so it survives the shell it is stopping
+    function kill(): void {
+        Quickshell.execDetached(["caelestia", "shell", "-k"]);
+    }
+
+    // Unload the shell, start it again and open Nexus back on `page` (a PageRegistry key). The reopen is
+    // retried because a fresh instance registers its IPC handlers a moment after it starts.
+    function restartAndReopen(page: string): void {
+        Quickshell.execDetached([
+            "sh",
+            "-c",
+            `caelestia shell -k && sleep 1 && caelestia shell -d && { i=0; while [ "$i" -lt 30 ]; do caelestia shell nexus openPage ${page} >/dev/null 2>&1 && break; i=$((i + 1)); sleep 0.5; done; }`
+        ]);
+    }
+
     Process {
         id: checkProc
 

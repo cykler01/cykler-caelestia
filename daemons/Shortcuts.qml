@@ -276,6 +276,13 @@ Scope {
             WindowFactory.create();
         }
 
+        // Opens Nexus on one settings page, e.g. `caelestia shell nexus openPage updates` (see PageRegistry)
+        function openPage(page: string): void {
+            WindowFactory.create(null, {
+                startPage: page
+            });
+        }
+
         target: "nexus"
     }
 

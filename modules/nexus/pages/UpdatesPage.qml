@@ -338,5 +338,56 @@ PageBase {
             onOpened: ShellUpdater.fetchBranches() // pick up branches pushed since the last check
             onEditingFinished: v => GlobalConfig.services.updateBranch = v.trim() || "main"
         }
+
+        // Reload the shell without updating it; restarting comes back to this page
+        SectionHeader {
+            text: Tr.tr("Shell")
+        }
+
+        ConnectedRect {
+            Layout.fillWidth: true
+            first: true
+            last: true
+            implicitHeight: shellRow.implicitHeight + Tokens.padding.large * 2
+
+            RowLayout {
+                id: shellRow
+
+                anchors.fill: parent
+                anchors.margins: Tokens.padding.large
+                spacing: Tokens.spacing.large
+
+                ColumnLayout {
+                    Layout.fillWidth: true
+                    spacing: 2
+
+                    StyledText {
+                        Layout.fillWidth: true
+                        text: Tr.tr("Restart the shell")
+                        font: Tokens.font.body.small
+                    }
+
+                    StyledText {
+                        Layout.fillWidth: true
+                        text: Tr.tr("Stop unloads the shell; restart starts it again and opens Nexus back here")
+                        color: Colours.palette.m3outline
+                        font: Tokens.font.label.small
+                        wrapMode: Text.Wrap
+                    }
+                }
+
+                TextButton {
+                    text: Tr.tr("Stop")
+                    type: TextButton.Tonal
+                    onClicked: ShellUpdater.kill()
+                }
+
+                TextButton {
+                    text: Tr.tr("Restart")
+                    type: TextButton.Filled
+                    onClicked: ShellUpdater.restartAndReopen("updates")
+                }
+            }
+        }
     }
 }
