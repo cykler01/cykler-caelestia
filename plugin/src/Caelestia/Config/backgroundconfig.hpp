@@ -104,6 +104,12 @@ class BackgroundConfig : public settings::ObjectNode {
     CONFIG_PROPERTY(bool, enabled, true)
     CONFIG_PROPERTY(bool, wallpaperEnabled, true)
     CONFIG_ENUM_PROPERTY(WallpaperTransition, wallpaperTransition, WallpaperTransition::Crossfade)
+    // NOTE(fork): wallpaper rotation, both off by default. Global only, since a single timer switches
+    // the wallpaper for the whole session rather than per monitor. The interval is in milliseconds to
+    // match the other update intervals; the page shows it in minutes.
+    CONFIG_GLOBAL_PROPERTY(bool, randomWallpaperOnStart, false)
+    CONFIG_GLOBAL_PROPERTY(bool, wallpaperCycle, false)
+    CONFIG_GLOBAL_PROPERTY(int, wallpaperCycleInterval, 1800000)
     CONFIG_SUBOBJECT(DesktopClock, desktopClock)
     CONFIG_SUBOBJECT(DesktopIcons, desktopIcons)
     CONFIG_SUBOBJECT(DesktopWidgets, desktopWidgets)

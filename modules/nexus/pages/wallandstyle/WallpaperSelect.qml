@@ -70,7 +70,41 @@ PageBase {
             }
         }
 
+        // Rotation
+        SectionHeader {
+            text: Tr.tr("Rotation")
+        }
+
+        ToggleRow {
+            first: true
+            text: Tr.tr("New random wallpaper at startup")
+            subtext: Tr.tr("Pick a random wallpaper each time the shell starts")
+            checked: GlobalConfig.background.randomWallpaperOnStart
+            onToggled: GlobalConfig.background.randomWallpaperOnStart = checked
+        }
+
+        ToggleRow {
+            text: Tr.tr("Cycle wallpapers")
+            subtext: Tr.tr("Switch to another random wallpaper on a timer")
+            checked: GlobalConfig.background.wallpaperCycle
+            onToggled: GlobalConfig.background.wallpaperCycle = checked
+        }
+
+        StepperRow {
+            last: true
+            enabled: GlobalConfig.background.wallpaperCycle
+            label: Tr.tr("Cycle interval")
+            // TRANSLATORS: min is the minute unit, leave it untranslated
+            subtext: Tr.tr("How often the wallpaper changes (min)")
+            value: Math.round(GlobalConfig.background.wallpaperCycleInterval / 60000)
+            from: 1
+            to: 240
+            stepSize: 5
+            onMoved: v => GlobalConfig.background.wallpaperCycleInterval = Math.round(v * 60000)
+        }
+
         WallItem {
+            Layout.topMargin: Tokens.spacing.medium
             imgHeight: Math.round(width * 0.3)
             radius: Tokens.rounding.extraLarge
             source: Quickshell.shellPath("assets/wallpaper.webp")

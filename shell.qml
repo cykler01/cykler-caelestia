@@ -74,6 +74,7 @@ ShellRoot {
     IdleMonitors {
         lock: lock
     }
+    WallpaperRotator {}
     MonitorIdentifier {
         id: monitorIdentifier
     }
