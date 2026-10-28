@@ -302,6 +302,17 @@ Item {
         if (!open)
             stop();
     }
+
+    // The sidebar builds the browser when it opens, so it starts itself rather than waiting for
+    // whoever shows it to call reset
+    Component.onCompleted: reset()
+
+    // Another phone was picked while this one was up, so start again at the new storage root
+    onRootPathChanged: {
+        if (root.currentPath !== "")
+            root.reset();
+    }
+
     onDownloadingHereChanged: {
         if (!downloadingHere)
             cancelDelayElapsed = false;

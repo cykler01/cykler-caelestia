@@ -1,6 +1,5 @@
 pragma ComponentBehavior: Bound
 
-import ".." as Utilities
 import QtQuick
 import QtQuick.Layouts
 import Quickshell
@@ -17,23 +16,11 @@ StyledRect {
 
     required property ScreenState screenState
 
-    property bool browserOpen
-    property string browserDeviceId
-    property string browserDeviceName
-    property string browserRootPath
-    // Device whose storage is being checked before its browser opens
+    // Device whose storage is being checked before the browser opens
     property string pendingBrowseDevice
-    // Unmounting or losing the device leaves nothing to browse
-    readonly property bool browserDeviceMounted: KdeConnect.isMounted(browserDeviceId)
 
-    // The browser keeps a fixed height and scrolls its file list inside it
-    readonly property real browserHeight: Tokens.sizes.utilities.width * 0.8
     readonly property real compactHeight: layout.implicitHeight + Tokens.padding.extraLargeIncreased
-    readonly property real nonAnimHeight: browserOpen ? browserHeight : compactHeight
-    // Translate is not an Item, so it cannot resolve Tokens for the screen itself
-    readonly property real slideDistance: Tokens.padding.large
-    // 0 shows the device list, 1 the browser
-    property real browserProgress: browserOpen ? 1 : 0
+    readonly property real nonAnimHeight: compactHeight
 
     function browse(deviceId: string): void {
         const rootPath = KdeConnect.storageRoot(deviceId);
@@ -45,16 +32,15 @@ StyledRect {
         KdeConnect.checkMount(deviceId, rootPath);
     }
 
-    function openBrowser(deviceId: string, rootPath: string): void {
-        const device = KdeConnect.devices.find(d => d.id === deviceId);
-        if (!device)
+    // The explorer is a takeover of the sidebar's card, so hand the panel over to it once the
+    // storage answers rather than showing it inside this card
+    function openBrowser(deviceId: string): void {
+        if (!Config.sidebar.enabled || !KdeConnect.devices.some(d => d.id === deviceId))
             return;
 
-        browserDeviceId = deviceId;
-        browserDeviceName = device.name;
-        browserRootPath = rootPath;
-        browserOpen = true;
-        browser.reset();
+        root.screenState.phoneBrowseDevice = deviceId;
+        root.screenState.utilities = false;
+        root.screenState.sidebar = true;
     }
 
     implicitHeight: compactHeight
@@ -73,60 +59,6 @@ StyledRect {
         Scrcpy.watch();
     }
     Component.onDestruction: Scrcpy.unwatch()
-
-    onBrowserDeviceMountedChanged: {
-        if (!browserDeviceMounted)
-            browserOpen = false;
-    }
-
-    // Only animate opening and closing the browser. A Behavior would also animate
-    // the height settling when the card is created, making its contents jump.
-    states: State {
-        name: "browsing"
-        when: root.browserOpen
-
-        PropertyChanges {
-            root.implicitHeight: root.browserHeight
-        }
-    }
-
-    transitions: Transition {
-        Anim {
-            property: "implicitHeight"
-        }
-    }
-
-    // Close the browser as soon as utilities starts hiding or another panel takes
-    // over. The panel keeps its last height until the card is recreated, so a card
-    // destroyed with the browser open would reopen at the browser height.
-    Connections {
-        function onUtilitiesChanged(): void {
-            if (!root.screenState.utilities)
-                root.browserOpen = false;
-        }
-
-        function onSidebarChanged(): void {
-            if (root.screenState.sidebar)
-                root.browserOpen = false;
-        }
-
-        function onLauncherChanged(): void {
-            if (root.screenState.launcher)
-                root.browserOpen = false;
-        }
-
-        function onSessionChanged(): void {
-            if (root.screenState.session)
-                root.browserOpen = false;
-        }
-
-        function onDashboardChanged(): void {
-            if (root.screenState.dashboard)
-                root.browserOpen = false;
-        }
-
-        target: root.screenState
-    }
 
     // The panel's window normally takes no keyboard input, so allow it while a
     // pairing code can be typed, like the Wi-Fi password popout does
@@ -153,7 +85,7 @@ StyledRect {
 
             root.pendingBrowseDevice = "";
             if (reachable && KdeConnect.isMounted(device) && path === KdeConnect.storageRoot(device))
-                root.openBrowser(device, path);
+                root.openBrowser(device);
         }
 
         target: KdeConnect
@@ -162,18 +94,13 @@ StyledRect {
     ColumnLayout {
         id: layout
 
-        // Slides with the margins, as qmllint reads a Translate on a layout as
-        // positioning an item managed by a layout
         anchors.top: parent.top
         anchors.left: parent.left
         anchors.right: parent.right
         anchors.topMargin: Tokens.padding.large
-        anchors.leftMargin: Tokens.padding.large - root.slideDistance * root.browserProgress
-        anchors.rightMargin: Tokens.padding.large + root.slideDistance * root.browserProgress
+        anchors.leftMargin: Tokens.padding.large
+        anchors.rightMargin: Tokens.padding.large
         spacing: Tokens.spacing.small
-
-        enabled: !root.browserOpen
-        opacity: root.browserOpen ? 0 : 1
 
         RowLayout {
             Layout.fillWidth: true
@@ -433,7 +360,7 @@ StyledRect {
                             visible: device.mounted
                             type: IconButton.Text
                             icon: root.pendingBrowseDevice === device.deviceId ? "hourglass_top" : "folder_open"
-                            disabled: device.mountBusy || root.pendingBrowseDevice !== ""
+                            disabled: device.mountBusy || root.pendingBrowseDevice !== "" || !Config.sidebar.enabled
                             onClicked: root.browse(device.deviceId)
                         }
 
@@ -835,33 +762,5 @@ StyledRect {
         Behavior on opacity {
             Anim {}
         }
-    }
-
-    Utilities.PhoneBrowser {
-        id: browser
-
-        anchors.fill: parent
-        anchors.margins: Tokens.padding.medium
-
-        deviceId: root.browserDeviceId
-        deviceName: root.browserDeviceName
-        rootPath: root.browserRootPath
-        open: root.browserOpen
-        enabled: root.browserOpen
-        opacity: root.browserOpen ? 1 : 0
-
-        onCloseRequested: root.browserOpen = false
-
-        transform: Translate {
-            x: root.slideDistance * (1 - root.browserProgress)
-        }
-
-        Behavior on opacity {
-            Anim {}
-        }
-    }
-
-    Behavior on browserProgress {
-        Anim {}
     }
 }

@@ -9,6 +9,7 @@ import qs.modules.sidebar as Sidebar
 import qs.modules.dashboard.media
 import qs.modules.todopopout as TodoPopout
 import qs.modules.notepadpopout as NotepadPopout
+import qs.modules.utilities as Utilities
 
 // Sits on the drawers window's frame (see Wrapper.qml), so there is no background of its own: the panel's
 // morphing blob is the surface, and the content rests on it in the same containers the sidebar uses.
@@ -36,6 +37,15 @@ Item {
     // everything that moves between the panes below reads
     property real tabPos: root.tab
 
+    // The phone whose storage is being browsed, if any. The file explorer takes the card over
+    // rather than sitting in the utilities panel (see modules/utilities/cards/PhoneShare.qml),
+    // so closing it returns to the tab that was on show
+    readonly property string browsingDevice: root.screenState.phoneBrowseDevice
+    readonly property bool browsing: root.browsingDevice !== ""
+    // Empty until the mount state for that phone is known, so the browser is not built for a
+    // storage root that does not exist yet
+    readonly property string browsingRoot: KdeConnect.storageRoot(root.browsingDevice)
+
     function showTab(index: int): void {
         root.screenState.notifPopoutTab = index;
     }
@@ -51,9 +61,45 @@ Item {
         }
     }
 
+    Connections {
+        // Unmounting or unplugging leaves nothing to browse, so fall back to the tabs
+        function onMountsChanged(): void {
+            if (root.browsing && !KdeConnect.isMounted(root.browsingDevice))
+                root.screenState.phoneBrowseDevice = "";
+        }
+
+        target: KdeConnect
+    }
+
+    StyledRect {
+        anchors.fill: parent
+        visible: root.browsing
+
+        radius: Tokens.rounding.large
+        color: Colours.tPalette.m3surfaceContainerLow
+
+        Loader {
+            anchors.fill: parent
+            anchors.margins: Tokens.padding.medium
+            active: root.browsing && root.browsingRoot !== ""
+
+            sourceComponent: Utilities.PhoneBrowser {
+                deviceId: root.browsingDevice
+                deviceName: KdeConnect.devices.find(d => d.id === root.browsingDevice)?.name ?? ""
+                rootPath: root.browsingRoot
+                open: root.browsing
+
+                onCloseRequested: root.screenState.phoneBrowseDevice = ""
+            }
+        }
+    }
+
     ColumnLayout {
         anchors.fill: parent
         spacing: Tokens.spacing.medium
+
+        visible: !root.browsing
+        enabled: !root.browsing
 
         SegmentedBar {
             Layout.fillWidth: true

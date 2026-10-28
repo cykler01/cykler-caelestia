@@ -19,8 +19,24 @@ Item {
     implicitWidth: Tokens.sizes.sidebar.width
     opacity: 1 - offsetScale
 
+    Component.onCompleted: {
+        if (!root.screenState.sidebar)
+            root.screenState.phoneBrowseDevice = "";
+    }
+
     Behavior on offsetScale {
         Anim {}
+    }
+
+    // The file browser only takes the card over while the sidebar is up, so closing it puts the
+    // tabs back for next time. Also drops a device left over from before a reload
+    Connections {
+        function onSidebarChanged(): void {
+            if (!root.screenState.sidebar)
+                root.screenState.phoneBrowseDevice = "";
+        }
+
+        target: root.screenState
     }
 
     Loader {

@@ -13,6 +13,11 @@ PersistentProperties {
     property bool sidebar
     property bool overview
 
+    // The phone whose storage the sidebar is browsing, empty while its tabs are showing. The file
+    // explorer takes the card over rather than having a panel of its own (see
+    // modules/notifpopout/Content.qml), and only for as long as the sidebar stays open
+    property string phoneBrowseDevice
+
     // Asks the overview to turn its page (-1 back, 1 forward), for the swipe gestures
     signal overviewPageRequested(int delta)
 
