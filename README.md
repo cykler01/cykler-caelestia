@@ -54,6 +54,7 @@ Every feature below is our own work on top of upstream.
 | **Desktop widgets & app shortcuts** | Widget cards (calendar, weather, focus timer, resources, now playing, battery) in an ordered grid and application shortcuts, both on the wallpaper with their own settings page | *Nexus → Panels → Desktop* | [▶](https://cykler.dev/caelestia/demos/desktop) |
 | **Updates page** | Checks this fork's repo for new commits and pulls, rebuilds, installs through `pkexec` and restarts the shell from inside the session | *Nexus → Updates* | [▶](https://cykler.dev/caelestia/demos/updates) |
 | **Phone integration** | Pairs with an Android phone over KDE Connect: drop files on a device to send them, browse and download its storage, and mirror its screen with `scrcpy` | *Utilities card* | [▶](https://cykler.dev/caelestia/demos/phone-integration) |
+| **Polkit agent** | Asks for the password to do something privileged in the shell's own prompt instead of the GNOME dialog | *Whole session* | [repo](https://github.com/cykler01/cykler-caelestia) |
 
 Smaller fixes: The dropdown menu that flips to whichever side has
 room, the update notification that opens the Updates page, and the settings sidebar rework - the pages

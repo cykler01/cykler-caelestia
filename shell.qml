@@ -10,6 +10,7 @@ import "modules/background"
 import "modules/areapicker"
 import "modules/notifpopout"
 import "modules/overview"
+import "modules/polkit"
 import "modules/todopopout"
 import "modules/notepadpopout"
 import "modules/lock"
@@ -56,6 +57,8 @@ ShellRoot {
     ScrollGain {}
 
     ServiceLoader {}
+    // Asks for privileged actions in the shell's own prompt; see modules/polkit
+    Polkit {}
 
     Background {}
     Drawers {}
