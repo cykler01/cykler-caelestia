@@ -374,7 +374,8 @@ Item {
         }
     }
 
-    // Shared placement of every card on the grid; a card fills its footprint, or grows past it if its content needs to
+    // Shared placement of every card on the grid. A card is always a whole number of squares tall, growing past its
+    // footprint only in complete cells, so cards in the same row line up instead of ending a few pixels apart
     component GridCard: DesktopCard {
         // Handed to every delegate by the Repeater/DelegateChooser
         required property string widgetId
@@ -388,7 +389,9 @@ Item {
         x: held ? root.pointer.x - root.grab.x : slot.col * WidgetGrid.unit
         y: held ? root.pointer.y - root.grab.y : slot.row * WidgetGrid.unit
         width: slot.w * WidgetGrid.unit - WidgetGrid.gap
-        height: Math.max(implicitHeight, slot.h * WidgetGrid.unit - WidgetGrid.gap)
+        // Rounded up to the next square: a card whose content needs a little more than its footprint takes a whole
+        // extra cell rather than a sliver, which is what keeps the desktop tiling evenly
+        height: Math.max(slot.h, Math.ceil((implicitHeight + WidgetGrid.gap) / WidgetGrid.unit)) * WidgetGrid.unit - WidgetGrid.gap
     }
 
     // --- Calendar: month grid ---
