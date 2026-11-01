@@ -51,7 +51,8 @@ PageBase {
             resources: Tr.tr("System resources"),
             media: Tr.tr("Now playing"),
             battery: Tr.tr("Battery"),
-            fetch: Tr.tr("Fetch")
+            fetch: Tr.tr("Fetch"),
+            visualiser: Tr.tr("Visualiser")
         })
 
     function positionItem(value: string): MenuItem {

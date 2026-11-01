@@ -34,7 +34,8 @@ Item {
             resources: "monitoring",
             media: "music_note",
             battery: "bolt",
-            fetch: "terminal"
+            fetch: "terminal",
+            visualiser: "graphic_eq"
         })
 
     readonly property real factor: width / Math.max(1, screenWidth)

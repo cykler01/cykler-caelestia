@@ -18,7 +18,8 @@ const heights = {
     resources: 5,
     media: 6,
     battery: 4,
-    fetch: 8
+    fetch: 8,
+    visualiser: 5
 };
 
 function heightOf(id) {
