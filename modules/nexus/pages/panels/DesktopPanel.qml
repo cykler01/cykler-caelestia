@@ -8,7 +8,9 @@ import Caelestia.Config
 import Caelestia.I18n
 import qs.components
 import qs.components.controls
+import qs.components.filedialog
 import qs.services
+import qs.utils
 import qs.modules.nexus.common
 
 PageBase {
@@ -53,7 +55,8 @@ PageBase {
             battery: Tr.tr("Battery"),
             fetch: Tr.tr("Fetch"),
             visualiser: Tr.tr("Visualiser"),
-            sticky: Tr.tr("Sticky note")
+            sticky: Tr.tr("Sticky note"),
+            photo: Tr.tr("Photo")
         })
 
     function positionItem(value: string): MenuItem {
@@ -352,6 +355,59 @@ PageBase {
                     list.at(i).row = -1;
                     list.at(i).right = false;
                 }
+            }
+        }
+
+        SectionHeader {
+            text: Tr.tr("Photo widget")
+        }
+
+        ConnectedRect {
+            first: true
+            last: true
+            implicitHeight: folderRow.implicitHeight + Tokens.padding.medium * 2
+
+            RowLayout {
+                id: folderRow
+
+                anchors.fill: parent
+                anchors.margins: Tokens.padding.medium
+                anchors.leftMargin: Tokens.padding.largeIncreased
+                anchors.rightMargin: Tokens.padding.medium
+                spacing: Tokens.spacing.medium
+
+                ColumnLayout {
+                    Layout.fillWidth: true
+                    spacing: 2
+
+                    StyledText {
+                        Layout.fillWidth: true
+                        text: Tr.tr("Folder")
+                        font: Tokens.font.body.small
+                    }
+
+                    StyledText {
+                        Layout.fillWidth: true
+                        text: Paths.shortenHome(root.widgetsConfig.photoDir)
+                        color: Colours.palette.m3outline
+                        font: Tokens.font.label.small
+                        elide: Text.ElideMiddle
+                    }
+                }
+
+                IconButton {
+                    icon: "folder_open"
+                    type: IconButton.Text
+                    onClicked: folderDialog.open()
+                }
+            }
+
+            FileDialog {
+                id: folderDialog
+
+                title: Tr.tr("Select a folder")
+                folderMode: true
+                onAccepted: path => GlobalConfig.background.desktopWidgets.photoDir = path
             }
         }
     }

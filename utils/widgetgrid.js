@@ -20,7 +20,8 @@ const heights = {
     battery: 4,
     fetch: 8,
     visualiser: 5,
-    sticky: 6
+    sticky: 6,
+    photo: 7
 };
 
 function heightOf(id) {

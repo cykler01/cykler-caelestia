@@ -36,7 +36,8 @@ Item {
             battery: "bolt",
             fetch: "terminal",
             visualiser: "graphic_eq",
-            sticky: "sticky_note_2"
+            sticky: "sticky_note_2",
+            photo: "photo"
         })
 
     readonly property real factor: width / Math.max(1, screenWidth)
