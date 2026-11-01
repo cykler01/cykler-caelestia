@@ -437,9 +437,34 @@ Item {
             mpris: media.local ? null : Players.recentPlayer
         }
 
+        readonly property bool unknownLength: media.source.length > 2147483647
+        readonly property real barValue: media.source.length > 0 && !media.unknownLength ? Math.min(1, Math.max(0, media.source.position / media.source.length)) : 0
+
+        // Minutes:seconds, growing to hours:minutes:seconds for a long track
+        function lengthStr(length: real): string {
+            if (length < 0)
+                return "-1:-1";
+
+            const hours = Math.floor(length / 3600);
+            const mins = Math.floor((length % 3600) / 60);
+            const secs = Math.floor(length % 60).toString().padStart(2, "0");
+
+            if (hours > 0)
+                return `${hours}:${mins.toString().padStart(2, "0")}:${secs}`;
+            return `${mins}:${secs}`;
+        }
+
         visible: source.available
         title: Tr.tr("Now playing")
         icon: "music_note"
+
+        Timer {
+            running: media.source.isPlaying
+            interval: GlobalConfig.dashboard.mediaUpdateInterval
+            triggeredOnStart: true
+            repeat: true
+            onTriggered: media.source.refresh()
+        }
 
         RowLayout {
             Layout.fillWidth: true
@@ -508,6 +533,39 @@ Item {
                         disabled: !media.source.canGoNext
                         onClicked: media.source.next()
                     }
+                }
+            }
+        }
+
+        // Playback position: a bar across the card with the elapsed and total time under it
+        ColumnLayout {
+            Layout.fillWidth: true
+            Layout.topMargin: Tokens.spacing.extraSmall
+            spacing: Tokens.spacing.extraSmall
+
+            StyledProgressBar {
+                Layout.fillWidth: true
+                implicitHeight: 4
+                value: media.barValue
+            }
+
+            RowLayout {
+                Layout.fillWidth: true
+
+                StyledText {
+                    text: media.lengthStr(media.source.position)
+                    color: Colours.palette.m3onSurfaceVariant
+                    font: Tokens.font.label.small
+                }
+
+                Item {
+                    Layout.fillWidth: true
+                }
+
+                StyledText {
+                    text: media.unknownLength ? "--:--" : media.lengthStr(media.source.length)
+                    color: Colours.palette.m3outline
+                    font: Tokens.font.label.small
                 }
             }
         }
