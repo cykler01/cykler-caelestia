@@ -803,7 +803,7 @@ Item {
         }
     }
 
-    // --- Now playing (only while there is a player, or something remembered from one) ---
+    // --- Now playing: the track from whichever player is making sound, or the one that stopped last ---
     component MediaCard: GridCard {
         id: media
 
@@ -834,7 +834,8 @@ Item {
             return `${mins}:${secs}`;
         }
 
-        visible: source.available
+        // Always drawn, even with nothing to show: hiding the card left a grid cell that nothing painted,
+        // which is what made it look broken while rearranging
         title: Tr.tr("Now playing")
         icon: "music_note"
 
@@ -846,8 +847,53 @@ Item {
             onTriggered: media.source.refresh()
         }
 
+        // Nothing playing yet: a placeholder built from the card's own shapes, so an idle card still reads
+        // as a player instead of as an empty plate
+        ColumnLayout {
+            Layout.fillWidth: true
+            Layout.fillHeight: true
+            Layout.minimumHeight: 96
+            visible: !media.source.available
+            spacing: Tokens.spacing.small
+
+            StyledRect {
+                Layout.alignment: Qt.AlignHCenter
+                implicitWidth: 64
+                implicitHeight: 64
+                radius: Tokens.rounding.large
+                color: Qt.alpha(Colours.palette.m3surfaceContainerHigh, 0.85)
+                border.width: 1
+                border.color: Qt.alpha(Colours.palette.m3outlineVariant, 0.5)
+
+                MaterialIcon {
+                    anchors.centerIn: parent
+                    text: "album"
+                    color: Colours.palette.m3outline
+                    fontStyle: Tokens.font.icon.builders.large.build()
+                }
+            }
+
+            StyledText {
+                Layout.fillWidth: true
+                horizontalAlignment: Text.AlignHCenter
+                text: Tr.tr("Nothing playing")
+                color: Colours.palette.m3onSurface
+                font: Tokens.font.title.small
+            }
+
+            StyledText {
+                Layout.fillWidth: true
+                horizontalAlignment: Text.AlignHCenter
+                wrapMode: Text.Wrap
+                text: Tr.tr("Play something in any app and it shows up here")
+                color: Colours.palette.m3outline
+                font: Tokens.font.label.small
+            }
+        }
+
         RowLayout {
             Layout.fillWidth: true
+            visible: media.source.available
             spacing: Tokens.spacing.medium
 
             ClipRect {
@@ -921,6 +967,7 @@ Item {
         ColumnLayout {
             Layout.fillWidth: true
             Layout.topMargin: Tokens.spacing.extraSmall
+            visible: media.source.available
             spacing: Tokens.spacing.extraSmall
 
             StyledProgressBar {
