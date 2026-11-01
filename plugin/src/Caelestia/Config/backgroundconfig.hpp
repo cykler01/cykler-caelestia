@@ -85,7 +85,7 @@ class DesktopWidgets : public settings::ObjectNode {
     // Number of columns in the widget grid; the widgets flow into it in the order given below
     CONFIG_PROPERTY(int, columns, 2)
     // Which widgets show and where (ids: calendar, weather, pomodoro, resources, media, battery, fetch, visualiser,
-    // sticky, photo)
+    // sticky, photo, github)
     CONFIG_LIST(DesktopWidgetList, entries,
         DEFAULT_ARG({
             LIST_ENTRY(calendar, true),
@@ -98,8 +98,11 @@ class DesktopWidgets : public settings::ObjectNode {
             LIST_ENTRY(visualiser, true),
             LIST_ENTRY(sticky, true),
             LIST_ENTRY(photo, true),
+            LIST_ENTRY(github, true),
         }))
     CONFIG_PROPERTY(bool, hideWithWindows, true)
+    // GitHub user whose contributions the contributions card shows
+    CONFIG_PROPERTY(QString, githubUser, {})
     // The folder the photo card picks from; the user's pictures unless told otherwise
     CONFIG_PROPERTY(QString, photoDir, QStandardPaths::writableLocation(QStandardPaths::PicturesLocation))
     CONFIG_PROPERTY(qreal, opacity, 0.7)

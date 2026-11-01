@@ -98,6 +98,13 @@ Item {
         id: shownModel
     }
 
+    LoggingCategory {
+        id: lc
+
+        name: "caelestia.qml.modules.background.desktopwidgets"
+        defaultLogLevel: LoggingCategory.Warning
+    }
+
     Repeater {
         model: shownModel
 
@@ -143,6 +150,10 @@ Item {
             DelegateChoice {
                 roleValue: "photo"
                 delegate: PhotoCard {}
+            }
+            DelegateChoice {
+                roleValue: "github"
+                delegate: ContributionsCard {}
             }
         }
     }
@@ -1000,7 +1011,8 @@ Item {
                 if (!sticky.editing)
                     sticky.note = text();
             }
-            onTextChanged: {
+            // The signal this FileView emits when the file on disk changes under it
+            onFileChanged: {
                 if (!sticky.editing)
                     sticky.note = text();
             }
@@ -1196,6 +1208,210 @@ Item {
                 font: Tokens.font.label.medium
                 wrapMode: Text.Wrap
             }
+        }
+    }
+
+    // --- Contributions: this week's GitHub activity, a square a day ---
+    component ContributionsCard: GridCard {
+        id: gh
+
+        readonly property real gap: 6
+
+        readonly property string user: (root.widgetConfig.githubUser ?? "").trim()
+        // Letters, digits and hyphens only: the name is part of a URL, so nothing else gets through
+        readonly property bool userValid: /^[A-Za-z0-9-]+$/.test(gh.user)
+
+        // Sunday through Saturday of the week we are in: [{ date, count, level }]
+        property var week: []
+        property int total: 0
+        // Index of the square being hovered, -1 for none
+        property int hovered: -1
+        // Whatever went wrong, shown on the card: a failure should never be a blank space
+        property string error
+
+        // What the card says instead of the squares
+        readonly property string message: {
+            if (gh.user === "")
+                return Tr.tr("Set a GitHub name in Settings");
+            if (!gh.userValid)
+                return Tr.tr("That is not a valid GitHub name");
+            if (gh.week.length > 0)
+                return "";
+            return gh.error !== "" ? gh.error : Tr.tr("Loading...");
+        }
+
+        // The square under the pointer as a readable day, or null
+        readonly property var hoveredDay: {
+            const day = gh.hovered >= 0 && gh.hovered < gh.week.length ? gh.week[gh.hovered] : null;
+            if (!day)
+                return null;
+
+            return {
+                date: Qt.formatDate(new Date(`${day.date}T00:00:00`), "d MMM"),
+                count: day.count
+            };
+        }
+
+        function levelColour(level: int): color {
+            if (level <= 0)
+                return Qt.alpha(Colours.palette.m3outlineVariant, 0.35);
+
+            return Qt.alpha(Colours.palette.m3primary, 0.3 + 0.175 * Math.min(4, level));
+        }
+
+        // The seven days up to and including today, oldest first, so today is the rightmost square.
+        // Worked out when the data arrives rather than once at build time, so the card doesn't keep
+        // showing the week it was created in
+        function weekDates(): var {
+            const now = new Date();
+
+            return Array.from({
+                length: 7
+            }, (_, i) => {
+                const day = new Date(now.getFullYear(), now.getMonth(), now.getDate() - (6 - i));
+                const month = String(day.getMonth() + 1).padStart(2, "0");
+                const date = String(day.getDate()).padStart(2, "0");
+                return `${day.getFullYear()}-${month}-${date}`;
+            });
+        }
+
+        // Started by hand rather than with a `running` binding, so a name change re-fetches instead of
+        // leaving the previous name's week on the card
+        function reload(): void {
+            gh.week = [];
+            gh.total = 0;
+            gh.hovered = -1;
+            gh.error = "";
+
+            if (!gh.userValid)
+                return;
+
+            fetch.running = false;
+            fetch.running = true;
+        }
+
+        // The calendar as JSON rather than as GitHub's page: the page's markup moves, this shape does
+        // not, and it carries the counts outright
+        function parse(json: string): void {
+            let data;
+            try {
+                data = JSON.parse(json);
+            } catch (e) {
+                gh.error = Tr.tr("Could not read the contributions data");
+                console.warn(lc, `Contributions: unreadable response: ${e}`);
+                return;
+            }
+
+            const list = Array.isArray(data?.contributions) ? data.contributions : [];
+            if (list.length === 0) {
+                gh.error = Tr.tr("No contributions came back for this name");
+                return;
+            }
+
+            const byDate = {};
+            for (const day of list)
+                byDate[day.date] = day;
+
+            gh.week = weekDates().map(date => ({
+                date: date,
+                count: byDate[date]?.count ?? 0,
+                level: byDate[date]?.level ?? 0
+            }));
+            gh.total = gh.week.reduce((sum, day) => sum + day.count, 0);
+            gh.error = "";
+        }
+
+        title: Tr.tr("Contributions")
+        icon: "calendar_view_week"
+
+        Component.onCompleted: gh.reload()
+        onUserChanged: gh.reload()
+
+        Process {
+            id: fetch
+
+            running: false
+            // A public mirror of the calendar, so there is no token and nothing to set up but the name
+            command: ["sh", "-c", `curl -fsSL --max-time 20 "https://github-contributions-api.jogruber.de/v4/${gh.user}?y=last"`]
+
+            // curl's own complaint, so a failed fetch says why on the card instead of going quiet
+            stderr: StdioCollector {
+                onStreamFinished: {
+                    const complaint = text.trim();
+                    if (complaint !== "" && gh.week.length === 0)
+                        gh.error = complaint;
+                }
+            }
+
+            stdout: StdioCollector {
+                onStreamFinished: gh.parse(text)
+            }
+        }
+
+        // The week turns over at midnight, so the squares are read again rather than left on the
+        // week the card was built in
+        Timer {
+            interval: 1800000
+            repeat: true
+            running: true
+            onTriggered: gh.reload()
+        }
+
+        StyledText {
+            Layout.fillWidth: true
+            visible: gh.message !== ""
+            wrapMode: Text.Wrap
+            text: gh.message
+            color: gh.error !== "" ? Colours.palette.m3error : Colours.palette.m3outline
+            font: Tokens.font.label.medium
+        }
+
+        Item {
+            // Seven squares share the width, each as tall as it is wide
+            readonly property real cell: Math.max(2, (width - 6 * gh.gap) / 7)
+
+            Layout.fillWidth: true
+            implicitHeight: cell
+            visible: gh.week.length > 0
+
+            Repeater {
+                model: gh.week
+
+                StyledRect {
+                    required property var modelData
+                    required property int index
+
+                    border.width: gh.hovered === index ? 1 : 0
+                    border.color: Colours.palette.m3primary
+
+                    x: index * (parent.cell + gh.gap)
+                    y: 0
+                    width: parent.cell
+                    height: parent.cell
+                    radius: Math.min(Tokens.rounding.medium, parent.cell / 3)
+                    color: gh.levelColour(modelData.level)
+
+                    // Clearing only our own index, so moving between two squares doesn't blank it
+                    HoverHandler {
+                        onHoveredChanged: {
+                            if (hovered)
+                                gh.hovered = index;
+                            else if (gh.hovered === index)
+                                gh.hovered = -1;
+                        }
+                    }
+                }
+            }
+        }
+
+        StyledText {
+            Layout.fillWidth: true
+            visible: gh.week.length > 0
+            horizontalAlignment: Text.AlignRight
+            // The week's total, or the day under the pointer while one is hovered
+            text: gh.hoveredDay ? gh.hoveredDay.date + " · " + (gh.hoveredDay.count === 1 ? Tr.tr("1 commit") : Tr.tr("%1 commits").arg(gh.hoveredDay.count)) : Tr.tr("%1 this week").arg(gh.total)
+            color: gh.hoveredDay ? Colours.palette.m3onSurface : Colours.palette.m3onSurfaceVariant
+            font: Tokens.font.label.small
         }
     }
 

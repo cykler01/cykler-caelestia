@@ -37,7 +37,8 @@ Item {
             fetch: "terminal",
             visualiser: "graphic_eq",
             sticky: "sticky_note_2",
-            photo: "photo"
+            photo: "photo",
+            github: "calendar_view_week"
         })
 
     readonly property real factor: width / Math.max(1, screenWidth)

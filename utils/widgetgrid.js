@@ -21,7 +21,8 @@ const heights = {
     fetch: 8,
     visualiser: 5,
     sticky: 6,
-    photo: 7
+    photo: 7,
+    github: 4
 };
 
 function heightOf(id) {

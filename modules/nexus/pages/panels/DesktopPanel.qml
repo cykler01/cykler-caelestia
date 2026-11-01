@@ -56,7 +56,8 @@ PageBase {
             fetch: Tr.tr("Fetch"),
             visualiser: Tr.tr("Visualiser"),
             sticky: Tr.tr("Sticky note"),
-            photo: Tr.tr("Photo")
+            photo: Tr.tr("Photo"),
+            github: Tr.tr("Contributions")
         })
 
     function positionItem(value: string): MenuItem {
@@ -359,12 +360,14 @@ PageBase {
         }
 
         SectionHeader {
-            text: Tr.tr("Photo widget")
+            text: Tr.tr("Widget settings")
         }
 
         ConnectedRect {
             first: true
-            last: true
+            last: false
+            // Without this the row keeps its (zero) implicit width inside the page's ColumnLayout
+            Layout.fillWidth: true
             implicitHeight: folderRow.implicitHeight + Tokens.padding.medium * 2
 
             RowLayout {
@@ -409,6 +412,14 @@ PageBase {
                 folderMode: true
                 onAccepted: path => GlobalConfig.background.desktopWidgets.photoDir = path
             }
+        }
+
+        TextFieldRow {
+            last: true
+            label: Tr.tr("GitHub name")
+            subtext: Tr.tr("Shown on the contributions widget")
+            value: root.widgetsConfig.githubUser
+            onEditingFinished: value => GlobalConfig.background.desktopWidgets.githubUser = value
         }
     }
 }
