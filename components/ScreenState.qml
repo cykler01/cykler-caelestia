@@ -18,6 +18,11 @@ PersistentProperties {
     // modules/notifpopout/Content.qml), and only for as long as the sidebar stays open
     property string phoneBrowseDevice
 
+    // The timer panel is showing in the sidebar in place of its tabs, opened from the timer button in the
+    // utilities panel (see modules/notifpopout/Content.qml). Cleared as the sidebar closes, so it does not
+    // greet the next open
+    property bool timerPane
+
     // The desktop's widget layout is being rearranged: the cards are draggable and snap to the grid
     property bool widgetEdit
 

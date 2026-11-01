@@ -63,6 +63,7 @@ class SoundEffectsConfig : public settings::ObjectNode {
     CONFIG_GLOBAL_PROPERTY(bool, screenUnlock, true)
     CONFIG_GLOBAL_PROPERTY(bool, lowBattery, true)
     CONFIG_GLOBAL_PROPERTY(bool, screenRecord, true)
+    CONFIG_GLOBAL_PROPERTY(bool, timerEnd, true)
 };
 
 class ServiceConfig : public settings::ObjectNode {

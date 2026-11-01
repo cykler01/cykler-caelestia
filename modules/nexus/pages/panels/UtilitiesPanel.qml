@@ -118,6 +118,14 @@ PageBase {
         }
 
         ToggleRow {
+            text: Tr.tr("Timer")
+            subtext: Tr.tr("Open the timer panel")
+            disabled: !Config.utilities.cards.quickToggles
+            checked: root.isToggleOn("timer")
+            onToggled: root.setToggleOn("timer", checked)
+        }
+
+        ToggleRow {
             text: Tr.tr("Settings")
             subtext: Tr.tr("Open the settings window")
             disabled: !Config.utilities.cards.quickToggles

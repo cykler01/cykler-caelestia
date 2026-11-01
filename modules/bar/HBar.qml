@@ -129,6 +129,11 @@ RowLayout {
             popouts.currentName = id.toLowerCase();
             popouts.currentCenter = Qt.binding(() => root.centerOf(ch.item as Item));
             popouts.hasCurrent = true;
+        } else if (id === "timer") {
+            // The section has room for the ring and nothing more, so hovering it opens the count's own panel
+            popouts.currentName = "timer";
+            popouts.currentCenter = Qt.binding(() => root.centerOf(ch.item as Item));
+            popouts.hasCurrent = true;
         } else {
             popouts.hasCurrent = false;
         }
@@ -209,6 +214,17 @@ RowLayout {
                 delegate: EntryWrapper {
                     HTray {
                         objectName: "taskbarTray"
+                    }
+                }
+            }
+            DelegateChoice {
+                roleValue: "timer"
+                delegate: EntryWrapper {
+                    // Its own section, before the clock, taking no room at all while no timer is set
+                    shown: CountdownTimer.active
+
+                    TimerRing {
+                        objectName: "taskbarTimer"
                     }
                 }
             }

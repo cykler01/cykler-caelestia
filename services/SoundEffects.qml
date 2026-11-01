@@ -16,7 +16,8 @@ Singleton {
             screenLock: "/usr/share/sounds/freedesktop/stereo/bell.oga",
             screenUnlock: "/usr/share/sounds/freedesktop/stereo/complete.oga",
             lowBattery: "/usr/share/sounds/freedesktop/stereo/dialog-warning.oga",
-            screenRecord: "/usr/share/sounds/freedesktop/stereo/screen-capture.oga"
+            screenRecord: "/usr/share/sounds/freedesktop/stereo/screen-capture.oga",
+            timerEnd: "/usr/share/sounds/freedesktop/stereo/alarm-clock-elapsed.oga"
         })
 
     // Status alerts use the notification volume; direct interaction feedback uses the SFX one
@@ -43,6 +44,18 @@ Singleton {
 
         const cfg = GlobalConfig.services.soundEffects;
         const volume = root.notificationEvents.includes(event) ? cfg.notificationVolume : cfg.sfxVolume;
+        const scaled = Math.round(Math.max(0, Math.min(1, volume)) * 65536);
+        Quickshell.execDetached(["paplay", "--volume", String(scaled), path]);
+    }
+
+    // A timer's alarm is part of what was asked for rather than an incidental effect, so it plays even with the
+    // sound effects switched off - at the notification volume, since it is an alert rather than feedback
+    function playAlert(event: string): void {
+        const path = root.paths[event];
+        if (!path)
+            return;
+
+        const volume = GlobalConfig.services?.soundEffects?.notificationVolume ?? 0.5;
         const scaled = Math.round(Math.max(0, Math.min(1, volume)) * 65536);
         Quickshell.execDetached(["paplay", "--volume", String(scaled), path]);
     }

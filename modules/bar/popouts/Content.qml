@@ -124,6 +124,11 @@ Item {
             sourceComponent: LockStatus {}
         }
 
+        Popout {
+            name: "timer"
+            sourceComponent: TimerDetails {}
+        }
+
         Repeater {
             model: ScriptModel {
                 values: SystemTray.items.values.filter(i => i.hasMenu && i.status !== Status.Passive && !GlobalConfig.bar.tray.hiddenIcons.includes(i.id))

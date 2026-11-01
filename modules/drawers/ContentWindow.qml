@@ -101,7 +101,9 @@ StyledWindow {
     WlrLayershell.layer: (fsTransitionProg > 0 && contentItem.Config.general.showOverFullscreen) || (hasSpecialWorkspace && hasFullscreenOnNormalWs) ? WlrLayer.Overlay : WlrLayer.Top
     // The sidebar's library tab has a search field, its to-do tab has add-task and scheduling
     // fields, and its notepad tab is a text editor, so it takes the keyboard while any is up
-    WlrLayershell.keyboardFocus: screenState.launcher || screenState.session || (screenState.sidebar && screenState.notifPopoutTab !== 0) ? WlrKeyboardFocus.OnDemand : WlrKeyboardFocus.None
+    // The sidebar only needs keys for the tabs that have a field in them, and for the timer panel, which has one
+    // whether or not a tab is up behind it
+    WlrLayershell.keyboardFocus: screenState.launcher || screenState.session || (screenState.sidebar && (screenState.notifPopoutTab !== 0 || screenState.timerPane)) ? WlrKeyboardFocus.OnDemand : WlrKeyboardFocus.None
 
     mask: hasFullscreen ? emptyRegion : regions
 

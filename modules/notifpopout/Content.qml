@@ -46,6 +46,10 @@ Item {
     // storage root that does not exist yet
     readonly property string browsingRoot: KdeConnect.storageRoot(root.browsingDevice)
 
+    // The timer, reached from the timer button in the utilities panel: it takes the card over rather than being
+    // another tab, since it is not one of the things the tab bar is for
+    readonly property bool timerShown: root.screenState.timerPane
+
     function showTab(index: int): void {
         root.screenState.notifPopoutTab = index;
     }
@@ -53,6 +57,12 @@ Item {
     onTabChanged: {
         if (root.tab === 1)
             root.libraryLoaded = true;
+    }
+
+    // Closing the sidebar puts the tabs back, so the timer panel does not greet the next open
+    onShownChanged: {
+        if (!root.shown)
+            root.screenState.timerPane = false;
     }
 
     Behavior on tabPos {
@@ -94,12 +104,25 @@ Item {
         }
     }
 
+    StyledRect {
+        anchors.fill: parent
+        visible: root.timerShown
+
+        radius: Tokens.rounding.large
+        color: Colours.tPalette.m3surfaceContainerLow
+
+        TimerPane {
+            anchors.fill: parent
+            anchors.margins: Tokens.padding.medium
+        }
+    }
+
     ColumnLayout {
         anchors.fill: parent
         spacing: Tokens.spacing.medium
 
-        visible: !root.browsing
-        enabled: !root.browsing
+        visible: !root.browsing && !root.timerShown
+        enabled: !root.browsing && !root.timerShown
 
         SegmentedBar {
             Layout.fillWidth: true

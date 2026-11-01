@@ -110,6 +110,20 @@ StyledRect {
                     }
                 }
                 DelegateChoice {
+                    roleValue: "timer"
+                    delegate: Toggle {
+                        icon: "timer"
+                        // Not a switch: pressing it opens the panel the countdown is set in, and it stays lit for as
+                        // long as there is one to show
+                        checked: CountdownTimer.active
+                        inactiveOnColour: Colours.palette.m3onSurfaceVariant
+                        onClicked: {
+                            root.screenState.timerPane = true;
+                            root.screenState.sidebar = true;
+                        }
+                    }
+                }
+                DelegateChoice {
                     roleValue: "settings"
                     delegate: Toggle {
                         icon: "settings"

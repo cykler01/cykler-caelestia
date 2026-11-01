@@ -106,6 +106,11 @@ ColumnLayout {
             popouts.currentName = id.toLowerCase();
             popouts.currentCenter = (ch.item as Item).mapToItem(root, 0, (ch.item as Item).implicitHeight / 2).y ?? 0;
             popouts.hasCurrent = true;
+        } else if (id === "timer") {
+            // The section has room for the ring and nothing more, so hovering it opens the count's own panel
+            popouts.currentName = "timer";
+            popouts.currentCenter = (ch.item as Item).mapToItem(root, 0, (ch.item as Item).implicitHeight / 2).y ?? 0;
+            popouts.hasCurrent = true;
         }
     }
 
@@ -189,6 +194,17 @@ ColumnLayout {
                 delegate: EntryWrapper {
                     Tray {
                         objectName: "taskbarTray"
+                    }
+                }
+            }
+            DelegateChoice {
+                roleValue: "timer"
+                delegate: EntryWrapper {
+                    // Its own section, above the clock, taking no room at all while no timer is set
+                    shown: CountdownTimer.active
+
+                    TimerRing {
+                        objectName: "taskbarTimer"
                     }
                 }
             }

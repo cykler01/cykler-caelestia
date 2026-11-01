@@ -19,6 +19,7 @@ PageBase {
             workspaces: Tr.tr("Workspaces"),
             activeWindow: Tr.tr("Active window"),
             tray: Tr.tr("Tray"),
+            timer: Tr.tr("Timer"),
             clock: Tr.tr("Clock"),
             statusIcons: Tr.tr("Status icons"),
             power: Tr.tr("Power button"),
