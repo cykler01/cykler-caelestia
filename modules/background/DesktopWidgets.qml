@@ -179,6 +179,10 @@ Item {
                 StyledText {
                     required property int modelData
 
+                    // Same preferred width as the day cells, so all seven columns come out
+                    // equal: a GridLayout sizes each column to its widest cell, which lines the
+                    // narrow weekday letters up differently from the two-digit dates
+                    Layout.preferredWidth: 1
                     Layout.fillWidth: true
                     horizontalAlignment: Text.AlignHCenter
                     text: Qt.locale().dayName(modelData, Locale.NarrowFormat)
@@ -195,6 +199,7 @@ Item {
 
                     required property var modelData
 
+                    Layout.preferredWidth: 1
                     Layout.fillWidth: true
                     implicitHeight: 30
 
