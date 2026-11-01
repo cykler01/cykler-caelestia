@@ -20,6 +20,9 @@ Variants {
         name: "background"
         WlrLayershell.exclusionMode: ExclusionMode.Ignore
         WlrLayershell.layer: contentItem.Config.background.wallpaperEnabled ? WlrLayer.Background : WlrLayer.Bottom
+        // Only the sticky note needs keys; anywhere else on the desktop a click should leave the focused
+        // window alone, so focus is only ever asked for while one is being typed into
+        WlrLayershell.keyboardFocus: widgetsLoader.item?.wantsKeyboard ? WlrKeyboardFocus.OnDemand : WlrKeyboardFocus.None
         color: contentItem.Config.background.wallpaperEnabled ? "black" : "transparent"
         surfaceFormat.opaque: false
 

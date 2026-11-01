@@ -35,7 +35,8 @@ Item {
             media: "music_note",
             battery: "bolt",
             fetch: "terminal",
-            visualiser: "graphic_eq"
+            visualiser: "graphic_eq",
+            sticky: "sticky_note_2"
         })
 
     readonly property real factor: width / Math.max(1, screenWidth)

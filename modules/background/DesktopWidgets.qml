@@ -27,6 +27,11 @@ Item {
     // shell supports, so there is nothing to probe for
     property int packageCount
 
+    // Set while a card needs the keyboard, which is only while a note is being typed into. The
+    // background surface asks for keyboard focus only for as long as that is so (see
+    // modules/background/Background.qml), since there is nothing else out on the desktop to type into
+    property bool wantsKeyboard
+
     readonly property var widgetConfig: Config.background.desktopWidgets
     readonly property int gridCols: Math.floor(width / WidgetGrid.unit)
     readonly property int gridRows: Math.floor(height / WidgetGrid.unit)
@@ -129,6 +134,10 @@ Item {
             DelegateChoice {
                 roleValue: "visualiser"
                 delegate: VisualiserCard {}
+            }
+            DelegateChoice {
+                roleValue: "sticky"
+                delegate: StickyCard {}
             }
         }
     }
@@ -933,6 +942,143 @@ Item {
         }
     }
 
+
+    // --- Sticky note: short text written straight into the card ---
+    component StickyCard: GridCard {
+        id: sticky
+
+        // The note is a plain file, so it outlives the shell reloading
+        readonly property string notePath: `${Paths.data}/sticky-note.md`
+        // Trimmed, so a note of nothing but blank lines still reads as empty
+        readonly property string body: sticky.note.trim()
+
+        property string note
+
+        property bool editing
+        property bool hovered
+
+        function startEditing(): void {
+            input.text = sticky.note;
+            sticky.editing = true;
+            input.forceActiveFocus();
+        }
+
+        function stopEditing(): void {
+            if (!sticky.editing)
+                return;
+
+            sticky.editing = false;
+            save.stop();
+            sticky.note = input.text;
+            sticky.write();
+        }
+
+        function write(): void {
+            store.setText(sticky.note);
+        }
+
+        title: Tr.tr("Note")
+        icon: "sticky_note_2"
+        onHoveredChanged: root.wantsKeyboard = sticky.hovered || sticky.editing
+        onEditingChanged: root.wantsKeyboard = sticky.hovered || sticky.editing
+
+        FileView {
+            id: store
+
+            printErrors: false
+            watchChanges: true
+            path: sticky.notePath
+
+            // Text being typed in the card wins over what is on disk, so the file can't pull the
+            // caret out from under it
+            onLoaded: {
+                if (!sticky.editing)
+                    sticky.note = text();
+            }
+            onTextChanged: {
+                if (!sticky.editing)
+                    sticky.note = text();
+            }
+            // No file yet is the normal first run: the first keystroke creates it
+            onLoadFailed: sticky.note = ""
+        }
+
+        // Saved as typing settles rather than on every keystroke
+        Timer {
+            id: save
+
+            interval: 400
+            onTriggered: sticky.write()
+        }
+
+        StyledRect {
+            Layout.fillWidth: true
+            Layout.fillHeight: true
+            Layout.minimumHeight: 60
+            implicitHeight: noteText.implicitHeight + Tokens.padding.medium * 2
+            radius: Tokens.rounding.large
+            color: Colours.tPalette.m3surfaceContainerHigh
+            opacity: 0.85
+            clip: true
+
+            StyledText {
+                id: noteText
+
+                anchors.fill: parent
+                anchors.margins: Tokens.padding.medium
+                visible: !sticky.editing
+                text: sticky.body !== "" ? sticky.note : Tr.tr("Click to write a note")
+                color: sticky.body !== "" ? Colours.palette.m3onSurface : Colours.palette.m3outline
+                font: Tokens.font.body.medium
+                wrapMode: Text.Wrap
+                elide: Text.ElideRight
+                // As many whole lines as the card has room for; anything past that is elided
+                maximumLineCount: Math.max(1, Math.floor(height / Math.max(1, lineHeight)))
+            }
+
+            TextEdit {
+                id: input
+
+                anchors.fill: parent
+                anchors.margins: Tokens.padding.medium
+                visible: sticky.editing
+                wrapMode: TextEdit.Wrap
+                selectByMouse: true
+                persistentSelection: true
+                color: Colours.palette.m3onSurface
+                selectionColor: Qt.alpha(Colours.palette.m3primary, 0.4)
+                selectedTextColor: Colours.palette.m3onSurface
+                font: Tokens.font.body.medium
+                renderType: Text.NativeRendering
+
+                onTextChanged: {
+                    if (sticky.editing)
+                        save.restart();
+                }
+
+                Keys.onEscapePressed: sticky.stopEditing()
+
+                onActiveFocusChanged: {
+                    // Clicking off the note, or the desktop being covered, ends the edit
+                    if (!activeFocus && sticky.editing)
+                        sticky.stopEditing();
+                }
+            }
+
+            // Kept off the text editor (disabled while typing) so clicks in there place the caret
+            MouseArea {
+                anchors.fill: parent
+                enabled: !sticky.editing
+                cursorShape: Qt.IBeamCursor
+                onClicked: sticky.startEditing()
+            }
+
+            // Separate from the MouseArea, so hovering stays tracked while editing disables it
+            HoverHandler {
+                onHoveredChanged: sticky.hovered = hovered
+            }
+        }
+    }
 
     component Stat: RowLayout {
         property string icon

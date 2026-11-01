@@ -52,7 +52,8 @@ PageBase {
             media: Tr.tr("Now playing"),
             battery: Tr.tr("Battery"),
             fetch: Tr.tr("Fetch"),
-            visualiser: Tr.tr("Visualiser")
+            visualiser: Tr.tr("Visualiser"),
+            sticky: Tr.tr("Sticky note")
         })
 
     function positionItem(value: string): MenuItem {

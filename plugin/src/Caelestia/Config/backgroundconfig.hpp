@@ -83,7 +83,8 @@ class DesktopWidgets : public settings::ObjectNode {
     CONFIG_PROPERTY(QString, position, u"top-right"_s)
     // Number of columns in the widget grid; the widgets flow into it in the order given below
     CONFIG_PROPERTY(int, columns, 2)
-    // Which widgets show and where (ids: calendar, weather, pomodoro, resources, media, battery, fetch, visualiser)
+    // Which widgets show and where (ids: calendar, weather, pomodoro, resources, media, battery, fetch, visualiser,
+    // sticky)
     CONFIG_LIST(DesktopWidgetList, entries,
         DEFAULT_ARG({
             LIST_ENTRY(calendar, true),
@@ -94,6 +95,7 @@ class DesktopWidgets : public settings::ObjectNode {
             LIST_ENTRY(battery, true),
             LIST_ENTRY(fetch, true),
             LIST_ENTRY(visualiser, true),
+            LIST_ENTRY(sticky, true),
         }))
     CONFIG_PROPERTY(bool, hideWithWindows, true)
     CONFIG_PROPERTY(qreal, opacity, 0.7)
