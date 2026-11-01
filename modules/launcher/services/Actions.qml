@@ -41,6 +41,10 @@ Searcher {
 
             if (command[0] === "autocomplete" && command.length > 1) {
                 list.search.text = `${GlobalConfig.launcher.actionPrefix}${command[1]} `;
+            } else if (command[0] === "widgets") {
+                // Hands the desktop over to its own rearrange mode rather than running anything
+                list.screenState.launcher = false;
+                list.screenState.widgetEdit = true;
             } else if (["ocr", "lens", "colourpicker"].includes(command[0])) {
                 list.screenState.launcher = false;
                 Quickshell.execDetached(["bash", `${Quickshell.shellDir}/assets/${command[0]}.sh`]);

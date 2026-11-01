@@ -25,7 +25,7 @@ Item {
     // The real monitor's height, same as LockSurface.qml uses to size Content - without this the
     // preview's proportions (and therefore which widgets show their extra detail/forecast/etc)
     // wouldn't match what actually ends up on the real lock screen. Falls back to 1080 the same
-    // way WidgetGridEditor.qml does for its own miniature of the desktop, for the rare case
+    // way the desktop widgets do for their own miniature of the screen, for the rare case
     // there's no screen yet
     property real screenHeight: 1080
     readonly property real fullHeight: root.screenHeight * Tokens.sizes.lock.heightMult - Tokens.padding.extraLargeIncreased

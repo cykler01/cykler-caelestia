@@ -82,9 +82,6 @@
   "modules/nexus/pages/battery/TimeoutRow.qml": {
     "section-order": 2
   },
-  "modules/nexus/pages/panels/WidgetGridEditor.qml": {
-    "section-order": 14
-  },
   "modules/notch/Pill.qml": {
     "section-order": 13
   },

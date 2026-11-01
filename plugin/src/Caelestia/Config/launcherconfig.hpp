@@ -103,6 +103,12 @@ class LauncherConfig : public settings::ObjectNode {
                 { u"command"_s, QStringList{ u"caelestia"_s, u"wallpaper"_s, u"-r"_s } },
             }),
             vmap({
+                { u"name"_s, markCtx(u"Rearrange widgets"_s, u"launcher action"_s) },
+                { u"icon"_s, u"dashboard_customize"_s },
+                { u"description"_s, mark(u"Move the desktop widgets around on a snapping grid"_s) },
+                { u"command"_s, QStringList{ u"widgets"_s } },
+            }),
+            vmap({
                 { u"name"_s, markCtx(u"Shutdown"_s, u"launcher action"_s) },
                 { u"icon"_s, u"power_settings_new"_s },
                 { u"description"_s, mark(u"Shutdown the system"_s) },

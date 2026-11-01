@@ -18,6 +18,9 @@ PersistentProperties {
     // modules/notifpopout/Content.qml), and only for as long as the sidebar stays open
     property string phoneBrowseDevice
 
+    // The desktop's widget layout is being rearranged: the cards are draggable and snap to the grid
+    property bool widgetEdit
+
     // Asks the overview to turn its page (-1 back, 1 forward), for the swipe gestures
     signal overviewPageRequested(int delta)
 

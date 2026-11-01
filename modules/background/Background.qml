@@ -20,9 +20,9 @@ Variants {
         name: "background"
         WlrLayershell.exclusionMode: ExclusionMode.Ignore
         WlrLayershell.layer: contentItem.Config.background.wallpaperEnabled ? WlrLayer.Background : WlrLayer.Bottom
-        // Only the sticky note needs keys; anywhere else on the desktop a click should leave the focused
-        // window alone, so focus is only ever asked for while one is being typed into
-        WlrLayershell.keyboardFocus: widgetsLoader.item?.wantsKeyboard ? WlrKeyboardFocus.OnDemand : WlrKeyboardFocus.None
+        // The sticky note needs keys to be typed into, and move mode needs them for Escape. Anywhere
+        // else a click on the desktop should leave the focused window alone
+        WlrLayershell.keyboardFocus: (widgetsLoader.item?.wantsKeyboard ?? false) || (widgetsLoader.rearranging ?? false) ? WlrKeyboardFocus.OnDemand : WlrKeyboardFocus.None
         color: contentItem.Config.background.wallpaperEnabled ? "black" : "transparent"
         surfaceFormat.opaque: false
 
@@ -30,6 +30,12 @@ Variants {
         anchors.bottom: true
         anchors.left: true
         anchors.right: true
+
+        // Move mode is a mode, not a saved preference: it shouldn't survive the shell restarting
+        Component.onCompleted: {
+            if (widgetsLoader.screenState)
+                widgetsLoader.screenState.widgetEdit = false;
+        }
 
         ShellState.ComponentRef {
             screen: win.screen
@@ -234,12 +240,15 @@ Variants {
             id: widgetsLoader
 
             readonly property real reveal: insets.revealFor(Config.background.desktopWidgets.hideWithWindows)
+            readonly property var screenState: ShellState.forScreen(win.modelData)
+            // Move mode holds the cards on screen, whether or not they would normally be faded out
+            readonly property bool rearranging: screenState?.widgetEdit ?? false
 
             // Unloaded outright while hidden behind windows: the cards keep timers and system readings running,
             // and with windows open (most of the time) nobody can see them
-            active: Config.background.desktopWidgets.enabled && reveal > 0
-            visible: reveal > 0
-            opacity: reveal
+            active: Config.background.desktopWidgets.enabled && (rearranging || reveal > 0)
+            visible: rearranging || reveal > 0
+            opacity: rearranging ? 1 : reveal
             scale: 0.97 + 0.03 * reveal
 
             // The widgets' snapping grid spans the whole screen, so their cells mean the same thing everywhere
@@ -250,6 +259,7 @@ Variants {
 
             sourceComponent: DesktopWidgets {
                 wallpaper: behindClock
+                screenState: widgetsLoader.screenState
             }
         }
     }
