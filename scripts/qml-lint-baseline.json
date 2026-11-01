@@ -110,7 +110,6 @@
     "section-order": 1
   },
   "modules/todopopout/Content.qml": {
-    "blank-before-close-brace": 1,
     "missing-section-separator": 4,
     "section-order": 8
   },

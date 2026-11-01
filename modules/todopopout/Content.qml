@@ -2,6 +2,7 @@ pragma ComponentBehavior: Bound
 
 import QtQuick
 import QtQuick.Layouts
+import QtQuick.Shapes
 import Quickshell
 import Caelestia.Config
 import Caelestia.I18n
@@ -42,6 +43,13 @@ Item {
             return a.deadline.localeCompare(b.deadline);
         });
     }
+
+    // How the list on show divides up, for the ring in the header. An overdue task counts as
+    // overdue only, so the three parts add up to the whole list.
+    readonly property int totalTasks: root.currentTasks.length
+    readonly property int doneTasks: root.currentTasks.filter(t => t.done).length
+    readonly property int overdueTasks: root.currentTasks.filter(t => root.isOverdue(t)).length
+    readonly property int todoTasks: root.totalTasks - root.doneTasks - root.overdueTasks
 
     function formatDate(iso: string): string {
         if (!iso)
@@ -128,132 +136,159 @@ Item {
         anchors.margins: Tokens.padding.large
         spacing: Tokens.spacing.medium
 
-        // List tabs
-        Flickable {
-            Layout.fillWidth: true
-            implicitHeight: tabRow.implicitHeight
-            contentWidth: tabRow.implicitWidth
-            flickableDirection: Flickable.HorizontalFlick
-            clip: true
-
-            RowLayout {
-                id: tabRow
-
-                spacing: Tokens.spacing.small
-
-                Repeater {
-                    model: Todo.lists
-
-                    StyledRect {
-                        id: tab
-
-                        required property var modelData
-                        readonly property bool current: modelData.id === root.selectedListId
-
-                        implicitWidth: tabLabel.implicitWidth + Tokens.padding.large * 2
-                        implicitHeight: tabLabel.implicitHeight + Tokens.padding.small * 2
-                        radius: Tokens.rounding.full
-                        // The same "picked out" primary highlight the segmented tabs elsewhere use
-                        color: tab.current ? Colours.palette.m3primary : Colours.tPalette.m3surfaceContainerHigh
-
-                        Behavior on color {
-                            CAnim {}
-                        }
-
-                        StateLayer {
-                            radius: parent.radius
-                            color: tab.current ? Colours.palette.m3onPrimary : Colours.palette.m3onSurface
-                            onClicked: root.selectedListId = tab.modelData.id
-                        }
-
-                        StyledText {
-                            id: tabLabel
-
-                            anchors.centerIn: parent
-                            text: tab.modelData.name
-                            color: tab.current ? Colours.palette.m3onPrimary : Colours.palette.m3onSurfaceVariant
-                            font: Tokens.font.label.medium
-                        }
-                    }
-                }
-
-                IconButton {
-                    icon: "add"
-                    type: IconButton.Text
-                    isRound: true
-                    font: Tokens.font.icon.small
-                    onClicked: {
-                        root.addingList = true;
-                        listField.forceActiveFocus();
-                    }
-                }
-            }
-        }
-
+        // The tabs, the add button and the list actions on the left, with the ring taking the
+        // height of those rows on the right
         RowLayout {
             Layout.fillWidth: true
-            visible: opacity > 0
-            opacity: root.addingList ? 1 : 0
-            spacing: Tokens.spacing.small
+            spacing: Tokens.spacing.medium
 
-            Behavior on opacity {
-                Anim {
-                    type: Anim.FastEffects
-                }
-            }
-
-            StyledTextField {
-                id: listField
+            ColumnLayout {
+                id: header
 
                 Layout.fillWidth: true
-                placeholderText: Tr.tr("List name")
-                onAccepted: {
-                    if (text.trim()) {
-                        root.selectedListId = Todo.addList(text);
-                        text = "";
+                spacing: Tokens.spacing.medium
+
+                // List tabs
+                Flickable {
+                    Layout.fillWidth: true
+                    implicitHeight: tabRow.implicitHeight
+                    contentWidth: tabRow.implicitWidth
+                    flickableDirection: Flickable.HorizontalFlick
+                    clip: true
+
+                    RowLayout {
+                        id: tabRow
+
+                        spacing: Tokens.spacing.small
+
+                        Repeater {
+                            model: Todo.lists
+
+                            StyledRect {
+                                id: tab
+
+                                required property var modelData
+                                readonly property bool current: modelData.id === root.selectedListId
+
+                                // With only the default list there is nothing to switch between, so
+                                // the strip is left out and its name stays out of the header
+                                visible: Todo.lists.length > 1
+                                implicitWidth: tabLabel.implicitWidth + Tokens.padding.large * 2
+                                implicitHeight: tabLabel.implicitHeight + Tokens.padding.small * 2
+                                radius: Tokens.rounding.full
+                                // The same "picked out" primary highlight the segmented tabs elsewhere use
+                                color: tab.current ? Colours.palette.m3primary : Colours.tPalette.m3surfaceContainerHigh
+
+                                Behavior on color {
+                                    CAnim {}
+                                }
+
+                                StateLayer {
+                                    radius: parent.radius
+                                    color: tab.current ? Colours.palette.m3onPrimary : Colours.palette.m3onSurface
+                                    onClicked: root.selectedListId = tab.modelData.id
+                                }
+
+                                StyledText {
+                                    id: tabLabel
+
+                                    anchors.centerIn: parent
+                                    text: tab.modelData.name
+                                    color: tab.current ? Colours.palette.m3onPrimary : Colours.palette.m3onSurfaceVariant
+                                    font: Tokens.font.label.medium
+                                }
+                            }
+                        }
+
+                        IconButton {
+                            Layout.alignment: Qt.AlignVCenter
+                            icon: "add"
+                            type: IconButton.Text
+                            isRound: true
+                            font: Tokens.font.icon.large
+                            padding: Tokens.padding.extraSmall
+                            onClicked: {
+                                root.addingList = true;
+                                listField.forceActiveFocus();
+                            }
+                        }
                     }
-                    root.addingList = false;
+                }
+
+                RowLayout {
+                    Layout.fillWidth: true
+                    visible: opacity > 0
+                    opacity: root.addingList ? 1 : 0
+                    spacing: Tokens.spacing.small
+
+                    Behavior on opacity {
+                        Anim {
+                            type: Anim.FastEffects
+                        }
+                    }
+
+                    StyledTextField {
+                        id: listField
+
+                        Layout.fillWidth: true
+                        placeholderText: Tr.tr("List name")
+                        onAccepted: {
+                            if (text.trim()) {
+                                root.selectedListId = Todo.addList(text);
+                                text = "";
+                            }
+                            root.addingList = false;
+                        }
+                    }
+
+                    IconButton {
+                        icon: "close"
+                        type: IconButton.Text
+                        isRound: true
+                        font: Tokens.font.icon.small
+                        onClicked: {
+                            listField.text = "";
+                            root.addingList = false;
+                        }
+                    }
+                }
+
+                // Nothing here removes a done task on its own: it just sits struck through at the bottom
+                // until cleared by hand or deleted one at a time. Deleting the list is only offered for
+                // non-default lists.
+                RowLayout {
+                    Layout.fillWidth: true
+                    visible: root.currentTasks.some(t => t.done) || root.selectedListId !== Todo.defaultListId
+
+                    TextButton {
+                        type: TextButton.Text
+                        visible: root.currentTasks.some(t => t.done)
+                        text: Tr.tr("Clear completed")
+                        onClicked: Todo.clearCompleted(root.selectedListId)
+                    }
+
+                    Item {
+                        Layout.fillWidth: true
+                    }
+
+                    TextButton {
+                        type: TextButton.Text
+                        visible: root.selectedListId !== Todo.defaultListId
+                        text: Tr.tr("Delete this list")
+                        onClicked: {
+                            Todo.removeList(root.selectedListId);
+                            root.selectedListId = Todo.defaultListId;
+                        }
+                    }
                 }
             }
 
-            IconButton {
-                icon: "close"
-                type: IconButton.Text
-                isRound: true
-                font: Tokens.font.icon.small
-                onClicked: {
-                    listField.text = "";
-                    root.addingList = false;
-                }
-            }
-        }
-
-        // Nothing here removes a done task on its own: it just sits struck through at the bottom
-        // until cleared by hand or deleted one at a time. Deleting the list is only offered for
-        // non-default lists.
-        RowLayout {
-            Layout.fillWidth: true
-            visible: root.currentTasks.some(t => t.done) || root.selectedListId !== Todo.defaultListId
-
-            TextButton {
-                type: TextButton.Text
-                visible: root.currentTasks.some(t => t.done)
-                text: Tr.tr("Clear completed")
-                onClicked: Todo.clearCompleted(root.selectedListId)
-            }
-
-            Item {
-                Layout.fillWidth: true
-            }
-
-            TextButton {
-                type: TextButton.Text
-                visible: root.selectedListId !== Todo.defaultListId
-                text: Tr.tr("Delete this list")
-                onClicked: {
-                    Todo.removeList(root.selectedListId);
-                    root.selectedListId = Todo.defaultListId;
-                }
+            TodoRing {
+                Layout.preferredWidth: Math.round(Math.max(64, header.implicitHeight))
+                Layout.preferredHeight: Math.round(Math.max(64, header.implicitHeight))
+                doneCount: root.doneTasks
+                overdueCount: root.overdueTasks
+                todoCount: root.todoTasks
             }
         }
 
@@ -773,4 +808,111 @@ Item {
         }
     }
 
+    // The list at a glance: an arc each for done, overdue and what is left, with the share that
+    // is done in the middle. CircularProgress shows a single value against a track, which cannot
+    // show three parts of a whole, so the arcs are drawn here instead.
+    component TodoRing: Item {
+        id: ring
+
+        property int doneCount
+        property int overdueCount
+        property int todoCount
+
+        readonly property int total: ring.doneCount + ring.overdueCount + ring.todoCount
+        readonly property real diameter: Math.min(ring.width, ring.height)
+        readonly property real strokeWidth: Math.max(4, Math.round(ring.diameter * 0.1))
+        readonly property real radius: (ring.diameter - ring.strokeWidth) / 2 - 1
+        // Ends are round, so the gap is sized to hold both caps without them meeting: an arc
+        // length of the stroke width plus a couple of pixels, in degrees
+        readonly property real gapAngle: ring.radius > 0 ? (ring.strokeWidth + 2) / ring.radius * (180 / Math.PI) : 0
+        readonly property real doneAngle: ring.total > 0 ? 360 * ring.doneCount / ring.total : 0
+        readonly property real overdueAngle: ring.total > 0 ? 360 * ring.overdueCount / ring.total : 0
+        readonly property real todoAngle: ring.total > 0 ? 360 * ring.todoCount / ring.total : 0
+        // A gap only where another arc follows, so a part that is the whole list still reads as
+        // one unbroken ring
+        readonly property real doneGap: ring.overdueAngle > 0 || ring.todoAngle > 0 ? ring.gapAngle : 0
+        readonly property real overdueGap: ring.todoAngle > 0 ? ring.gapAngle : 0
+        readonly property real todoGap: ring.doneAngle > 0 ? ring.gapAngle : 0
+
+        Shape {
+            anchors.fill: parent
+            // The default renderer flattens arcs into short straight edges, which is what made
+            // the ring look like a low resolution image scaled up; the curve renderer keeps them
+            // smooth, and antialiasing keeps the edges from stepping
+            antialiasing: true
+            preferredRendererType: Shape.CurveRenderer
+
+            // Empty track, so a list with nothing in it still shows a ring rather than nothing
+            ShapePath {
+                fillColor: "transparent"
+                strokeColor: Colours.palette.m3outlineVariant
+                strokeWidth: ring.strokeWidth
+                capStyle: ShapePath.RoundCap
+
+                PathAngleArc {
+                    centerX: ring.diameter / 2
+                    centerY: ring.diameter / 2
+                    radiusX: ring.radius
+                    radiusY: ring.radius
+                    startAngle: -90
+                    sweepAngle: 360
+                }
+            }
+
+            ShapePath {
+                fillColor: "transparent"
+                strokeColor: ring.doneAngle > 0 ? Colours.palette.m3primary : "transparent"
+                strokeWidth: ring.strokeWidth
+                capStyle: ShapePath.RoundCap
+
+                PathAngleArc {
+                    centerX: ring.diameter / 2
+                    centerY: ring.diameter / 2
+                    radiusX: ring.radius
+                    radiusY: ring.radius
+                    startAngle: -90
+                    sweepAngle: Math.max(0.1, ring.doneAngle - Math.min(ring.doneGap, ring.doneAngle / 3))
+                }
+            }
+
+            ShapePath {
+                fillColor: "transparent"
+                strokeColor: ring.overdueAngle > 0 ? Colours.palette.m3error : "transparent"
+                strokeWidth: ring.strokeWidth
+                capStyle: ShapePath.RoundCap
+
+                PathAngleArc {
+                    centerX: ring.diameter / 2
+                    centerY: ring.diameter / 2
+                    radiusX: ring.radius
+                    radiusY: ring.radius
+                    startAngle: -90 + ring.doneAngle
+                    sweepAngle: Math.max(0.1, ring.overdueAngle - Math.min(ring.overdueGap, ring.overdueAngle / 3))
+                }
+            }
+
+            ShapePath {
+                fillColor: "transparent"
+                strokeColor: ring.todoAngle > 0 ? Colours.palette.m3onSurfaceVariant : "transparent"
+                strokeWidth: ring.strokeWidth
+                capStyle: ShapePath.RoundCap
+
+                PathAngleArc {
+                    centerX: ring.diameter / 2
+                    centerY: ring.diameter / 2
+                    radiusX: ring.radius
+                    radiusY: ring.radius
+                    startAngle: -90 + ring.doneAngle + ring.overdueAngle
+                    sweepAngle: Math.max(0.1, ring.todoAngle - Math.min(ring.todoGap, ring.todoAngle / 3))
+                }
+            }
+        }
+
+        StyledText {
+            anchors.centerIn: parent
+            text: `${ring.total > 0 ? Math.round(100 * ring.doneCount / ring.total) : 0}%`
+            color: Colours.palette.m3onSurface
+            font: Tokens.font.label.medium
+        }
+    }
 }
