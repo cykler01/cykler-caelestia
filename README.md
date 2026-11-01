@@ -136,3 +136,7 @@ This fork is only worth anything because of the people below.
 ## License
 
 GPL-3.0, inherited from [upstream](https://github.com/caelestia-dots/shell).
+
+## Star history
+
+[![Star History Chart](https://api.star-history.com/svg?repos=cykler01/cykler-caelestia&type=Date)](https://star-history.com/#cykler01/cykler-caelestia&Date)
