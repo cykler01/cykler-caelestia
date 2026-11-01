@@ -172,11 +172,18 @@ PageBase {
 
         NavRow {
             first: true
+            icon: "apps"
+            text: Tr.tr("Desktop")
+            subtext: Tr.tr("App shortcuts on the wallpaper")
+            onClicked: root.nState.openSubPage(13)
+        }
+
+        NavRow {
             last: true
             icon: "widgets"
-            text: Tr.tr("Desktop")
-            subtext: Tr.tr("App shortcuts and widgets on the wallpaper")
-            onClicked: root.nState.openSubPage(13)
+            text: Tr.tr("Widgets")
+            subtext: Tr.tr("The widget cards shown on the wallpaper")
+            onClicked: root.nState.openSubPage(18)
         }
     }
 }

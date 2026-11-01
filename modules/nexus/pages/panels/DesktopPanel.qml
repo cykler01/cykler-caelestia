@@ -8,16 +8,13 @@ import Caelestia.Config
 import Caelestia.I18n
 import qs.components
 import qs.components.controls
-import qs.components.filedialog
 import qs.services
-import qs.utils
 import qs.modules.nexus.common
 
 PageBase {
     id: root
 
     readonly property var iconsConfig: Config.background.desktopIcons
-    readonly property var widgetsConfig: Config.background.desktopWidgets
 
     readonly property list<MenuItem> positionItems: [
         MenuItem {
@@ -45,20 +42,6 @@ PageBase {
             icon: "south_east"
         }
     ]
-
-    readonly property var widgetNames: ({
-            calendar: Tr.tr("Calendar"),
-            weather: Tr.tr("Weather"),
-            pomodoro: Tr.tr("Focus timer"),
-            resources: Tr.tr("System resources"),
-            media: Tr.tr("Now playing"),
-            battery: Tr.tr("Battery"),
-            fetch: Tr.tr("Fetch"),
-            visualiser: Tr.tr("Visualiser"),
-            sticky: Tr.tr("Sticky note"),
-            photo: Tr.tr("Pictures"),
-            github: Tr.tr("GitHub")
-        })
 
     function positionItem(value: string): MenuItem {
         return positionItems.find(i => i.value === value) ?? positionItems[0];
@@ -228,151 +211,6 @@ PageBase {
                     GlobalConfig.background.desktopIcons.apps = apps;
                 }
             }
-        }
-
-        // ---------- Widgets ----------
-        SectionHeader {
-            text: Tr.tr("Widgets")
-        }
-
-        ToggleRow {
-            first: true
-            text: Tr.trCtx("Enabled", "toggle label")
-            subtext: Tr.tr("Show widget cards on the desktop")
-            checked: root.widgetsConfig.enabled
-            onToggled: GlobalConfig.background.desktopWidgets.enabled = checked
-        }
-
-        ToggleRow {
-            text: Tr.tr("Hide when windows are open")
-            subtext: Tr.tr("Fade the widget cards out while the workspace has windows on it")
-            checked: root.widgetsConfig.hideWithWindows
-            onToggled: GlobalConfig.background.desktopWidgets.hideWithWindows = checked
-        }
-
-        ToggleRow {
-            text: Tr.tr("Blur background")
-            subtext: Tr.tr("Blur the wallpaper behind each card")
-            checked: root.widgetsConfig.blur
-            onToggled: GlobalConfig.background.desktopWidgets.blur = checked
-        }
-
-        StepperRow {
-            last: true
-            label: Tr.tr("Card opacity")
-            subtext: Tr.tr("How opaque the card backgrounds are (%)")
-            value: Math.round(root.widgetsConfig.opacity * 100)
-            from: 10
-            to: 100
-            stepSize: 5
-            onMoved: v => GlobalConfig.background.desktopWidgets.opacity = Math.round(v) / 100
-        }
-
-        SectionHeader {
-            text: Tr.tr("Widget list")
-        }
-
-        ListEditor {
-            function labelFor(item: var): string {
-                return root.widgetNames[item.id] ?? item.id;
-            }
-
-            function toggledFor(item: var): bool {
-                return item.enabled;
-            }
-
-            z: 1
-            first: true
-            values: root.widgetsConfig.entries.values
-            onItemMoved: (from, to) => GlobalConfig.background.desktopWidgets.entries.move(from, to)
-            onItemRemoved: index => GlobalConfig.background.desktopWidgets.entries.remove(index)
-            onItemToggled: (index, checked) => GlobalConfig.background.desktopWidgets.entries.at(index).enabled = checked
-        }
-
-        DialogSelectButton {
-            rootParent: root.flickable
-            icon: "add"
-            label: Tr.tr("Add widget")
-            header: Tr.tr("Add a widget")
-            acceptLabel: Tr.trCtx("Add", "button")
-
-            // Only widgets that aren't in the list already
-            model: Object.keys(root.widgetNames).filter(id => !root.widgetsConfig.entries.values.some(e => e.id === id)).map(id => ({
-                        id: id,
-                        label: root.widgetNames[id]
-                    }))
-
-            onAccepted: {
-                if (!selectedItem)
-                    return;
-                GlobalConfig.background.desktopWidgets.entries.insert({
-                    id: selectedItem,
-                    enabled: true
-                });
-            }
-        }
-
-        SectionHeader {
-            text: Tr.tr("Widget settings")
-        }
-
-        ConnectedRect {
-            first: true
-            last: false
-            // Without this the row keeps its (zero) implicit width inside the page's ColumnLayout
-            Layout.fillWidth: true
-            implicitHeight: folderRow.implicitHeight + Tokens.padding.medium * 2
-
-            RowLayout {
-                id: folderRow
-
-                anchors.fill: parent
-                anchors.margins: Tokens.padding.medium
-                anchors.leftMargin: Tokens.padding.largeIncreased
-                anchors.rightMargin: Tokens.padding.medium
-                spacing: Tokens.spacing.medium
-
-                ColumnLayout {
-                    Layout.fillWidth: true
-                    spacing: 2
-
-                    StyledText {
-                        Layout.fillWidth: true
-                        text: Tr.tr("Folder")
-                        font: Tokens.font.body.small
-                    }
-
-                    StyledText {
-                        Layout.fillWidth: true
-                        text: Paths.shortenHome(root.widgetsConfig.photoDir)
-                        color: Colours.palette.m3outline
-                        font: Tokens.font.label.small
-                        elide: Text.ElideMiddle
-                    }
-                }
-
-                IconButton {
-                    icon: "folder_open"
-                    type: IconButton.Text
-                    onClicked: folderDialog.open()
-                }
-            }
-
-            FileDialog {
-                id: folderDialog
-
-                title: Tr.tr("Select a folder")
-                folderMode: true
-                onAccepted: path => GlobalConfig.background.desktopWidgets.photoDir = path
-            }
-        }
-
-        TextFieldRow {
-            last: true
-            label: Tr.tr("GitHub name")
-            subtext: Tr.tr("Shown on the contributions widget")
-            value: root.widgetsConfig.githubUser
-            onEditingFinished: value => GlobalConfig.background.desktopWidgets.githubUser = value
         }
     }
 }

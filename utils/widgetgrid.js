@@ -6,13 +6,15 @@
 const unit = 40;
 // Space left between a card and the edge of its footprint, so neighbours never touch
 const gap = 8;
-// Every card is the same width; the height depends on what it shows
+// Every card is the same width; the height depends on what it shows, and comes from WidgetCatalog.qml
 const cardCells = 8;
 // Distance from the screen edge, and between the default columns, in cells
 const margin = 2;
 
+// Fallback heights, for entries that arrive without one (the widget's own height wins when it is given)
 const heights = {
     calendar: 8,
+    clock: 4,
     weather: 7,
     pomodoro: 5,
     resources: 5,
@@ -22,7 +24,8 @@ const heights = {
     visualiser: 5,
     sticky: 6,
     photo: 7,
-    github: 4
+    github: 4,
+    todo: 5
 };
 
 function heightOf(id) {
@@ -34,13 +37,17 @@ function heightOf(id) {
 // their cell (kept on screen). Any other widget, and any placed one whose cell another has taken since (say it was
 // turned off, something moved in, and it was turned back on), flows into the first free space in `columns` columns
 // from the `position` corner, so no two widgets ever overlap.
-function place(entries, gridCols, gridRows, columns, position) {
-    const out = entries.map(e => {
+function place(entries, gridCols, gridRows, columns, position, heights) {
+    const out = entries.map((e, i) => {
         const placed = e.col >= 0 && e.row >= 0;
-        const h = heightOf(e.id);
+        // The card's variant decides how many cells it takes; the widget itself is the fallback
+        const h = heights?.[i] > 0 ? heights[i] : heightOf(e.id);
         const col = e.right ? gridCols - cardCells - e.col : e.col;
         return {
             id: e.id,
+            type: e.type ?? "",
+            // Where this placement's entry sits in the entry list, which is how cards and drags are keyed
+            index: i,
             enabled: e.enabled,
             placed: placed,
             w: cardCells,

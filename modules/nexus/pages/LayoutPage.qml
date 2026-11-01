@@ -175,7 +175,7 @@ PageBase {
         case "toasts":
             return `${edges[GlobalConfig.utilities.toasts.edge] ?? "bottom"}-${["left", "right"][GlobalConfig.utilities.toasts.side] ?? "right"}`;
         case "widgets":
-            return Config.background.desktopWidgets.position;
+            return GlobalConfig.background.desktopWidgets.position;
         case "icons":
             return Config.background.desktopIcons.position;
         }

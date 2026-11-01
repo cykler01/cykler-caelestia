@@ -239,14 +239,14 @@ Variants {
         Loader {
             id: widgetsLoader
 
-            readonly property real reveal: insets.revealFor(Config.background.desktopWidgets.hideWithWindows)
+            readonly property real reveal: insets.revealFor(GlobalConfig.background.desktopWidgets.hideWithWindows)
             readonly property var screenState: ShellState.forScreen(win.modelData)
             // Move mode holds the cards on screen, whether or not they would normally be faded out
             readonly property bool rearranging: screenState?.widgetEdit ?? false
 
             // Unloaded outright while hidden behind windows: the cards keep timers and system readings running,
             // and with windows open (most of the time) nobody can see them
-            active: Config.background.desktopWidgets.enabled && (rearranging || reveal > 0)
+            active: GlobalConfig.background.desktopWidgets.enabled && (rearranging || reveal > 0)
             visible: rearranging || reveal > 0
             opacity: rearranging ? 1 : reveal
             scale: 0.97 + 0.03 * reveal

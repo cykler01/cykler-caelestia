@@ -66,6 +66,9 @@ class DesktopWidgetEntry : public settings::ObjectNode {
     CONFIG_NODE(DesktopWidgetEntry, settings::ObjectNode)
 
     CONFIG_PROPERTY(QString, id, {})
+    // Which variant of that widget this entry shows, from utils/WidgetCatalog.qml ("month", "compact",
+    // ...); empty falls back to the kind's first variant
+    CONFIG_PROPERTY(QString, type, {})
     CONFIG_PROPERTY(bool, enabled, true)
     // Cell on the desktop grid, counted from the top. -1 until the widget is placed by hand, when it flows into the
     // default layout
@@ -84,22 +87,9 @@ class DesktopWidgets : public settings::ObjectNode {
     CONFIG_PROPERTY(QString, position, u"top-right"_s)
     // Number of columns in the widget grid; the widgets flow into it in the order given below
     CONFIG_PROPERTY(int, columns, 2)
-    // Which widgets show and where (ids: calendar, weather, pomodoro, resources, media, battery, fetch, visualiser,
-    // sticky, photo, github)
-    CONFIG_LIST(DesktopWidgetList, entries,
-        DEFAULT_ARG({
-            LIST_ENTRY(calendar, true),
-            LIST_ENTRY(weather, true),
-            LIST_ENTRY(pomodoro, true),
-            LIST_ENTRY(resources, true),
-            LIST_ENTRY(media, true),
-            LIST_ENTRY(battery, true),
-            LIST_ENTRY(fetch, true),
-            LIST_ENTRY(visualiser, true),
-            LIST_ENTRY(sticky, true),
-            LIST_ENTRY(photo, true),
-            LIST_ENTRY(github, true),
-        }))
+    // Which widgets show and where. Empty by default: widgets are picked one at a time, kind first and then
+    // variant, from Settings › Panels › Widgets › Add widget. Kinds are listed in utils/WidgetCatalog.qml
+    CONFIG_LIST(DesktopWidgetList, entries, DEFAULT_ARG({}))
     CONFIG_PROPERTY(bool, hideWithWindows, true)
     // GitHub user whose contributions the contributions card shows
     CONFIG_PROPERTY(QString, githubUser, {})

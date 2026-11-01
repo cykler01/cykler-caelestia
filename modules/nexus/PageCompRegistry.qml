@@ -123,6 +123,16 @@ QtObject {
                 Component {
                     LockWidgetsPanel {}
                 }
+
+                // Desktop widget cards sub-page
+                Component {
+                    WidgetsPanel {}
+                }
+
+                // Pick a widget and a variant to add sub-page
+                Component {
+                    AddWidgetPanel {}
+                }
             }
         },
         Component {

@@ -16,6 +16,7 @@ import qs.components.effects
 import qs.services
 import qs.utils
 import qs.modules.dashboard.media
+import qs.modules.launcher.services
 
 // Glass widget cards laid out on a snapping grid that covers the desktop. Which cards show and the cell each one
 // sits in come from background.desktopWidgets; cards that haven't been placed by hand flow in from a corner.
@@ -32,8 +33,9 @@ Item {
     // shell supports, so there is nothing to probe for
     property int packageCount
 
-    // Which card is being dragged in move mode, where the pointer is within it, and where it would land
-    property string heldId: ""
+    // Which card is being dragged in move mode (the entry it shows), where the pointer is within it, and where it
+    // would land. Keyed by entry rather than by kind, since the same widget can be on the desktop twice
+    property int heldIndex: -1
     property point pointer
     property point grab
     property int dropCol: -1
@@ -45,83 +47,68 @@ Item {
     // modules/background/Background.qml), since there is nothing else out on the desktop to type into
     property bool wantsKeyboard
 
-    readonly property var widgetConfig: Config.background.desktopWidgets
+    readonly property var widgetConfig: GlobalConfig.background.desktopWidgets
     readonly property int gridCols: Math.floor(width / WidgetGrid.unit)
     readonly property int gridRows: Math.floor(height / WidgetGrid.unit)
     // Every node's enabled/col/row is read here so the layout is worked out again whenever one changes
     readonly property var placements: {
         const entries = widgetConfig.entries.values;
         for (const e of entries)
-            void [e.enabled, e.col, e.row, e.right];
-        return WidgetGrid.place(entries, gridCols, gridRows, widgetConfig.columns, widgetConfig.position);
+            void [e.enabled, e.col, e.row, e.right, e.type];
+        // The variant decides how many squares the card takes. The heights go in alongside the entries rather than
+        // into copies of them: entries.values hands out the config nodes themselves, and copying those into plain
+        // objects loses every property the layout needs
+        const heights = entries.map(e => WidgetCatalog.heightFor(e.id, e.type));
+        return WidgetGrid.place(entries, gridCols, gridRows, widgetConfig.columns, widgetConfig.position, heights);
     }
 
-    function slotFor(id: string): var {
-        return placements.find(p => p.id === id) ?? ({
+    // The cards on screen, in entry order. Derived rather than kept in step by hand: adding, removing or turning
+    // a widget off is one config write, and this simply reads the result. Every card looks its own cell up in
+    // `placements`, so rebuilding the list never hands a card the wrong widget
+    readonly property var shownEntries: placements.filter(p => p.enabled).map(p => ({
+            widgetId: p.id,
+            entryIndex: p.index
+        }))
+
+    function slotFor(index: int): var {
+        return placements[index] ?? ({
                 col: 0,
                 row: 0,
                 w: WidgetGrid.cardCells,
-                h: 5
+                h: 5,
+                type: "",
+                index: -1
             });
     }
 
-    // Brings the list of cards in line with the widgets that are on: a card that is turned off is removed, one that
-    // is turned on is added, and the rest are left alone. Every card looks up its own cell in `placements`, so
-    // moving one never recreates any. (A list rebuilt from scratch on each change hands cards to the wrong widget
-    // when one in the middle disappears.)
-    function syncShown(): void {
-        const want = placements.filter(p => p.enabled).map(p => p.id);
-        for (let i = shownModel.count - 1; i >= 0; i--) {
-            if (!want.includes(shownModel.get(i).widgetId))
-                shownModel.remove(i);
-        }
-        want.forEach((id, i) => {
-            if (i < shownModel.count && shownModel.get(i).widgetId === id)
-                return;
-            let from = -1;
-            for (let k = i + 1; k < shownModel.count; k++) {
-                if (shownModel.get(k).widgetId === id) {
-                    from = k;
-                    break;
-                }
-            }
-            if (from >= 0)
-                shownModel.move(from, i, 1);
-            else
-                shownModel.insert(i, {
-                    widgetId: id
-                });
-        });
-    }
-
-    function placementOf(id: string): var {
-        return placements.find(p => p.id === id) ?? null;
+    function placementOf(index: int): var {
+        return placements[index] ?? null;
     }
 
     // Where the held card sits relative to the pointer, so it doesn't jump under it
-    function beginDrag(id: string, atX: real, atY: real): void {
-        const p = placementOf(id);
+    function beginDrag(index: int, atX: real, atY: real): void {
+        const p = placementOf(index);
         if (!p)
             return;
 
-        heldId = id;
+        heldIndex = index;
         grab = Qt.point(atX - p.col * WidgetGrid.unit, atY - p.row * WidgetGrid.unit);
         pointer = Qt.point(atX, atY);
         updateDrop();
     }
 
     function updateDrop(): void {
-        const p = placementOf(heldId);
+        const p = placementOf(heldIndex);
         if (!p)
             return;
 
         dropCol = Math.max(0, Math.min(gridCols - p.w, Math.round((pointer.x - grab.x) / WidgetGrid.unit)));
         dropRow = Math.max(0, Math.min(gridRows - p.h, Math.round((pointer.y - grab.y) / WidgetGrid.unit)));
-        dropValid = !WidgetGrid.collides(placements, placements.findIndex(q => q.id === heldId), dropCol, dropRow, p.w, p.h);
+        dropValid = !WidgetGrid.collides(placements, heldIndex, dropCol, dropRow, p.w, p.h);
     }
 
     function dragTo(atX: real, atY: real): void {
-        if (heldId === "")
+        if (heldIndex < 0)
             return;
 
         pointer = Qt.point(atX, atY);
@@ -131,34 +118,34 @@ Item {
     // Drops the card, pinning every other card where it is now so nothing shifts once the layout
     // stops flowing into place
     function endDrag(): void {
-        const id = heldId;
-        if (id === "")
+        const index = heldIndex;
+        if (index < 0)
             return;
 
         const col = dropCol;
         const row = dropRow;
         const valid = dropValid;
-        heldId = "";
+        heldIndex = -1;
 
         if (!valid)
             return;
 
         const cells = placements.map(p => ({
-                    id: p.id,
+                    index: p.index,
                     enabled: p.enabled,
                     w: p.w,
                     col: p.col,
                     row: p.row
                 }));
-        const moved = cells.find(c => c.id === id);
+        const moved = cells.find(c => c.index === index);
         if (moved) {
             moved.col = col;
             moved.row = row;
         }
 
         const entries = widgetConfig.entries;
-        cells.forEach((cell, i) => {
-            const entry = entries.at(i);
+        cells.forEach(cell => {
+            const entry = entries.at(cell.index);
             if (!cell.enabled || !entry)
                 return;
 
@@ -179,8 +166,6 @@ Item {
             screenState.widgetEdit = false;
     }
 
-    onPlacementsChanged: syncShown()
-    Component.onCompleted: syncShown()
 
     Process {
         running: true
@@ -191,10 +176,6 @@ Item {
         }
     }
 
-    ListModel {
-        id: shownModel
-    }
-
     LoggingCategory {
         id: lc
 
@@ -203,7 +184,7 @@ Item {
     }
 
     Repeater {
-        model: shownModel
+        model: root.shownEntries
 
         DelegateChooser {
             role: "widgetId"
@@ -211,6 +192,10 @@ Item {
             DelegateChoice {
                 roleValue: "calendar"
                 delegate: CalendarCard {}
+            }
+            DelegateChoice {
+                roleValue: "clock"
+                delegate: ClockCard {}
             }
             DelegateChoice {
                 roleValue: "weather"
@@ -252,6 +237,10 @@ Item {
                 roleValue: "github"
                 delegate: ContributionsCard {}
             }
+            DelegateChoice {
+                roleValue: "todo"
+                delegate: TodoCard {}
+            }
         }
     }
 
@@ -288,7 +277,7 @@ Item {
 
     // Where the held card would land: tinted when it fits, red when it would sit on another card
     StyledRect {
-        readonly property var held: root.heldId !== "" ? root.placementOf(root.heldId) : null
+        readonly property var held: root.heldIndex >= 0 ? root.placementOf(root.heldIndex) : null
 
         z: 2
         visible: held !== null
@@ -322,7 +311,7 @@ Item {
 
                 onPressed: mouse => {
                     const p = mapToItem(root, mouse.x, mouse.y);
-                    root.beginDrag(parent.modelData.id, p.x, p.y);
+                    root.beginDrag(parent.modelData.index, p.x, p.y);
                 }
 
                 onPositionChanged: mouse => {
@@ -380,9 +369,12 @@ Item {
         // Handed to every delegate by the Repeater/DelegateChooser
         required property string widgetId
         required property int index
+        // Which entry this card shows: the same kind can be added more than once, each in its own variant
+        required property int entryIndex
 
-        readonly property var slot: root.slotFor(widgetId)
-        readonly property bool held: root.heldId === widgetId
+        readonly property var slot: root.slotFor(entryIndex)
+        readonly property string variant: slot?.type ?? ""
+        readonly property bool held: root.heldIndex === entryIndex
 
         wallpaper: root.wallpaper
         z: held ? 4 : 0
@@ -394,14 +386,17 @@ Item {
         height: Math.max(slot.h, Math.ceil((implicitHeight + WidgetGrid.gap) / WidgetGrid.unit)) * WidgetGrid.unit - WidgetGrid.gap
     }
 
-    // --- Calendar: month grid ---
+    // --- Calendar: a month grid, or a strip of the week we are in ---
     component CalendarCard: GridCard {
         id: cal
 
         readonly property date now: Time.date
+        readonly property bool weekView: cal.variant === "week"
+
+        // Monday first, so a week always starts on the day most calendars here do
         readonly property var cells: {
             const first = new Date(now.getFullYear(), now.getMonth(), 1);
-            const offset = (first.getDay() + 6) % 7; // Monday first
+            const offset = (first.getDay() + 6) % 7;
             return Array.from({
                 length: 42
             }, (_, i) => {
@@ -414,11 +409,29 @@ Item {
             });
         }
 
-        title: Time.format("MMMM yyyy")
-        icon: "calendar_month"
+        readonly property var week: {
+            const day = new Date(cal.now.getFullYear(), cal.now.getMonth(), cal.now.getDate());
+            const offset = (day.getDay() + 6) % 7;
+            return Array.from({
+                length: 7
+            }, (_, i) => {
+                const d = new Date(day.getFullYear(), day.getMonth(), day.getDate() - offset + i);
+                return {
+                    day: d.getDate(),
+                    weekday: Qt.locale().dayName(d.getDay(), Locale.NarrowFormat),
+                    today: d.toDateString() === cal.now.toDateString(),
+                    weekend: d.getDay() === 0 || d.getDay() === 6
+                };
+            });
+        }
 
+        title: cal.weekView ? Tr.tr("This week") : Time.format("MMMM yyyy")
+        icon: cal.weekView ? "calendar_view_week" : "calendar_month"
+
+        // Month: the whole grid
         GridLayout {
             Layout.fillWidth: true
+            visible: !cal.weekView
             columns: 7
             rowSpacing: 2
             columnSpacing: 0
@@ -467,6 +480,52 @@ Item {
                         font: Tokens.font.label.medium
                         color: cell.modelData.today ? Colours.palette.m3onPrimary : Colours.palette.m3onSurface
                         opacity: cell.modelData.inMonth ? 1 : 0.3
+                    }
+                }
+            }
+        }
+
+        // Week: seven days, today picked out
+        RowLayout {
+            Layout.fillWidth: true
+            Layout.fillHeight: true
+            visible: cal.weekView
+            spacing: 0
+            uniformCellSizes: true
+
+            Repeater {
+                model: cal.week
+
+                ColumnLayout {
+                    id: weekDay
+
+                    required property var modelData
+
+                    Layout.fillWidth: true
+                    spacing: Tokens.spacing.extraSmall
+
+                    StyledText {
+                        Layout.fillWidth: true
+                        horizontalAlignment: Text.AlignHCenter
+                        text: weekDay.modelData.weekday.toUpperCase()
+                        color: weekDay.modelData.today ? Colours.palette.m3primary : Colours.palette.m3outline
+                        font: Tokens.font.label.small
+                    }
+
+                    StyledRect {
+                        Layout.alignment: Qt.AlignHCenter
+                        implicitWidth: 34
+                        implicitHeight: 34
+                        radius: Tokens.rounding.full
+                        color: weekDay.modelData.today ? Colours.palette.m3primary : "transparent"
+
+                        StyledText {
+                            anchors.centerIn: parent
+                            text: weekDay.modelData.day
+                            color: weekDay.modelData.today ? Colours.palette.m3onPrimary : Colours.palette.m3onSurface
+                            font: Tokens.font.title.medium
+                            opacity: weekDay.modelData.weekend && !weekDay.modelData.today ? 0.6 : 1
+                        }
                     }
                 }
             }
@@ -603,9 +662,27 @@ Item {
         }
     }
 
-    // --- System resources ---
+    // --- System resources: rings, bars or a line graph, showing all three readings or just CPU and RAM ---
     component SystemCard: GridCard {
         id: sys
+
+        readonly property string style: sys.variant.startsWith("bars") ? "bars" : sys.variant.startsWith("line") ? "line" : "rings"
+        readonly property bool basic: sys.variant.endsWith("basic")
+
+        // The readings show a sample taken every few seconds rather than following the live value: a ring that
+        // restarts an animation on every tick keeps the whole desktop redrawing, and that was the shell's
+        // biggest single power cost while idle. The histories are what the line graph draws.
+        property real cpu
+        property real memory
+        property real disk
+        property var cpuHistory: []
+        property var ramHistory: []
+        property var diskHistory: []
+
+        function push(history: var, value: real): var {
+            const next = history.concat([Math.max(0, Math.min(1, value))]);
+            return next.length > 24 ? next.slice(next.length - 24) : next;
+        }
 
         title: Tr.tr("System")
         icon: "monitoring"
@@ -622,15 +699,6 @@ Item {
             service: Storage
         }
 
-        // The rings show a reading taken every few seconds rather than following the live value: a ring that
-        // restarts an animation on every tick keeps the whole desktop redrawing, and that was the shell's
-        // biggest single power cost while idle.
-        property real cpu
-
-        property real memory
-
-        property real disk
-
         Timer {
             interval: 3000 * PowerSaving.pollSlowdown
             running: true
@@ -640,12 +708,16 @@ Item {
                 sys.cpu = Cpu.percentage;
                 sys.memory = Memory.percentage;
                 sys.disk = Storage.percentage;
+                sys.cpuHistory = sys.push(sys.cpuHistory, sys.cpu);
+                sys.ramHistory = sys.push(sys.ramHistory, sys.memory);
+                sys.diskHistory = sys.push(sys.diskHistory, sys.disk);
             }
         }
 
         RowLayout {
             Layout.fillWidth: true
             Layout.maximumWidth: Number.POSITIVE_INFINITY
+            visible: sys.style === "rings"
             spacing: 0
             // Three equal columns spread across the card, rather than bunched at the left
             uniformCellSizes: true
@@ -665,11 +737,69 @@ Item {
             }
 
             Meter {
+                visible: !sys.basic
                 label: Tr.tr("Disk")
                 icon: "hard_disk"
                 value: sys.disk
                 colour: Colours.palette.m3secondary
             }
+        }
+
+        RowLayout {
+            Layout.fillWidth: true
+            Layout.fillHeight: true
+            visible: sys.style === "bars"
+            spacing: Tokens.spacing.medium
+            uniformCellSizes: true
+
+            BarMeter {
+                label: "CPU"
+                value: sys.cpu
+                colour: Colours.palette.m3primary
+            }
+
+            BarMeter {
+                label: "RAM"
+                value: sys.memory
+                colour: Colours.palette.m3tertiary
+            }
+
+            BarMeter {
+                visible: !sys.basic
+                label: Tr.tr("Disk")
+                value: sys.disk
+                colour: Colours.palette.m3secondary
+            }
+        }
+
+        ResourceLines {
+            visible: sys.style === "line"
+            series: sys.basic ? [{
+                    label: "CPU",
+                    values: sys.cpuHistory,
+                    value: sys.cpu,
+                    colour: Colours.palette.m3primary
+                }, {
+                    label: "RAM",
+                    values: sys.ramHistory,
+                    value: sys.memory,
+                    colour: Colours.palette.m3tertiary
+                }] : [{
+                    label: "CPU",
+                    values: sys.cpuHistory,
+                    value: sys.cpu,
+                    colour: Colours.palette.m3primary
+                }, {
+                    label: "RAM",
+                    values: sys.ramHistory,
+                    value: sys.memory,
+                    colour: Colours.palette.m3tertiary
+                }, {
+                    label: Tr.tr("Disk"),
+                    values: sys.diskHistory,
+                    value: sys.disk,
+                    colour: Colours.palette.m3secondary
+                }]
         }
     }
 
@@ -956,6 +1086,8 @@ Item {
     component FetchCard: GridCard {
         id: fetch
 
+        readonly property bool compact: fetch.variant === "compact"
+
         // Only the lines with something to say; the labels are padded to one width below so the
         // values still line up whatever is missing
         readonly property var rows: {
@@ -997,7 +1129,9 @@ Item {
                     value: Units.formatKibUsage(Memory.used, Memory.total)
                 }
             ];
-            return list.filter(r => r.value);
+            // Compact keeps the four lines that say what the machine is; the rest is detail
+            const essentials = [Tr.tr("OS"), Tr.tr("Kernel"), Tr.tr("Uptime"), Tr.tr("Memory")];
+            return list.filter(r => r.value && (!fetch.compact || essentials.includes(r.label)));
         }
         // Monospace, so padding the labels to the longest of them lines the values up
         readonly property int labelChars: fetch.rows.reduce((n, r) => Math.max(n, r.label.length), 0)
@@ -1088,6 +1222,7 @@ Item {
             RowLayout {
                 Layout.fillWidth: true
                 Layout.topMargin: Tokens.spacing.small
+                visible: !fetch.compact
                 spacing: Tokens.spacing.extraSmall
 
                 Repeater {
@@ -1432,7 +1567,7 @@ Item {
         }
     }
 
-    // --- Contributions: this week's GitHub activity, a square a day ---
+    // --- Contributions: GitHub activity as squares or a line graph, over the last week or month ---
     component ContributionsCard: GridCard {
         id: gh
 
@@ -1442,13 +1577,19 @@ Item {
         // Letters, digits and hyphens only: the name is part of a URL, so nothing else gets through
         readonly property bool userValid: /^[A-Za-z0-9-]+$/.test(gh.user)
 
-        // Sunday through Saturday of the week we are in: [{ date, count, level }]
-        property var week: []
+        readonly property bool monthView: gh.variant.startsWith("month")
+        readonly property bool lineView: gh.variant.endsWith("line")
+
+        // The last 30 days, oldest first, so today is the last square. The week is the tail of it, which is
+        // what lets the variant be switched without asking GitHub again
+        property var days: []
         property int total: 0
         // Index of the square being hovered, -1 for none
         property int hovered: -1
         // Whatever went wrong, shown on the card: a failure should never be a blank space
         property string error
+
+        readonly property var shown: gh.monthView ? gh.days : gh.days.slice(-7)
 
         // What the card says instead of the squares
         readonly property string message: {
@@ -1456,14 +1597,14 @@ Item {
                 return Tr.tr("Set a GitHub name in Settings");
             if (!gh.userValid)
                 return Tr.tr("That is not a valid GitHub name");
-            if (gh.week.length > 0)
+            if (gh.days.length > 0)
                 return "";
             return gh.error !== "" ? gh.error : Tr.tr("Loading...");
         }
 
         // The square under the pointer as a readable day, or null
         readonly property var hoveredDay: {
-            const day = gh.hovered >= 0 && gh.hovered < gh.week.length ? gh.week[gh.hovered] : null;
+            const day = gh.hovered >= 0 && gh.hovered < gh.shown.length ? gh.shown[gh.hovered] : null;
             if (!day)
                 return null;
 
@@ -1473,6 +1614,9 @@ Item {
             };
         }
 
+        // The busiest day's count, so the line graph uses the card's height rather than a fixed scale
+        readonly property int peak: gh.shown.reduce((n, d) => Math.max(n, d.count), 0)
+
         function levelColour(level: int): color {
             if (level <= 0)
                 return Qt.alpha(Colours.palette.m3outlineVariant, 0.35);
@@ -1480,16 +1624,15 @@ Item {
             return Qt.alpha(Colours.palette.m3primary, 0.3 + 0.175 * Math.min(4, level));
         }
 
-        // The seven days up to and including today, oldest first, so today is the rightmost square.
-        // Worked out when the data arrives rather than once at build time, so the card doesn't keep
-        // showing the week it was created in
-        function weekDates(): var {
+        // The days up to and including today, oldest first. Worked out when the data arrives rather than once at
+        // build time, so the card doesn't keep showing the month it was created in
+        function monthDates(): var {
             const now = new Date();
 
             return Array.from({
-                length: 7
+                length: 30
             }, (_, i) => {
-                const day = new Date(now.getFullYear(), now.getMonth(), now.getDate() - (6 - i));
+                const day = new Date(now.getFullYear(), now.getMonth(), now.getDate() - (29 - i));
                 const month = String(day.getMonth() + 1).padStart(2, "0");
                 const date = String(day.getDate()).padStart(2, "0");
                 return `${day.getFullYear()}-${month}-${date}`;
@@ -1497,9 +1640,9 @@ Item {
         }
 
         // Started by hand rather than with a `running` binding, so a name change re-fetches instead of
-        // leaving the previous name's week on the card
+        // leaving the previous name's days on the card
         function reload(): void {
-            gh.week = [];
+            gh.days = [];
             gh.total = 0;
             gh.hovered = -1;
             gh.error = "";
@@ -1533,17 +1676,17 @@ Item {
             for (const day of list)
                 byDate[day.date] = day;
 
-            gh.week = weekDates().map(date => ({
+            gh.days = monthDates().map(date => ({
                 date: date,
                 count: byDate[date]?.count ?? 0,
                 level: byDate[date]?.level ?? 0
             }));
-            gh.total = gh.week.reduce((sum, day) => sum + day.count, 0);
+            gh.total = gh.days.slice(-(gh.monthView ? 30 : 7)).reduce((sum, day) => sum + day.count, 0);
             gh.error = "";
         }
 
         title: Tr.tr("GitHub")
-        icon: "calendar_view_week"
+        icon: gh.monthView ? "calendar_view_month" : "calendar_view_week"
 
         Component.onCompleted: gh.reload()
         onUserChanged: gh.reload()
@@ -1559,7 +1702,7 @@ Item {
             stderr: StdioCollector {
                 onStreamFinished: {
                     const complaint = text.trim();
-                    if (complaint !== "" && gh.week.length === 0)
+                    if (complaint !== "" && gh.days.length === 0)
                         gh.error = complaint;
                 }
             }
@@ -1569,8 +1712,8 @@ Item {
             }
         }
 
-        // The week turns over at midnight, so the squares are read again rather than left on the
-        // week the card was built in
+        // The day turns over at midnight, so the days are read again rather than left on the
+        // month the card was built in
         Timer {
             interval: 1800000
             repeat: true
@@ -1587,16 +1730,16 @@ Item {
             font: Tokens.font.label.medium
         }
 
+        // The week: seven squares sharing the width, each as tall as it is wide
         Item {
-            // Seven squares share the width, each as tall as it is wide
             readonly property real cell: Math.max(2, (width - 6 * gh.gap) / 7)
 
             Layout.fillWidth: true
             implicitHeight: cell
-            visible: gh.week.length > 0
+            visible: gh.days.length > 0 && !gh.monthView && !gh.lineView
 
             Repeater {
-                model: gh.week
+                model: gh.shown
 
                 StyledRect {
                     required property var modelData
@@ -1625,14 +1768,505 @@ Item {
             }
         }
 
-        StyledText {
+        // The month: thirty squares, ten to a row, so each one stays square rather than becoming a sliver
+        GridLayout {
             Layout.fillWidth: true
-            visible: gh.week.length > 0
+            visible: gh.days.length > 0 && gh.monthView && !gh.lineView
+            columns: 10
+            rowSpacing: gh.gap
+            columnSpacing: gh.gap
+
+            Repeater {
+                model: gh.shown
+
+                StyledRect {
+                    required property var modelData
+                    required property int index
+
+                    Layout.fillWidth: true
+                    Layout.preferredHeight: width
+                    implicitHeight: 10
+                    border.width: gh.hovered === index ? 1 : 0
+                    border.color: Colours.palette.m3primary
+                    radius: Math.min(Tokens.rounding.medium, 4)
+                    color: gh.levelColour(modelData.level)
+
+                    HoverHandler {
+                        onHoveredChanged: {
+                            if (hovered)
+                                gh.hovered = index;
+                            else if (gh.hovered === index)
+                                gh.hovered = -1;
+                        }
+                    }
+                }
+            }
+        }
+
+        // The line graph: the same days, against the busiest one on the card
+        Canvas {
+            id: ghLine
+
+            Layout.fillWidth: true
+            Layout.fillHeight: true
+            Layout.preferredHeight: 40
+            visible: gh.days.length > 0 && gh.lineView
+
+            onPaint: {
+                const ctx = getContext("2d");
+                ctx.clearRect(0, 0, width, height);
+                if (gh.shown.length < 2 || gh.peak <= 0)
+                    return;
+
+                const step = width / (gh.shown.length - 1);
+                const top = 2;
+                const bottom = height - 12;
+
+                ctx.beginPath();
+                ctx.lineWidth = 2;
+                ctx.lineJoin = "round";
+                ctx.lineCap = "round";
+                ctx.strokeStyle = Colours.palette.m3primary;
+                gh.shown.forEach((day, i) => {
+                    const x = i * step;
+                    const y = bottom - (day.count / gh.peak) * (bottom - top);
+                    if (i === 0)
+                        ctx.moveTo(x, y);
+                    else
+                        ctx.lineTo(x, y);
+                });
+                ctx.stroke();
+
+                // A dot on today, so the end of the line is obvious
+                const last = gh.shown[gh.shown.length - 1];
+                ctx.fillStyle = Colours.palette.m3primary;
+                ctx.beginPath();
+                ctx.arc(width, bottom - (last.count / gh.peak) * (bottom - top), 3, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+            onWidthChanged: requestPaint()
+            onHeightChanged: requestPaint()
+            onVisibleChanged: {
+                if (visible)
+                    requestPaint();
+            }
+
+            Connections {
+                function onShownChanged(): void {
+                    ghLine.requestPaint();
+                }
+                function onPeakChanged(): void {
+                    ghLine.requestPaint();
+                }
+
+                target: gh
+            }
+        }
+
+        StyledText {
+            // The total, or the day under the pointer while one is hovered
+            readonly property int total: gh.shown.reduce((sum, day) => sum + day.count, 0)
+
+            Layout.fillWidth: true
+            visible: gh.days.length > 0
             horizontalAlignment: Text.AlignRight
-            // The week's total, or the day under the pointer while one is hovered
-            text: gh.hoveredDay ? gh.hoveredDay.date + " · " + (gh.hoveredDay.count === 1 ? Tr.tr("1 commit") : Tr.tr("%1 commits").arg(gh.hoveredDay.count)) : Tr.tr("%1 this week").arg(gh.total)
+            text: gh.hoveredDay ? gh.hoveredDay.date + " · " + (gh.hoveredDay.count === 1 ? Tr.tr("1 commit") : Tr.tr("%1 commits").arg(gh.hoveredDay.count)) : gh.monthView ? Tr.tr("%1 in 30 days").arg(total) : Tr.tr("%1 this week").arg(total)
             color: gh.hoveredDay ? Colours.palette.m3onSurface : Colours.palette.m3onSurfaceVariant
             font: Tokens.font.label.small
+        }
+    }
+
+    // --- Clock: digital, time only, or an analogue face ---
+    component ClockCard: GridCard {
+        id: clock
+
+        // Its own tick, rather than Time.date: the face has a second hand
+        property date now: new Date()
+
+        readonly property string style: clock.variant === "" ? "digital" : clock.variant
+
+        title: clock.style === "analogue" ? Tr.tr("Clock") : ""
+        icon: ""
+
+        Timer {
+            interval: 1000
+            repeat: true
+            running: true
+            triggeredOnStart: true
+            onTriggered: clock.now = new Date()
+        }
+
+        StyledText {
+            Layout.fillWidth: true
+            Layout.fillHeight: true
+            visible: clock.style === "minimal"
+            horizontalAlignment: Text.AlignHCenter
+            verticalAlignment: Text.AlignVCenter
+            text: Qt.formatTime(clock.now, "HH:mm")
+            color: Colours.palette.m3onSurface
+            font: Tokens.font.title.large
+        }
+
+        ColumnLayout {
+            Layout.fillWidth: true
+            Layout.fillHeight: true
+            visible: clock.style === "digital"
+            spacing: Tokens.spacing.extraSmall
+
+            StyledText {
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+                verticalAlignment: Text.AlignVCenter
+                horizontalAlignment: Text.AlignHCenter
+                text: Qt.formatTime(clock.now, "HH:mm")
+                color: Colours.palette.m3onSurface
+                font: Tokens.font.title.large
+            }
+
+            StyledText {
+                Layout.fillWidth: true
+                horizontalAlignment: Text.AlignHCenter
+                text: Qt.formatDate(clock.now, "dddd d MMMM")
+                color: Colours.palette.m3outline
+                font: Tokens.font.label.medium
+            }
+        }
+
+        Canvas {
+            id: face
+
+            function hand(ctx, cx, cy, angle: real, length: real, width: real, colour: color): void {
+                ctx.strokeStyle = colour;
+                ctx.lineWidth = width;
+                ctx.lineCap = "round";
+                ctx.beginPath();
+                ctx.moveTo(cx - Math.sin(angle) * length * 0.12, cy + Math.cos(angle) * length * 0.12);
+                ctx.lineTo(cx + Math.sin(angle) * length, cy - Math.cos(angle) * length);
+                ctx.stroke();
+            }
+
+            Layout.alignment: Qt.AlignHCenter
+            Layout.fillWidth: true
+            Layout.fillHeight: true
+            Layout.preferredWidth: 120
+            Layout.preferredHeight: 120
+            visible: clock.style === "analogue"
+
+            onPaint: {
+                const ctx = getContext("2d");
+                ctx.clearRect(0, 0, width, height);
+
+                const cx = width / 2;
+                const cy = height / 2;
+                const r = Math.min(cx, cy) - 2;
+                if (r <= 0)
+                    return;
+
+                ctx.strokeStyle = Qt.alpha(Colours.palette.m3outlineVariant, 0.6);
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                ctx.arc(cx, cy, r, 0, Math.PI * 2);
+                ctx.stroke();
+
+                // Twelve ticks, the quarters longer, so the face reads as a clock at a glance
+                ctx.strokeStyle = Colours.palette.m3outline;
+                for (let i = 0; i < 12; i++) {
+                    const a = (i / 12) * Math.PI * 2;
+                    const inner = r * (i % 3 === 0 ? 0.78 : 0.87);
+                    ctx.lineWidth = i % 3 === 0 ? 2 : 1;
+                    ctx.beginPath();
+                    ctx.moveTo(cx + Math.sin(a) * inner, cy - Math.cos(a) * inner);
+                    ctx.lineTo(cx + Math.sin(a) * r * 0.94, cy - Math.cos(a) * r * 0.94);
+                    ctx.stroke();
+                }
+
+                const seconds = clock.now.getSeconds();
+                const minutes = clock.now.getMinutes() + seconds / 60;
+                const hours = (clock.now.getHours() % 12) + minutes / 60;
+
+                face.hand(ctx, cx, cy, (hours / 12) * Math.PI * 2, r * 0.5, 3, Colours.palette.m3onSurface);
+                face.hand(ctx, cx, cy, (minutes / 60) * Math.PI * 2, r * 0.72, 2, Colours.palette.m3onSurface);
+                face.hand(ctx, cx, cy, (seconds / 60) * Math.PI * 2, r * 0.8, 1, Colours.palette.m3primary);
+
+                ctx.fillStyle = Colours.palette.m3primary;
+                ctx.beginPath();
+                ctx.arc(cx, cy, 2.5, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+            onWidthChanged: requestPaint()
+            onHeightChanged: requestPaint()
+            onVisibleChanged: {
+                if (visible)
+                    requestPaint();
+            }
+
+            Connections {
+                function onNowChanged(): void {
+                    face.requestPaint();
+                }
+
+                target: clock
+            }
+        }
+    }
+
+    // --- To-do: the task lists from the sidebar, either the next few or just today's ---
+    component TodoCard: GridCard {
+        id: todo
+
+        readonly property string mode: todo.variant === "today" ? "today" : "upcoming"
+
+        // Read through `revision` so the card follows edits made in the sidebar instead of showing a stale list
+        readonly property var shown: {
+            void Todo.revision;
+            const today = new Date().toDateString();
+            const open = Todo.tasks.filter(t => !t.done);
+            const list = todo.mode === "today" ? open.filter(t => t.deadline && new Date(t.deadline).toDateString() === today) : open;
+            // Soonest deadline first, then the ones with none in the order they were added
+            return [...list].sort((a, b) => {
+                const da = a.deadline ? new Date(a.deadline).getTime() : Number.POSITIVE_INFINITY;
+                const db = b.deadline ? new Date(b.deadline).getTime() : Number.POSITIVE_INFINITY;
+                return da - db;
+            }).slice(0, 6);
+        }
+
+        function deadlineText(task: var): string {
+            if (!task.deadline)
+                return "";
+            const d = new Date(task.deadline);
+            if (isNaN(d.getTime()))
+                return "";
+            return d.toDateString() === new Date().toDateString() ? Tr.tr("Today") : Qt.formatDate(d, "d MMM");
+        }
+
+        title: todo.mode === "today" ? Tr.tr("Due today") : Tr.tr("To-do")
+        icon: "checklist"
+
+        StyledText {
+            Layout.fillWidth: true
+            visible: todo.shown.length === 0
+            wrapMode: Text.Wrap
+            text: todo.mode === "today" ? Tr.tr("Nothing due today") : Tr.tr("Nothing to do")
+            color: Colours.palette.m3outline
+            font: Tokens.font.label.medium
+        }
+
+        Repeater {
+            model: todo.shown
+
+            RowLayout {
+                id: taskRow
+
+                required property var modelData
+
+                Layout.fillWidth: true
+                spacing: Tokens.spacing.small
+
+                Item {
+                    Layout.preferredWidth: 20
+                    Layout.preferredHeight: 20
+
+                    MaterialIcon {
+                        anchors.centerIn: parent
+                        text: "radio_button_unchecked"
+                        color: Colours.palette.m3outline
+                        fontStyle: Tokens.font.icon.small
+                    }
+
+                    MouseArea {
+                        anchors.fill: parent
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: Todo.toggleDone(taskRow.modelData.id)
+                    }
+                }
+
+                StyledText {
+                    Layout.fillWidth: true
+                    text: taskRow.modelData.text
+                    elide: Text.ElideRight
+                    color: Colours.palette.m3onSurface
+                    font: Tokens.font.body.small
+                }
+
+                StyledText {
+                    visible: text !== ""
+                    text: todo.deadlineText(taskRow.modelData)
+                    color: Colours.palette.m3outline
+                    font: Tokens.font.label.small
+                }
+            }
+        }
+    }
+
+    // A reading as a vertical bar, for the card's bars variant
+    component BarMeter: ColumnLayout {
+        id: bar
+
+        property string label
+        property real value
+        property color colour
+
+        Layout.fillWidth: true
+        Layout.fillHeight: true
+        spacing: Tokens.spacing.extraSmall
+
+        StyledText {
+            Layout.fillWidth: true
+            horizontalAlignment: Text.AlignHCenter
+            text: bar.label
+            color: Colours.palette.m3onSurfaceVariant
+            font: Tokens.font.label.small
+        }
+
+        Item {
+            Layout.fillWidth: true
+            Layout.fillHeight: true
+            Layout.minimumHeight: 20
+
+            StyledRect {
+                anchors.fill: parent
+                radius: Tokens.rounding.small
+                color: Qt.alpha(Colours.palette.m3outlineVariant, 0.3)
+            }
+
+            StyledRect {
+                anchors.left: parent.left
+                anchors.right: parent.right
+                anchors.bottom: parent.bottom
+                radius: Tokens.rounding.small
+                height: Math.max(2, parent.height * Math.max(0, Math.min(1, bar.value)))
+                color: bar.colour
+            }
+        }
+
+        StyledText {
+            Layout.fillWidth: true
+            horizontalAlignment: Text.AlignHCenter
+            text: Math.round(Math.max(0, Math.min(1, bar.value)) * 100) + "%"
+            color: Colours.palette.m3onSurface
+            font: Tokens.font.label.small
+        }
+    }
+
+    // Every reading on one set of axes, so the shapes can be compared against each other rather than guessed at
+    // from three separate graphs
+    component ResourceLines: ColumnLayout {
+        id: lines
+
+        // [{ label, values, value, colour }]
+        property var series
+
+        Layout.fillWidth: true
+        Layout.fillHeight: true
+        spacing: Tokens.spacing.extraSmall
+
+        Canvas {
+            id: plot
+
+            Layout.fillWidth: true
+            Layout.fillHeight: true
+            Layout.minimumHeight: 24
+
+            onPaint: {
+                const ctx = getContext("2d");
+                ctx.clearRect(0, 0, width, height);
+
+                const series = lines.series ?? [];
+                const longest = series.reduce((n, s) => Math.max(n, (s.values ?? []).length), 0);
+                if (longest < 2)
+                    return;
+
+                const step = width / (longest - 1);
+                const lineWidth = 2;
+                const top = lineWidth / 2;
+                const bottom = height - lineWidth / 2;
+
+                // Faint lines at half and full, so a reading has a scale to be read against
+                ctx.strokeStyle = Qt.alpha(Colours.palette.m3outlineVariant, 0.35);
+                ctx.lineWidth = 1;
+                for (const at of [0.5, 1]) {
+                    const y = bottom - at * (bottom - top);
+                    ctx.beginPath();
+                    ctx.moveTo(0, y);
+                    ctx.lineTo(width, y);
+                    ctx.stroke();
+                }
+
+                // Shorter histories sit against the right edge, so every line ends at "now"
+                for (const s of series) {
+                    const values = s.values ?? [];
+                    if (values.length < 2)
+                        continue;
+
+                    const offset = (longest - values.length) * step;
+                    ctx.beginPath();
+                    ctx.lineWidth = lineWidth;
+                    ctx.lineJoin = "round";
+                    ctx.lineCap = "round";
+                    ctx.strokeStyle = s.colour;
+                    values.forEach((v, i) => {
+                        const x = offset + i * step;
+                        const y = bottom - Math.max(0, Math.min(1, v)) * (bottom - top);
+                        if (i === 0)
+                            ctx.moveTo(x, y);
+                        else
+                            ctx.lineTo(x, y);
+                    });
+                    ctx.stroke();
+                }
+            }
+
+            onWidthChanged: requestPaint()
+            onHeightChanged: requestPaint()
+
+            Connections {
+                function onSeriesChanged(): void {
+                    plot.requestPaint();
+                }
+
+                target: lines
+            }
+        }
+
+        RowLayout {
+            Layout.fillWidth: true
+            spacing: Tokens.spacing.medium
+
+            Repeater {
+                model: lines.series ?? []
+
+                RowLayout {
+                    id: legend
+
+                    required property var modelData
+
+                    Layout.fillWidth: true
+                    spacing: Tokens.spacing.extraSmall
+
+                    StyledRect {
+                        implicitWidth: 8
+                        implicitHeight: 8
+                        radius: Tokens.rounding.full
+                        color: legend.modelData.colour
+                    }
+
+                    StyledText {
+                        Layout.fillWidth: true
+                        text: legend.modelData.label
+                        elide: Text.ElideRight
+                        color: Colours.palette.m3onSurfaceVariant
+                        font: Tokens.font.label.small
+                    }
+
+                    StyledText {
+                        text: Math.round(Math.max(0, Math.min(1, legend.modelData.value ?? 0)) * 100) + "%"
+                        color: Colours.palette.m3onSurface
+                        font: Tokens.font.label.small
+                    }
+                }
+            }
         }
     }
 
