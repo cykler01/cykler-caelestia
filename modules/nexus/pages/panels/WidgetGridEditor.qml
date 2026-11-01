@@ -33,7 +33,8 @@ Item {
             pomodoro: "timer",
             resources: "monitoring",
             media: "music_note",
-            battery: "bolt"
+            battery: "bolt",
+            fetch: "terminal"
         })
 
     readonly property real factor: width / Math.max(1, screenWidth)

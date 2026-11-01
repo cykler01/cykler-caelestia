@@ -50,7 +50,8 @@ PageBase {
             pomodoro: Tr.tr("Focus timer"),
             resources: Tr.tr("System resources"),
             media: Tr.tr("Now playing"),
-            battery: Tr.tr("Battery")
+            battery: Tr.tr("Battery"),
+            fetch: Tr.tr("Fetch")
         })
 
     function positionItem(value: string): MenuItem {
