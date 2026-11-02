@@ -10,6 +10,16 @@ namespace caelestia::shell::config {
 
 using Qt::StringLiterals::operator""_s;
 
+class NotifSourceRule : public settings::ObjectNode {
+    CONFIG_NODE(NotifSourceRule, settings::ObjectNode)
+
+    // Matched case-insensitively as a substring of the name an app puts on its notifications. It
+    // does not have to be an installed app, so a script or a notify-send caller can be named too
+    CONFIG_PROPERTY(QString, match, {})
+    CONFIG_ENUM_PROPERTY(NotifSourceAction, action, NotifSourceAction::Silence)
+};
+CONFIG_LIST_TYPE(NotifSourceRule, NotifSourceRuleList)
+
 class NotifsConfig : public settings::ObjectNode {
     CONFIG_NODE(NotifsConfig, settings::ObjectNode)
 
@@ -47,6 +57,11 @@ class NotifsConfig : public settings::ObjectNode {
     // popup - they go straight to the notification centre, the same as every app does under
     // do not disturb, but regardless of whether do not disturb is on
     CONFIG_GLOBAL_PROPERTY(QStringList, silencedApps, DEFAULT_ARG({}))
+    // Per-source rules, from Settings › Services › Notifications › Sources: Allow shows a
+    // notification and keeps it in the history, Discard shows the popup and keeps nothing, and
+    // Silence drops it entirely. The first rule matching the app name wins; anything unmatched is
+    // allowed
+    CONFIG_LIST(NotifSourceRuleList, sourceRules, DEFAULT_ARG({}))
 };
 
 } // namespace caelestia::shell::config

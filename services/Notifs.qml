@@ -17,7 +17,9 @@ Singleton {
     id: root
 
     property list<NotifData> list: []
-    readonly property list<NotifData> notClosed: list.filter(n => !n.closed)
+    // What is left in the notification centre: everything still open that is also meant to be
+    // kept. Notifications a source rule discards or silences live only as long as their popup
+    readonly property list<NotifData> notClosed: list.filter(n => !n.closed && n.keep)
     readonly property list<NotifData> popups: list.filter(n => n.popup)
 
     property bool loaded
@@ -42,7 +44,9 @@ Singleton {
     // message as its own (non-popup) notification just below it, and moves `live` to the top
     // since it now holds the newest message.
     function keepReplaced(live: NotifData, previous: var): void {
-        const kept = notifComp.createObject(root, previous);
+        const kept = notifComp.createObject(root, Object.assign({
+                keep: root.sourceAction(previous.appName) === NotifSourceAction.Allow
+            }, previous));
         const rest = root.list.filter(n => n !== live);
         root.list = [live, kept, ...rest];
     }
@@ -52,6 +56,24 @@ Singleton {
     function isSilenced(appName: string): bool {
         const name = appName.toLowerCase();
         return GlobalConfig.notifs.silencedApps.some(app => name.includes(app.toLowerCase()));
+    }
+
+    // NOTE(fork): what a notification source rule says to do with this app, from the notification
+    // sources page in settings. The first rule whose source is a case-insensitive substring of the
+    // app name wins, and anything unmatched is allowed.
+    function sourceAction(appName: string): int {
+        const name = appName.toLowerCase();
+        if (!name)
+            return NotifSourceAction.Allow;
+
+        const rule = GlobalConfig.notifs.sourceRules.values.find(r => r.match && name.includes(r.match.toLowerCase()));
+        return rule ? rule.action : NotifSourceAction.Allow;
+    }
+
+    // Silenced sources never pop up, so ask this rather than shouldShowPopup() wherever a popup
+    // is about to be shown - a chat app replacing its notification asks for one of its own
+    function canPopup(appName: string): bool {
+        return root.sourceAction(appName) !== NotifSourceAction.Silence && root.shouldShowPopup(appName);
     }
 
     function shouldShowPopup(appName: string): bool {
@@ -117,8 +139,10 @@ Singleton {
         onNotification: notif => {
             notif.tracked = true;
 
+            const action = root.sourceAction(notif.appName);
             const comp = notifComp.createObject(root, {
-                popup: root.shouldShowPopup(notif.appName),
+                popup: action !== NotifSourceAction.Silence && root.shouldShowPopup(notif.appName),
+                keep: action === NotifSourceAction.Allow,
                 notification: notif
             });
             root.list = [comp, ...root.list];

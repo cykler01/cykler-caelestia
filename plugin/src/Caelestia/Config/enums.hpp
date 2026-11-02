@@ -32,6 +32,8 @@ ENUM(BarWorkspaceCapitalisation, Preserve, Upper, Lower)
 ENUM(LyricsBackend, Auto, Local, LRCLIB, NetEase)
 ENUM(GpuType, Auto, Nvidia, Generic, None)
 ENUM(NotifsFullscreen, On, Off)
+// What a notification source rule does with the notifications it matches
+ENUM(NotifSourceAction, Allow, Discard, Silence)
 ENUM(TemperatureUnit, Auto, Celsius, Fahrenheit, Kelvin)
 ENUM(DataUnit, Binary, Decimal)
 ENUM(ClockFormat, Auto, TwelveHour, TwentyFourHour)

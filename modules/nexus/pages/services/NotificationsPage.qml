@@ -1,7 +1,5 @@
 import QtQuick
 import QtQuick.Layouts
-import Quickshell
-import Quickshell.Widgets
 import Caelestia.Config
 import Caelestia.I18n
 import qs.components
@@ -40,22 +38,6 @@ PageBase {
         }
     ]
     readonly property list<string> toastFullscreenValues: ["off", "important", "all"]
-
-    function appFor(id: string): var {
-        return DesktopEntries.byId(id) ?? DesktopEntries.heuristicLookup(id);
-    }
-
-    function addSilencedApp(id: string): void {
-        if (id === "" || GlobalConfig.notifs.silencedApps.includes(id))
-            return;
-        GlobalConfig.notifs.silencedApps = [...GlobalConfig.notifs.silencedApps, id];
-    }
-
-    function removeSilencedApp(index: int): void {
-        const apps = [...GlobalConfig.notifs.silencedApps];
-        apps.splice(index, 1);
-        GlobalConfig.notifs.silencedApps = apps;
-    }
 
     title: Tr.tr("Notifications")
     isSubPage: true
@@ -124,85 +106,18 @@ PageBase {
             onMoved: v => GlobalConfig.notifs.groupPreviewNum = Math.round(v)
         }
 
-        // Silenced apps
+        // Sources
         SectionHeader {
-            text: Tr.tr("Silenced apps")
+            text: Tr.tr("Sources")
         }
 
-        StyledText {
-            Layout.fillWidth: true
-            Layout.bottomMargin: Tokens.spacing.small
-            text: Tr.tr("Notifications from these apps never pop up - they go straight to the notification centre, the same as every app does while do not disturb is on")
-            color: Colours.palette.m3outline
-            font: Tokens.font.label.small
-            wrapMode: Text.WordWrap
-        }
-
-        Repeater {
-            model: GlobalConfig.notifs.silencedApps
-
-            ConnectedRect {
-                id: silencedAppRow
-
-                required property string modelData
-                required property int index
-                readonly property var entry: root.appFor(modelData)
-
-                Layout.fillWidth: true
-                first: index === 0
-                implicitHeight: silencedAppContent.implicitHeight + Tokens.padding.medium * 2
-
-                RowLayout {
-                    id: silencedAppContent
-
-                    anchors.left: parent.left
-                    anchors.right: parent.right
-                    anchors.verticalCenter: parent.verticalCenter
-                    anchors.margins: Tokens.padding.largeIncreased
-                    spacing: Tokens.spacing.medium
-
-                    IconImage {
-                        asynchronous: true
-                        implicitSize: Math.round(Tokens.font.icon.medium.pointSize * 1.6)
-                        source: Quickshell.iconPath(silencedAppRow.entry?.icon ?? "", "image-missing")
-                    }
-
-                    StyledText {
-                        Layout.fillWidth: true
-                        text: silencedAppRow.entry?.name ?? silencedAppRow.modelData
-                        elide: Text.ElideRight
-                    }
-
-                    IconButton {
-                        type: IconButton.Text
-                        isRound: true
-                        icon: "close"
-                        inactiveOnColour: Colours.palette.m3error
-                        font: Tokens.font.icon.medium
-                        onClicked: root.removeSilencedApp(silencedAppRow.index)
-                    }
-                }
-            }
-        }
-
-        DialogSelectButton {
-            rootParent: root.flickable
-            first: GlobalConfig.notifs.silencedApps.length === 0
-            icon: "add"
-            label: Tr.tr("Add app")
-            header: Tr.tr("Silence an app")
-            acceptLabel: Tr.trCtx("Add", "button")
-
-            model: [...DesktopEntries.applications.values].filter(a => !GlobalConfig.notifs.silencedApps.includes(a.id)).sort((a, b) => a.name.localeCompare(b.name)).map(a => ({
-                        id: a.id,
-                        label: a.name,
-                        icon: a.icon
-                    }))
-
-            onAccepted: {
-                if (selectedItem)
-                    root.addSilencedApp(selectedItem);
-            }
+        NavRow {
+            first: true
+            last: true
+            icon: "filter_alt"
+            text: Tr.tr("Notification sources")
+            subtext: Tr.tr("Allow, discard or silence notifications from particular apps")
+            onClicked: root.nState.openSubPage(3)
         }
 
         // Toasts

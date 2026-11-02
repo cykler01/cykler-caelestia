@@ -13,6 +13,9 @@ QtObject {
     id: notif
 
     property bool popup
+    // NOTE(fork): whether this notification belongs to the history. A source rule that discards or
+    // silences an app leaves it false, so it is only ever as long lived as its popup
+    property bool keep: true
     property bool closed
     property var locks: new Set()
 
@@ -75,6 +78,15 @@ QtObject {
             if (GlobalConfig.notifs.expire || notif.hasFullscreen)
                 notif.popup = false;
         }
+    }
+
+    // Closes a notification that is not meant to be kept once it has no popup left, giving the
+    // popup's exit animation time to run first; one that never popped up (a silenced source) has
+    // no popup at all, so it is dropped shortly after it arrives
+    readonly property Timer dropTimer: Timer {
+        running: !notif.keep && !notif.popup
+        interval: Tokens.anim.durations.expressiveDefaultSpatial + 150
+        onTriggered: notif.close()
     }
 
     readonly property LazyLoader dummyImageLoader: LazyLoader {
@@ -215,7 +227,7 @@ QtObject {
             Notifs.keepReplaced(notif, previous);
             time = new Date();
             updateTimeStr();
-            popup = Notifs.shouldShowPopup(appName);
+            popup = Notifs.canPopup(appName);
             timer.restart();
         });
     }
