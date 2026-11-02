@@ -1,18 +1,26 @@
 import QtQuick
 import QtQuick.Layouts
+import Quickshell
 import Quickshell.Services.UPower
 import Caelestia.Config
 import Caelestia.I18n
 import Caelestia.Services
 import qs.components
+import qs.components.controls
 import qs.services
 import qs.modules.dashboard.performance
 
 Item {
     id: root
 
-    implicitWidth: placeholder.active ? Tokens.sizes.dashboard.perfPlaceholderWidth : content.implicitWidth
-    implicitHeight: placeholder.active ? placeholder.implicitHeight + Tokens.padding.extraLarge * 2 : content.implicitHeight
+    required property ShellScreen screen
+
+    property bool processesExpanded
+
+    readonly property real processListHeight: Math.max(96, Math.min(240, screen.height - content.implicitHeight - 260))
+
+    implicitWidth: placeholder.active ? Tokens.sizes.dashboard.perfPlaceholderWidth : Math.max(content.implicitWidth, processesExpanded ? processList.implicitWidth : 0)
+    implicitHeight: placeholder.active ? placeholder.implicitHeight + Tokens.padding.extraLarge * 2 : content.implicitHeight + processToggle.implicitHeight + (processesExpanded ? Tokens.spacing.small + processList.implicitHeight : 0)
 
     Loader {
         id: placeholder
@@ -56,6 +64,61 @@ Item {
         visible: !placeholder.active
         // ResourceHistory is off when the graph view is disabled or paused by Power Saver
         sourceComponent: ResourceHistory.enabled ? graphLayout : classicLayout
+    }
+
+    ButtonBase {
+        id: processToggle
+
+        anchors.top: content.bottom
+        anchors.topMargin: Tokens.spacing.small
+        implicitWidth: root.implicitWidth
+        width: root.implicitWidth
+        implicitHeight: 42
+        type: ButtonBase.Text
+        inactiveColour: "transparent"
+        activeColour: "transparent"
+        inactiveOnColour: Colours.palette.m3onSurfaceVariant
+        activeOnColour: Colours.palette.m3onSurfaceVariant
+        onClicked: root.processesExpanded = !root.processesExpanded
+
+        RowLayout {
+            anchors.fill: parent
+            anchors.leftMargin: Tokens.padding.large
+            anchors.rightMargin: Tokens.padding.large
+            spacing: Tokens.spacing.small
+
+            StyledText {
+                Layout.fillWidth: true
+                text: Tr.tr("Processes")
+                font: Tokens.font.title.small
+                color: Colours.palette.m3onSurface
+            }
+
+            MaterialIcon {
+                text: root.processesExpanded ? "keyboard_arrow_up" : "keyboard_arrow_down"
+                fontStyle: Tokens.font.icon.small
+                color: Colours.palette.m3onSurfaceVariant
+            }
+        }
+
+        StyledRect {
+            anchors.left: parent.left
+            anchors.right: parent.right
+            anchors.bottom: parent.bottom
+            implicitHeight: 1
+            color: Colours.palette.m3outlineVariant
+        }
+    }
+
+    ProcessList {
+        id: processList
+
+        anchors.top: processToggle.bottom
+        anchors.topMargin: Tokens.spacing.small
+        width: root.implicitWidth
+        height: root.processesExpanded ? implicitHeight : 0
+        visible: root.processesExpanded
+        maxListHeight: root.processListHeight
     }
 
     // CPU, GPU, memory, network and storage combined into one graph card

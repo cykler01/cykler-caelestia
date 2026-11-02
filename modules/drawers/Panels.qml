@@ -153,6 +153,7 @@ Item {
     Dashboard.Wrapper {
         id: dashboard
 
+        screen: root.screen
         screenState: root.screenState
     }
 

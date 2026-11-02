@@ -13,6 +13,7 @@ Item {
     id: root
 
     required property ScreenState screenState
+    required property ShellScreen screen
     required property FileDialog facePicker
 
     readonly property var dashboardTabs: {
@@ -172,7 +173,9 @@ Item {
             Component {
                 id: performanceComponent
 
-                Performance {}
+                Performance {
+                    screen: root.screen
+                }
             }
 
             Component {
