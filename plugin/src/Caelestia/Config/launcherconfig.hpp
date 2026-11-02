@@ -61,6 +61,12 @@ class LauncherConfig : public settings::ObjectNode {
                 { u"command"_s, QStringList{ u"autocomplete"_s, u"ai"_s } },
             }),
             vmap({
+                { u"name"_s, markCtx(u"Browser"_s, u"launcher action"_s) },
+                { u"icon"_s, u"public"_s },
+                { u"description"_s, mark(u"Open a link or search the web in your default browser"_s) },
+                { u"command"_s, QStringList{ u"autocomplete"_s, u"b"_s } },
+            }),
+            vmap({
                 { u"name"_s, markCtx(u"SSH"_s, u"launcher action"_s) },
                 { u"icon"_s, u"terminal"_s },
                 { u"description"_s, mark(u"Connect to a configured SSH host"_s) },

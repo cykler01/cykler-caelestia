@@ -41,6 +41,9 @@ StyledListView {
             if (text === `${prefix}ssh` || text.startsWith(`${prefix}ssh `))
                 return "ssh";
 
+            if (text === `${prefix}b` || text.startsWith(`${prefix}b `))
+                return "browser";
+
             return "actions";
         }
 
@@ -59,6 +62,8 @@ StyledListView {
             return Supergfxctl.modeData;
         case "ssh":
             return SSH.search(text);
+        case "browser":
+            return [0];
         default:
             return Apps.search(text);
         }
@@ -152,6 +157,13 @@ StyledListView {
 
             PropertyChanges {
                 root.delegate: sshItem
+            }
+        },
+        State {
+            name: "browser"
+
+            PropertyChanges {
+                root.delegate: browserItem
             }
         }
     ]
@@ -310,6 +322,14 @@ StyledListView {
         id: sshItem
 
         ActionItem {
+            list: root
+        }
+    }
+
+    Component {
+        id: browserItem
+
+        BrowserItem {
             list: root
         }
     }
