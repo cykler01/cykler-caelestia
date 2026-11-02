@@ -11,12 +11,14 @@ import qs.services
 Item {
     id: root
 
-    required property Item wallpaper
+    // What the card blurs to see through itself. Null in the Add-widget previews, which are not drawn
+    // over the wallpaper and so turn `blur` off as well (see WidgetCard.qml)
+    property Item wallpaper: null
     property string title
     property string icon
     property real plateOpacity: GlobalConfig.background.desktopWidgets.opacity
     // Blur, shadow and rounding follow the Power & battery settings as well as the widget's own
-    property bool blur: GlobalConfig.background.desktopWidgets.blur && !GameMode.enabled && PowerSaving.blur
+    property bool blur: wallpaper && GlobalConfig.background.desktopWidgets.blur && !GameMode.enabled && PowerSaving.blur
     property real radius: Tokens.rounding.extraLarge
     property real padding: Tokens.padding.largeIncreased
     default property alias content: col.data

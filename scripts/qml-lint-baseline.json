@@ -12,9 +12,6 @@
   "modules/background/Background.qml": {
     "section-order": 4
   },
-  "modules/background/DesktopWidgets.qml": {
-    "section-order": 3
-  },
   "modules/bar/Bar.qml": {
     "section-order": 8
   },

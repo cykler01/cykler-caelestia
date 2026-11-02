@@ -53,8 +53,35 @@ Column {
     spacing: Tokens.spacing.medium
     width: Tokens.sizes.bar.batteryWidth
 
-    StyledText {
-        text: UPower.displayDevice.isLaptopBattery ? Tr.trCtx("Remaining: %1%", "battery remaining").arg(Math.round(UPower.displayDevice.percentage * 100)) : Tr.tr("No battery detected")
+    // Charge on the left, what the battery is actually doing on the right
+    Item {
+        width: parent.width
+        implicitHeight: Math.max(remaining.implicitHeight, draw.implicitHeight)
+
+        StyledText {
+            id: remaining
+
+            anchors.left: parent.left
+            anchors.verticalCenter: parent.verticalCenter
+            text: UPower.displayDevice.isLaptopBattery ? Tr.trCtx("Remaining: %1%", "battery remaining").arg(Math.round(UPower.displayDevice.percentage * 100)) : Tr.tr("No battery detected")
+        }
+
+        StyledText {
+            id: draw
+
+            readonly property var dev: UPower.displayDevice
+            readonly property bool charging: dev.state === UPowerDeviceState.Charging || dev.state === UPowerDeviceState.FullyCharged
+            readonly property real rate: Math.abs(dev.changeRate)
+
+            anchors.right: parent.right
+            anchors.verticalCenter: parent.verticalCenter
+            // Nothing to show on a desktop, nor while the battery is sitting full on the charger: the
+            // rate is zero then, and "0.0 W" reads like a fault rather than the absence of one
+            visible: draw.dev.isLaptopBattery && draw.rate > 0 && draw.dev.state !== UPowerDeviceState.FullyCharged
+            // The sign carries the direction, matching the desktop battery widget
+            text: `${draw.charging ? "+" : "−"}${draw.rate.toFixed(1)} W`
+            color: draw.charging ? Colours.palette.m3tertiary : Colours.palette.m3onSurfaceVariant
+        }
     }
 
     StyledText {

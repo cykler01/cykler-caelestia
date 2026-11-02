@@ -41,6 +41,41 @@ ColumnLayout {
         toggle.onToggled: Nmcli.enableWifi(checked)
     }
 
+    // How good the link you are actually on is. The list below shows a strength icon per network, but
+    // the one you are connected to is the only one whose strength you keep wanting to check, and it
+    // sits wherever the sort happens to put it - so it gets said once, in words, up here
+    RowLayout {
+        readonly property Nmcli.AccessPoint ap: Nmcli.active
+
+        visible: root.view === "wireless" && !!Nmcli.active
+        Layout.preferredHeight: visible ? implicitHeight : 0
+        Layout.topMargin: visible ? Tokens.spacing.small : 0
+        Layout.rightMargin: Tokens.padding.extraSmall
+        Layout.fillWidth: true
+        spacing: Tokens.spacing.small
+
+        MaterialIcon {
+            text: Icons.getNetworkIcon(parent.ap?.strength ?? 0)
+            color: Colours.palette.m3primary
+        }
+
+        StyledText {
+            Layout.fillWidth: true
+            Layout.minimumWidth: 0
+            elide: Text.ElideRight
+            text: parent.ap?.ssid ?? ""
+            color: Colours.palette.m3primary
+            font: Tokens.font.body.builders.medium.weight(Font.Medium).build()
+        }
+
+        StyledText {
+            // TRANSLATORS: wifi signal strength as a percentage, e.g. "72% signal"
+            text: Tr.tr("%1% signal").arg(parent.ap?.strength ?? 0)
+            color: Colours.palette.m3onSurfaceVariant
+            font: Tokens.font.body.small
+        }
+    }
+
     StyledText {
         visible: root.view === "wireless"
         Layout.preferredHeight: visible ? implicitHeight : 0

@@ -93,8 +93,19 @@ install)
     fi
 
     echo "STEP:building"
-    if [[ ! -d build ]]; then
-        cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/ >/dev/null 2>&1 || { echo "ERROR:cmake configure failed"; restore; exit 4; }
+    # Checked on every run, not just when build/ is missing. A build directory
+    # left over from a plain `cmake -B build` is configured for /usr/local, and
+    # reusing it installs a full copy of the shell where nothing loads it, so the
+    # update page reports success and the old shell keeps running. See
+    # scripts/build-env.sh.
+    source "$repo/scripts/build-env.sh"
+    if ! configured=$(caelestia_configure_build 2>/dev/null); then
+        echo "ERROR:cmake configure failed"
+        restore
+        exit 4
+    fi
+    if [[ -n $configured ]]; then
+        echo "LOG:$configured"
     fi
     if ! cmake --build build 2>&1 | tail -n 3 | sed 's/^/LOG:/'; then
         echo "ERROR:build failed"

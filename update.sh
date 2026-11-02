@@ -95,9 +95,14 @@ if [[ "$SKIP_UPSTREAM" == false ]]; then
 fi
 
 # --- Rebuild and reinstall ---
-if [[ ! -d build ]]; then
-    echo "==> No existing build directory; running full configure."
-    cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/
+# Checked on every run, not just when build/ is missing: a build directory left
+# over from a plain `cmake -B build` is configured for /usr/local, and reusing it
+# installs a complete copy of the shell somewhere nothing loads. See
+# scripts/build-env.sh.
+source "$REPO_ROOT/scripts/build-env.sh"
+configured=$(caelestia_configure_build)
+if [[ -n $configured ]]; then
+    echo "==> $configured"
 fi
 
 echo

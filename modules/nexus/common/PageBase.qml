@@ -15,10 +15,18 @@ ColumnLayout {
     required property string title
     required property NexusState nState
     property bool isSubPage
+
+    // Set by a page that has steps of its own inside it, so the back arrow walks back through those
+    // before it leaves the page. Without it the arrow always closes the whole sub-page, which from
+    // step two of a picker drops you out of the page entirely rather than back to step one.
+    property bool handlesBack
     readonly property int cappedWidth: Math.min(Tokens.sizes.nexus.maxContentWidth, width)
     readonly property alias flickable: flickable
 
     default property Item contentChild
+
+    // Emitted instead of closing the page when the page said it handles its own back
+    signal backPressed
 
     spacing: Tokens.spacing.extraLargeIncreased
 
@@ -45,7 +53,12 @@ ColumnLayout {
                     isRound: true
                     inactiveColour: Colours.tPalette.m3surfaceContainerHigh
                     inactiveOnColour: Colours.palette.m3onSurfaceVariant
-                    onClicked: root.nState.closeSubPage()
+                    onClicked: {
+                        if (root.handlesBack)
+                            root.backPressed();
+                        else
+                            root.nState.closeSubPage();
+                    }
                 }
             }
 
