@@ -1097,20 +1097,23 @@ Item {
             }
         }
 
+        // Rate and time to empty/full. The row is always there on a laptop and its contents fade out
+        // instead of collapsing, so a battery that is full (no rate, no time left to report) keeps the
+        // same height and the card does not shrink out from under the widgets below it.
         RowLayout {
             Layout.fillWidth: true
-            visible: bat.laptop && ((bat.rate > 0 && !bat.full) || bat.seconds >= 60)
+            visible: bat.laptop
             spacing: Tokens.spacing.small
 
             MaterialIcon {
-                visible: bat.rate > 0 && !bat.full
+                opacity: bat.rate > 0 && !bat.full ? 1 : 0
                 text: bat.charging ? "bolt" : "trending_down"
                 color: bat.charging ? Colours.palette.m3tertiary : Colours.palette.m3primary
                 fontStyle: Tokens.font.icon.small
             }
 
             StyledText {
-                visible: bat.rate > 0 && !bat.full
+                opacity: bat.rate > 0 && !bat.full ? 1 : 0
                 text: `${bat.charging ? "+" : "−"}${bat.rate.toFixed(1)} W`
                 color: Colours.palette.m3onSurface
                 font: Tokens.font.label.medium
@@ -1121,7 +1124,7 @@ Item {
             }
 
             StyledText {
-                visible: bat.seconds >= 60 && !bat.full
+                opacity: bat.seconds >= 60 && !bat.full ? 1 : 0
                 text: bat.charging ? Tr.tr("Full in %1").arg(bat.duration(bat.seconds)) : Tr.tr("%1 left").arg(bat.duration(bat.seconds))
                 color: Colours.palette.m3onSurfaceVariant
                 font: Tokens.font.label.medium
