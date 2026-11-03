@@ -19,6 +19,37 @@ Item {
 
     property color pfpFallbackColour: Colours.layer(Colours.palette.m3surfaceContainerHighest, 2)
 
+    // The configured shape name (Config.dashboard.profileShape) mapped to MaterialShape's enum, the
+    // same mapping the lock screen uses in modules/lock/center/ProfilePic.qml. Falls back to the Pill
+    // this card has always used for an empty or unknown name
+    readonly property int pfpShape: ({
+            Arch: MaterialShape.Arch,
+            Arrow: MaterialShape.Arrow,
+            ClamShell: MaterialShape.ClamShell,
+            Circle: MaterialShape.Circle,
+            Clover4Leaf: MaterialShape.Clover4Leaf,
+            Cookie: MaterialShape.Cookie,
+            Cookie4Sided: MaterialShape.Cookie4Sided,
+            Cookie6Sided: MaterialShape.Cookie6Sided,
+            Cookie7Sided: MaterialShape.Cookie7Sided,
+            Cookie9Sided: MaterialShape.Cookie9Sided,
+            Cookie12Sided: MaterialShape.Cookie12Sided,
+            Diamond: MaterialShape.Diamond,
+            Fan: MaterialShape.Fan,
+            Gem: MaterialShape.Gem,
+            Ghostish: MaterialShape.Ghostish,
+            Oval: MaterialShape.Oval,
+            Pentagon: MaterialShape.Pentagon,
+            Pill: MaterialShape.Pill,
+            SemiCircle: MaterialShape.SemiCircle,
+            Slanted: MaterialShape.Slanted,
+            SoftBurst: MaterialShape.SoftBurst,
+            Square: MaterialShape.Square,
+            Sunny: MaterialShape.Sunny,
+            Triangle: MaterialShape.Triangle,
+            VerySunny: MaterialShape.VerySunny
+        })[Config.dashboard.profileShape] ?? MaterialShape.Pill
+
     anchors.fill: parent
     anchors.margins: Tokens.padding.large
 
@@ -40,7 +71,7 @@ Item {
 
             anchors.centerIn: parent
             implicitSize: parent.height
-            shape: MaterialShape.Pill
+            shape: root.pfpShape
             color: Qt.alpha(root.pfpFallbackColour, 1)
             opacity: root.pfpFallbackColour.a
             layer.enabled: true

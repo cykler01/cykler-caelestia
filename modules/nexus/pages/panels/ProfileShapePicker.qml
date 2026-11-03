@@ -11,12 +11,16 @@ import qs.services
 import qs.utils
 import qs.modules.nexus.common
 
-// Picker for the shape of the lock screen profile picture (modules/lock/center/ProfilePic.qml):
-// a dialog over a full-width row, with a grid previewing every available shape - each rendered
-// like the profile picture itself (the user's avatar clipped to the shape), instead of a bare
-// text dropdown with no way to tell what any option looks like.
+// Picker for the shape of a profile picture (modules/lock/center/ProfilePic.qml and the dashboard's
+// modules/dashboard/dash/User.qml): a dialog over a full-width row, with a grid previewing every
+// available shape - each rendered like the profile picture itself (the user's avatar clipped to the
+// shape), instead of a bare text dropdown with no way to tell what any option looks like.
 DialogRowButton {
     id: root
+
+    // The config node whose profileShape this row edits: GlobalConfig.lock by default, or
+    // GlobalConfig.dashboard for the home page's picture
+    property var profileConfig: GlobalConfig.lock
 
     readonly property list<string> shapes: [
         "Arch",
@@ -76,8 +80,8 @@ DialogRowButton {
             VerySunny: MaterialShape.VerySunny
         })
 
-    // The shape actually configured on the lock screen, shown in the row
-    readonly property string settingsShape: GlobalConfig.lock.profileShape
+    // The shape actually configured where this picker was pointed, shown in the row
+    readonly property string settingsShape: root.profileConfig.profileShape
     // The shape picked in the grid, only applied by "Apply" so the dialog can be dismissed
     property string selection
 
@@ -97,7 +101,7 @@ DialogRowButton {
     separateContent: true
     horizontalContentMargin: -Tokens.padding.small
 
-    onAccepted: GlobalConfig.lock.profileShape = root.selection
+    onAccepted: root.profileConfig.profileShape = root.selection
     // Pick up where the setting is whenever the dialog opens, so cancelling drops any changes
     onOpenChanged: {
         if (open)

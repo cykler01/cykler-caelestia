@@ -72,11 +72,29 @@ PageBase {
         }
 
         ToggleRow {
+            text: Tr.tr("Analogue clock")
+            subtext: Tr.tr("Show an analogue dial instead of the digital readout")
+            checked: Config.dashboard.analogueClock
+            onToggled: GlobalConfig.dashboard.analogueClock = checked
+        }
+
+        ToggleRow {
             last: true
             text: Tr.tr("Show clock seconds")
             subtext: Tr.tr("Display seconds for the clock in the main panel")
             checked: Config.dashboard.showClockSeconds
             onToggled: GlobalConfig.dashboard.showClockSeconds = checked
+        }
+
+        // Profile picture
+        SectionHeader {
+            text: Tr.tr("Profile picture")
+        }
+
+        ProfileShapePicker {
+            first: true
+            rootParent: root.flickable
+            profileConfig: GlobalConfig.dashboard
         }
 
         // Position

@@ -41,6 +41,14 @@ class DashboardConfig : public settings::ObjectNode {
     CONFIG_PROPERTY(bool, showPerformance, true)
     CONFIG_PROPERTY(bool, showWeather, true)
     CONFIG_PROPERTY(bool, showClockSeconds, false)
+    // MaterialShape name (M3Shapes) the dashboard's profile picture is clipped to - resolved against
+    // the enum in modules/dashboard/dash/User.qml, the same way Config.lock.profileShape is on the
+    // lock screen
+    CONFIG_PROPERTY(QString, profileShape, u"Pill"_s)
+    // Analogue dial instead of the digital readout in the home page's clock card
+    // (modules/dashboard/dash/DateTime.qml)
+    CONFIG_PROPERTY(bool, analogueClock, false)
+
     CONFIG_GLOBAL_PROPERTY(int, mediaUpdateInterval, 500)
     CONFIG_GLOBAL_PROPERTY(int, resourceUpdateInterval, 1000)
     CONFIG_PROPERTY(int, dragThreshold, 50)

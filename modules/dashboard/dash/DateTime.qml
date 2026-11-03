@@ -6,9 +6,13 @@ import Caelestia.Config
 import Caelestia.I18n
 import qs.components
 import qs.services
+import qs.modules.lock.center as LockCenter
 
 Item {
     id: root
+
+    // Analogue dial instead of the stacked digital readout, as on the lock screen
+    readonly property bool analogue: Config.dashboard.analogueClock
 
     anchors.top: parent.top
     anchors.bottom: parent.bottom
@@ -19,6 +23,7 @@ Item {
     Component.onDestruction: Time.secondsUsers--
 
     ColumnLayout {
+        visible: !root.analogue
         anchors.left: parent.left
         anchors.right: parent.right
         anchors.verticalCenter: parent.verticalCenter
@@ -87,5 +92,12 @@ Item {
                 font: Tokens.font.clock.size(18).weight(Font.DemiBold).build()
             }
         }
+    }
+
+    // Same dial the lock screen uses, scaled to fit inside the card
+    LockCenter.AnalogueClock {
+        anchors.centerIn: parent
+        visible: root.analogue
+        centerScale: Math.max(0.4, Math.min(1, (Math.min(root.width, root.height) - Tokens.padding.largeIncreased * 2) / 220))
     }
 }
