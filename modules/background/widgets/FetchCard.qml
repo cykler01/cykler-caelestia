@@ -2,7 +2,6 @@ pragma ComponentBehavior: Bound
 
 import QtQuick
 import QtQuick.Layouts
-import Quickshell.Io
 import Caelestia.Config
 import Caelestia.I18n
 import Caelestia.Services
@@ -15,10 +14,10 @@ import qs.modules.background
 WidgetCard {
     id: fetch
 
-    // Installed package count. Counted here rather than on the desktop so the card is whole on its
-    // own and the previews show a real number too; pacman is the only package manager this shell
-    // supports, so there is nothing to probe for
-    property int packageCount
+    // Installed package count, counted once per session in services/WidgetData.qml so a card that comes
+    // back after the desktop was hidden doesn't wait for pacman again. -1 until it has an answer; pacman is
+    // the only package manager this shell supports, so there is nothing to probe for
+    readonly property int packageCount: WidgetData.packageCount
 
     readonly property bool compact: fetch.variant === "compact"
 
@@ -72,6 +71,8 @@ WidgetCard {
 
     title: ""
     icon: ""
+
+    Component.onCompleted: WidgetData.ensurePackages()
 
     ServiceRef {
         service: Cpu
@@ -174,12 +175,4 @@ WidgetCard {
         }
     }
 
-    Process {
-        running: true
-        command: ["sh", "-c", "pacman -Qq 2>/dev/null | wc -l"]
-
-        stdout: StdioCollector {
-            onStreamFinished: fetch.packageCount = parseInt(text()) || 0
-        }
-    }
 }

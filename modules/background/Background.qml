@@ -257,6 +257,11 @@ Variants {
             width: parent.width
             height: parent.height
 
+            // Brings the widgets' shared data cache up as the shell starts rather than when the first card
+            // mounts, so its readings and GitHub calendar are already gathered the first time the desktop is
+            // uncovered (see services/WidgetData.qml)
+            Component.onCompleted: WidgetData.prime()
+
             sourceComponent: DesktopWidgets {
                 wallpaper: behindClock
                 screenState: widgetsLoader.screenState

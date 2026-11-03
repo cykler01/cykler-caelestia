@@ -4,7 +4,6 @@ import QtQuick
 import QtQuick.Layouts
 import Caelestia.Config
 import Caelestia.I18n
-import Caelestia.Services
 import qs.components
 import qs.components.controls
 import qs.services
@@ -17,50 +16,20 @@ WidgetCard {
     readonly property string style: sys.variant.startsWith("bars") ? "bars" : sys.variant.startsWith("line") ? "line" : "rings"
     readonly property bool basic: sys.variant.endsWith("basic")
 
-    // The readings show a sample taken every few seconds rather than following the live value: a ring that
-    // restarts an animation on every tick keeps the whole desktop redrawing, and that was the shell's
-    // biggest single power cost while idle. The histories are what the line graph draws.
-    property real cpu
-    property real memory
-    property real disk
-    property var cpuHistory: []
-    property var ramHistory: []
-    property var diskHistory: []
-
-    function push(history: var, value: real): var {
-        const next = history.concat([Math.max(0, Math.min(1, value))]);
-        return next.length > 24 ? next.slice(next.length - 24) : next;
-    }
+    // The readings are a sample taken every few seconds rather than the live value: a ring that restarts an
+    // animation on every tick keeps the whole desktop redrawing, and that was the shell's biggest single power
+    // cost while idle. They and their histories are sampled in services/WidgetData.qml rather than here, since
+    // the card is unloaded whenever windows hide the desktop - sampling here would empty the graph and drop
+    // every reading to zero each time you came back to a bare workspace
+    readonly property real cpu: WidgetData.cpu
+    readonly property real memory: WidgetData.memory
+    readonly property real disk: WidgetData.disk
+    readonly property var cpuHistory: WidgetData.cpuHistory
+    readonly property var ramHistory: WidgetData.ramHistory
+    readonly property var diskHistory: WidgetData.diskHistory
 
     title: Tr.tr("System")
     icon: "monitoring"
-
-    ServiceRef {
-        service: Cpu
-    }
-
-    ServiceRef {
-        service: Memory
-    }
-
-    ServiceRef {
-        service: Storage
-    }
-
-    Timer {
-        interval: 3000 * PowerSaving.pollSlowdown
-        running: true
-        repeat: true
-        triggeredOnStart: true
-        onTriggered: {
-            sys.cpu = Cpu.percentage;
-            sys.memory = Memory.percentage;
-            sys.disk = Storage.percentage;
-            sys.cpuHistory = sys.push(sys.cpuHistory, sys.cpu);
-            sys.ramHistory = sys.push(sys.ramHistory, sys.memory);
-            sys.diskHistory = sys.push(sys.diskHistory, sys.disk);
-        }
-    }
 
     RowLayout {
         Layout.fillWidth: true

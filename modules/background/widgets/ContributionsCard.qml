@@ -2,7 +2,6 @@ pragma ComponentBehavior: Bound
 
 import QtQuick
 import QtQuick.Layouts
-import Quickshell.Io
 import Caelestia.Config
 import Caelestia.I18n
 import qs.components
@@ -16,20 +15,20 @@ WidgetCard {
     readonly property real gap: 6
 
     readonly property string user: (GlobalConfig.background.desktopWidgets.githubUser ?? "").trim()
-    // Letters, digits and hyphens only: the name is part of a URL, so nothing else gets through
-    readonly property bool userValid: /^[A-Za-z0-9-]+$/.test(gh.user)
+    readonly property bool userValid: WidgetData.validGithubUser(gh.user)
 
     readonly property bool monthView: gh.variant.startsWith("month")
     readonly property bool lineView: gh.variant.endsWith("line")
 
-    // The last 30 days, oldest first, so today is the last square. The week is the tail of it, which is
-    // what lets the variant be switched without asking GitHub again
-    property var days: []
-    property int total: 0
+    // The last 30 days, oldest first, so today is the last square. The week is the tail of it, which is what
+    // lets the variant be switched without asking GitHub again. The days are held in services/WidgetData.qml
+    // rather than here: the card is unloaded whenever windows hide the desktop, and days kept in the card meant
+    // going back to GitHub every time you returned to a bare workspace
+    readonly property var days: WidgetData.daysFor(gh.user)
+    // Whatever went wrong, shown on the card: a failure should never be a blank space
+    readonly property string error: WidgetData.errorFor(gh.user)
     // Index of the square being hovered, -1 for none
     property int hovered: -1
-    // Whatever went wrong, shown on the card: a failure should never be a blank space
-    property string error
 
     readonly property var shown: gh.monthView ? gh.days : gh.days.slice(-7)
 
@@ -66,109 +65,14 @@ WidgetCard {
         return Qt.alpha(Colours.palette.m3primary, 0.3 + 0.175 * Math.min(4, level));
     }
 
-    // The days up to and including today, oldest first. Worked out when the data arrives rather than once at
-    // build time, so the card doesn't keep showing the month it was created in
-    function monthDates(): var {
-        const now = new Date();
-
-        return Array.from({
-            length: 30
-        }, (_, i) => {
-            const day = new Date(now.getFullYear(), now.getMonth(), now.getDate() - (29 - i));
-            const month = String(day.getMonth() + 1).padStart(2, "0");
-            const date = String(day.getDate()).padStart(2, "0");
-            return `${day.getFullYear()}-${month}-${date}`;
-        });
-    }
-
-    // Started by hand rather than with a `running` binding, so a name change re-fetches instead of
-    // leaving the previous name's days on the card
-    function reload(): void {
-        gh.days = [];
-        gh.total = 0;
-        gh.hovered = -1;
-        gh.error = "";
-
-        if (!gh.userValid)
-            return;
-
-        fetch.running = false;
-        fetch.running = true;
-    }
-
-    // The calendar as JSON rather than as GitHub's page: the page's markup moves, this shape does
-    // not, and it carries the counts outright
-    function parse(json: string): void {
-        let data;
-        try {
-            data = JSON.parse(json);
-        } catch (e) {
-            gh.error = Tr.tr("Could not read the contributions data");
-            console.warn(lc, `Contributions: unreadable response: ${e}`);
-            return;
-        }
-
-        const list = Array.isArray(data?.contributions) ? data.contributions : [];
-        if (list.length === 0) {
-            gh.error = Tr.tr("No contributions came back for this name");
-            return;
-        }
-
-        const byDate = {};
-        for (const day of list)
-            byDate[day.date] = day;
-
-        gh.days = monthDates().map(date => ({
-            date: date,
-            count: byDate[date]?.count ?? 0,
-            level: byDate[date]?.level ?? 0
-        }));
-        gh.total = gh.days.slice(-(gh.monthView ? 30 : 7)).reduce((sum, day) => sum + day.count, 0);
-        gh.error = "";
-    }
-
     title: Tr.tr("GitHub")
     icon: gh.monthView ? "calendar_view_month" : "calendar_view_week"
 
-    Component.onCompleted: gh.reload()
-    onUserChanged: gh.reload()
-
-    LoggingCategory {
-        id: lc
-
-        name: "caelestia.qml.modules.background.widgets.contributions"
-        defaultLogLevel: LoggingCategory.Warning
-    }
-
-    Process {
-        id: fetch
-
-        running: false
-        // A public mirror of the calendar, so there is no token and nothing to set up but the name
-        command: ["sh", "-c", `curl -fsSL --max-time 20 "https://github-contributions-api.jogruber.de/v4/${gh.user}?y=last"`]
-
-        // curl's own complaint, so a failed fetch says why on the card instead of going quiet
-        stderr: StdioCollector {
-            onStreamFinished: {
-                const complaint = text.trim();
-                if (complaint !== "" && gh.days.length === 0)
-                    gh.error = complaint;
-            }
-        }
-
-        stdout: StdioCollector {
-            onStreamFinished: gh.parse(text)
-        }
-    }
-
-    // The day turns over at midnight, so the days are read again rather than left on the
-    // month the card was built in
-    Timer {
-        interval: 1800000
-        repeat: true
-        running: true
-        onTriggered: gh.reload()
-    }
+    // The cache answers from what it already has, so a card being rebuilt after the desktop was hidden draws
+    // its squares on the first frame instead of waiting for curl; only an expired calendar is fetched again,
+    // and that lands behind the squares that are already there
+    Component.onCompleted: WidgetData.requestGithub(gh.user, false)
+    onUserChanged: WidgetData.requestGithub(gh.user, false)
 
     StyledText {
         Layout.fillWidth: true
@@ -323,5 +227,14 @@ WidgetCard {
         text: gh.hoveredDay ? gh.hoveredDay.date + " · " + (gh.hoveredDay.count === 1 ? Tr.tr("1 commit") : Tr.tr("%1 commits").arg(gh.hoveredDay.count)) : gh.monthView ? Tr.tr("%1 in 30 days").arg(total) : Tr.tr("%1 this week").arg(total)
         color: gh.hoveredDay ? Colours.palette.m3onSurface : Colours.palette.m3onSurfaceVariant
         font: Tokens.font.label.small
+    }
+
+    // The day turns over at midnight, so the days are fetched again rather than left showing the month the
+    // calendar was first read in
+    Timer {
+        interval: 1800000
+        repeat: true
+        running: true
+        onTriggered: WidgetData.requestGithub(gh.user, true)
     }
 }
