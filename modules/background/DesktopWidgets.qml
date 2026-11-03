@@ -18,6 +18,9 @@ Item {
     required property Item wallpaper
     // The screen's own state, which carries whether the layout is being rearranged
     property var screenState
+    // How far the bar band's centre sits from the screen's own, so anything that should line up with the notch
+    // (which centres on the band, not the screen) can be shifted by it
+    property real notchOffset: 0
 
     readonly property bool editMode: (screenState?.widgetEdit ?? false)
 
@@ -198,6 +201,12 @@ Item {
                 }
             }
             DelegateChoice {
+                roleValue: "network"
+                delegate: NetworkCard {
+                    gridHost: root
+                }
+            }
+            DelegateChoice {
                 roleValue: "media"
                 delegate: MediaCard {
                     gridHost: root
@@ -335,6 +344,8 @@ Item {
         z: 5
         visible: root.editMode
         anchors.horizontalCenter: parent.horizontalCenter
+        // Under the notch rather than under the middle of the screen, since those are not the same place
+        anchors.horizontalCenterOffset: root.notchOffset
         anchors.top: parent.top
         anchors.topMargin: WidgetGrid.margin * WidgetGrid.unit
         implicitWidth: doneRow.implicitWidth + Tokens.padding.large * 2

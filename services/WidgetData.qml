@@ -88,6 +88,47 @@ Singleton {
             root.clearSystem();
     }
 
+    // --- Network speeds ---
+    readonly property bool wantsNetwork: root.widgetConfig.enabled && root.entries.some(e => e.enabled && e.id === "network")
+
+    property real down
+    property real up
+    property var downHistory: []
+    property var upHistory: []
+
+    // Speeds are not percentages, so these histories keep the raw bytes a second and the card scales them
+    // against its own busiest reading
+    function pushSpeed(history: var, value: real): var {
+        const next = history.concat([Math.max(0, value)]);
+        return next.length > 24 ? next.slice(next.length - 24) : next;
+    }
+
+    function sampleNetwork(): void {
+        root.down = NetworkUsage.downloadSpeed ?? 0;
+        root.up = NetworkUsage.uploadSpeed ?? 0;
+        root.downHistory = root.pushSpeed(root.downHistory, root.down);
+        root.upHistory = root.pushSpeed(root.upHistory, root.up);
+    }
+
+    ServiceRef {
+        service: root.wantsNetwork ? NetworkUsage : null
+    }
+
+    Timer {
+        interval: root.sampleInterval
+        running: root.wantsNetwork
+        repeat: true
+        triggeredOnStart: true
+        onTriggered: root.sampleNetwork()
+    }
+
+    onWantsNetworkChanged: {
+        if (!root.wantsNetwork) {
+            root.downHistory = [];
+            root.upHistory = [];
+        }
+    }
+
     // --- GitHub contributions ---
     // How long a fetched calendar is good for. A card that comes back after this re-asks while still showing
     // the days it has, rather than blanking first and filling in when the reply lands
@@ -110,17 +151,25 @@ Singleton {
         return root.githubErrors[name] ?? "";
     }
 
+    // The variants that show stars and followers ask for the profile as well as the calendar
+    readonly property bool wantsGithubStats: root.widgetConfig.enabled && root.entries.some(e => e.enabled && e.id === "github" && (e.type ?? "").endsWith("-stats"))
+
     // Called by the background as the shell starts, which is what brings this cache into existence: the
     // readings then tick and the calendar is fetched while the desktop is still under windows, so the first
     // bare workspace shows filled-in cards instead of waiting for them to load
     function prime(): void {
+        const user = root.widgetConfig.githubUser.trim();
+
         if (root.wantsGithub)
-            root.requestGithub(root.widgetConfig.githubUser.trim(), false);
+            root.requestGithub(user, false);
+        if (root.wantsGithubStats)
+            root.requestGithubStats(user, false);
     }
 
     // A card added to the layout fetches on its own, but the layout can reach the cache before the config has
     // been read, so the first moment there is something to fetch for is taken here as well
     onWantsGithubChanged: root.prime()
+    onWantsGithubStatsChanged: root.prime()
 
     // Asks for a name's calendar unless a recent one is already here. `force` re-asks regardless, for the
     // day turning over or a name being retyped
@@ -229,6 +278,107 @@ Singleton {
                 const complaint = text.trim();
                 if (complaint !== "")
                     root.failGithub(ghFetch.user, complaint);
+            }
+        }
+    }
+
+    // --- GitHub profile ---
+    // Stars earned and followers, for the variants that show them. Both come back from one run, so they are
+    // stored together and a card never shows one name's stars beside another's followers
+    property var githubStats: ({})
+    property var githubStatsErrors: ({})
+
+    function statsFor(name: string): var {
+        return root.githubStats[name] ?? null;
+    }
+
+    function statsErrorFor(name: string): string {
+        return root.githubStatsErrors[name] ?? "";
+    }
+
+    function requestGithubStats(name: string, force: bool): void {
+        if (!root.validGithubUser(name))
+            return;
+
+        const cached = root.githubStats[name];
+        if (!force && cached && Date.now() - cached.fetched < root.githubTtl)
+            return;
+        if (ghStats.running && ghStats.user === name)
+            return;
+
+        // The profile and the repositories are two requests. They are joined into one stream with a line of
+        // their own between them rather than run as two processes, which would arrive out of order and need
+        // the two halves patched together afterwards
+        ghStats.running = false;
+        ghStats.user = name;
+        ghStats.command = ["sh", "-c", `curl -fsSL --max-time 20 "https://api.github.com/users/${name}" && printf '\\n@@\\n' && curl -fsSL --max-time 20 "https://api.github.com/users/${name}/repos?per_page=100"`];
+        ghStats.running = true;
+    }
+
+    function parseGithubStats(name: string, out: string): void {
+        const parts = out.split("\n@@\n");
+        if (parts.length < 2)
+            return;
+
+        let profile;
+        let repos;
+        try {
+            profile = JSON.parse(parts[0]);
+            repos = JSON.parse(parts[1]);
+        } catch (e) {
+            root.failGithubStats(name, Tr.tr("Could not read the profile data"));
+            console.warn(lc, `Contributions: unreadable profile response: ${e}`);
+            return;
+        }
+
+        // GitHub answers a name it does not know, or a rate-limited request, with an error object rather
+        // than a list; that is a failure to say out loud, not a profile with nothing on it
+        if (profile?.message || !Array.isArray(repos)) {
+            root.failGithubStats(name, profile?.message ?? Tr.tr("No profile came back for this name"));
+            return;
+        }
+
+        // Forks included, as GitHub counts them on a profile. Only the first hundred repositories are read,
+        // which is every repository most people have
+        const list = repos;
+        const stars = list.reduce((sum, repo) => sum + (repo.stargazers_count ?? 0), 0);
+
+        const next = Object.assign({}, root.githubStats);
+        next[name] = {
+            stars: stars,
+            followers: profile.followers ?? 0,
+            fetched: Date.now()
+        };
+        root.githubStats = next;
+
+        const errors = Object.assign({}, root.githubStatsErrors);
+        delete errors[name];
+        root.githubStatsErrors = errors;
+    }
+
+    function failGithubStats(name: string, why: string): void {
+        const errors = Object.assign({}, root.githubStatsErrors);
+        errors[name] = why;
+        root.githubStatsErrors = errors;
+    }
+
+    Process {
+        id: ghStats
+
+        property string user
+
+        running: false
+        command: []
+
+        stdout: StdioCollector {
+            onStreamFinished: root.parseGithubStats(ghStats.user, text)
+        }
+
+        stderr: StdioCollector {
+            onStreamFinished: {
+                const complaint = text.trim();
+                if (complaint !== "")
+                    root.failGithubStats(ghStats.user, complaint);
             }
         }
     }

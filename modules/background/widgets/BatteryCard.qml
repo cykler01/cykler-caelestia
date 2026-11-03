@@ -7,6 +7,7 @@ import Caelestia.Config
 import Caelestia.I18n
 import Caelestia.Services
 import qs.components
+import qs.components.controls
 import qs.services
 import qs.modules.background
 
@@ -22,6 +23,9 @@ WidgetCard {
     readonly property real rate: Math.abs(dev.changeRate)
     readonly property real seconds: charging ? dev.timeToFull : dev.timeToEmpty
     readonly property bool low: pct < 0.2 && !charging
+    // The ring variant draws the charge as a circle rather than as the bar beside the percentage
+    readonly property bool ring: bat.variant === "ring"
+    readonly property color accent: bat.low ? Colours.palette.m3error : bat.charging ? Colours.palette.m3tertiary : Colours.palette.m3primary
 
     function duration(secs: real): string {
         if (secs <= 0)
@@ -74,7 +78,7 @@ WidgetCard {
 
     RowLayout {
         Layout.fillWidth: true
-        visible: bat.laptop
+        visible: bat.laptop && !bat.ring
         spacing: Tokens.spacing.medium
 
         StyledText {
@@ -105,6 +109,60 @@ WidgetCard {
                     radius: Tokens.rounding.full
                     color: bat.low ? Colours.palette.m3error : bat.charging ? Colours.palette.m3tertiary : Colours.palette.m3primary
                 }
+            }
+        }
+    }
+
+    // The ring variant: the charge as a circle on the left, the percentage and state against the right edge
+    RowLayout {
+        Layout.fillWidth: true
+        visible: bat.laptop && bat.ring
+        spacing: Tokens.spacing.medium
+
+        CircularProgress {
+            implicitSize: 88
+            strokeWidth: 8
+            value: bat.pct
+            fgColour: bat.accent
+            bgColour: Colours.palette.m3surfaceContainerHighest
+
+            // Short and without overshoot, so a reading that changes on its own does not keep redrawing
+            Behavior on clampedVal {
+                Anim {
+                    type: Anim.FastEffects
+                }
+            }
+
+            // A ring this size reads as a hole without something in it, so the state gets a glyph: a bolt
+            // while charging, and a half-empty battery once it is running low
+            MaterialIcon {
+                anchors.centerIn: parent
+                text: bat.charging ? "bolt" : bat.low ? "battery_alert" : "battery_full"
+                color: bat.accent
+                fontStyle: Tokens.font.icon.builders.medium.build()
+            }
+        }
+
+        ColumnLayout {
+            Layout.fillWidth: true
+            Layout.alignment: Qt.AlignVCenter
+            spacing: Tokens.spacing.extraSmall
+
+            StyledText {
+                Layout.fillWidth: true
+                horizontalAlignment: Text.AlignRight
+                text: `${Math.round(bat.pct * 100)}%`
+                color: bat.low ? Colours.palette.m3error : Colours.palette.m3onSurface
+                font: Tokens.font.headline.builders.medium.weight(Font.DemiBold).build()
+            }
+
+            StyledText {
+                Layout.fillWidth: true
+                horizontalAlignment: Text.AlignRight
+                elide: Text.ElideRight
+                text: bat.full ? Tr.tr("Fully charged") : bat.charging ? Tr.tr("Charging") : Tr.tr("On battery")
+                color: Colours.palette.m3onSurfaceVariant
+                font: Tokens.font.label.medium
             }
         }
     }

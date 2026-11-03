@@ -27,6 +27,10 @@ WidgetCard {
     readonly property bool unknownLength: media.source.length > 2147483647
     readonly property real barValue: media.source.length > 0 && !media.unknownLength ? Math.min(1, Math.max(0, media.source.position / media.source.length)) : 0
 
+    // The cover variant puts the art across the top of the card with the name and controls under it, rather
+    // than the art being a thumbnail beside the text
+    readonly property bool cover: media.variant === "cover"
+
     // Minutes:seconds, growing to hours:minutes:seconds for a long track
     function lengthStr(length: real): string {
         if (length < 0)
@@ -100,7 +104,7 @@ WidgetCard {
 
     RowLayout {
         Layout.fillWidth: true
-        visible: media.source.available
+        visible: media.source.available && !media.cover
         spacing: Tokens.spacing.medium
 
         ClipRect {
@@ -174,7 +178,7 @@ WidgetCard {
     ColumnLayout {
         Layout.fillWidth: true
         Layout.topMargin: Tokens.spacing.extraSmall
-        visible: media.source.available
+        visible: media.source.available && !media.cover
         spacing: Tokens.spacing.extraSmall
 
         StyledProgressBar {
@@ -201,6 +205,85 @@ WidgetCard {
                 color: Colours.palette.m3outline
                 font: Tokens.font.label.small
             }
+        }
+    }
+
+    ColumnLayout {
+        Layout.fillWidth: true
+        Layout.fillHeight: true
+        visible: media.source.available && media.cover
+        spacing: Tokens.spacing.small
+
+        // The art takes the top of the card, growing into whatever height the card was placed at
+        ClipRect {
+            Layout.fillWidth: true
+            Layout.fillHeight: true
+            Layout.minimumHeight: 120
+            radius: Tokens.rounding.large
+            color: Colours.palette.m3surfaceContainerHigh
+
+            MaterialIcon {
+                anchors.centerIn: parent
+                text: "album"
+                color: Colours.palette.m3outline
+                fontStyle: Tokens.font.icon.builders.extraLarge.build()
+            }
+
+            Image {
+                anchors.fill: parent
+                asynchronous: true
+                fillMode: Image.PreserveAspectCrop
+                source: media.source.coverSource
+            }
+        }
+
+        StyledText {
+            Layout.fillWidth: true
+            horizontalAlignment: Text.AlignHCenter
+            elide: Text.ElideRight
+            text: media.source.title || Tr.tr("Unknown title")
+            color: Colours.palette.m3onSurface
+            font: Tokens.font.title.small
+        }
+
+        StyledText {
+            Layout.fillWidth: true
+            horizontalAlignment: Text.AlignHCenter
+            elide: Text.ElideRight
+            text: media.source.artist || Tr.tr("Unknown artist")
+            color: Colours.palette.m3onSurfaceVariant
+            font: Tokens.font.label.medium
+        }
+
+        RowLayout {
+            Layout.alignment: Qt.AlignHCenter
+            spacing: Tokens.spacing.medium
+
+            IconButton {
+                icon: "skip_previous"
+                type: IconButton.Text
+                disabled: !media.source.canGoPrevious
+                onClicked: media.source.previous()
+            }
+
+            IconButton {
+                icon: media.source.isPlaying ? "pause" : "play_arrow"
+                type: IconButton.Filled
+                onClicked: media.source.togglePlaying()
+            }
+
+            IconButton {
+                icon: "skip_next"
+                type: IconButton.Text
+                disabled: !media.source.canGoNext
+                onClicked: media.source.next()
+            }
+        }
+
+        StyledProgressBar {
+            Layout.fillWidth: true
+            implicitHeight: 4
+            value: media.barValue
         }
     }
 }

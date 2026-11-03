@@ -59,6 +59,11 @@ Singleton {
                     id: "default",
                     name: Tr.tr("Forecast"),
                     height: 7
+                },
+                {
+                    id: "compact",
+                    name: Tr.tr("Current conditions"),
+                    height: 4
                 }
             ]
         },
@@ -112,6 +117,18 @@ Singleton {
             ]
         },
         {
+            id: "network",
+            name: Tr.tr("Network"),
+            icon: "swap_vert",
+            types: [
+                {
+                    id: "default",
+                    name: Tr.tr("Speeds"),
+                    height: 4
+                }
+            ]
+        },
+        {
             id: "media",
             name: Tr.tr("Now playing"),
             icon: "music_note",
@@ -120,6 +137,11 @@ Singleton {
                     id: "default",
                     name: Tr.tr("Player"),
                     height: 6
+                },
+                {
+                    id: "cover",
+                    name: Tr.tr("Cover"),
+                    height: 9
                 }
             ]
         },
@@ -132,6 +154,11 @@ Singleton {
                     id: "default",
                     name: Tr.tr("Charge and rate"),
                     height: 4
+                },
+                {
+                    id: "ring",
+                    name: Tr.tr("Ring"),
+                    height: 6
                 }
             ]
         },
@@ -202,6 +229,16 @@ Singleton {
                     id: "month",
                     name: Tr.tr("Squares · last 30 days"),
                     height: 5
+                },
+                {
+                    id: "week-stats",
+                    name: Tr.tr("Squares · last 7 days and stats"),
+                    height: 6
+                },
+                {
+                    id: "month-stats",
+                    name: Tr.tr("Squares · last 30 days and stats"),
+                    height: 7
                 },
                 {
                     id: "week-line",

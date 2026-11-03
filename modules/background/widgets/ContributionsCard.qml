@@ -19,6 +19,8 @@ WidgetCard {
 
     readonly property bool monthView: gh.variant.startsWith("month")
     readonly property bool lineView: gh.variant.endsWith("line")
+    // The stats variants show the stars and followers under the calendar, on top of the days themselves
+    readonly property bool stats: gh.variant.endsWith("-stats")
 
     // The last 30 days, oldest first, so today is the last square. The week is the tail of it, which is what
     // lets the variant be switched without asking GitHub again. The days are held in services/WidgetData.qml
@@ -27,6 +29,8 @@ WidgetCard {
     readonly property var days: WidgetData.daysFor(gh.user)
     // Whatever went wrong, shown on the card: a failure should never be a blank space
     readonly property string error: WidgetData.errorFor(gh.user)
+    // { stars, followers } once they have been fetched, null until then
+    readonly property var profile: WidgetData.statsFor(gh.user)
     // Index of the square being hovered, -1 for none
     property int hovered: -1
 
@@ -65,14 +69,33 @@ WidgetCard {
         return Qt.alpha(Colours.palette.m3primary, 0.3 + 0.175 * Math.min(4, level));
     }
 
+    // A count as it is usually written: 1234 reads as 1.2k, and an em dash until there is one to show
+    function compact(count: var): string {
+        if (count === undefined || count === null)
+            return "—";
+        if (count >= 1000000)
+            return (count / 1000000).toFixed(1).replace(/\.0$/, "") + "M";
+        if (count >= 1000)
+            return (count / 1000).toFixed(1).replace(/\.0$/, "") + "k";
+        return String(count);
+    }
+
     title: Tr.tr("GitHub")
     icon: gh.monthView ? "calendar_view_month" : "calendar_view_week"
 
     // The cache answers from what it already has, so a card being rebuilt after the desktop was hidden draws
     // its squares on the first frame instead of waiting for curl; only an expired calendar is fetched again,
     // and that lands behind the squares that are already there
-    Component.onCompleted: WidgetData.requestGithub(gh.user, false)
-    onUserChanged: WidgetData.requestGithub(gh.user, false)
+    Component.onCompleted: {
+        WidgetData.requestGithub(gh.user, false);
+        if (gh.stats)
+            WidgetData.requestGithubStats(gh.user, false);
+    }
+    onUserChanged: {
+        WidgetData.requestGithub(gh.user, false);
+        if (gh.stats)
+            WidgetData.requestGithubStats(gh.user, false);
+    }
 
     StyledText {
         Layout.fillWidth: true
@@ -235,6 +258,61 @@ WidgetCard {
         interval: 1800000
         repeat: true
         running: true
-        onTriggered: WidgetData.requestGithub(gh.user, true)
+        onTriggered: {
+            WidgetData.requestGithub(gh.user, true);
+            if (gh.stats)
+                WidgetData.requestGithubStats(gh.user, true);
+        }
+    }
+
+    // Stars and followers, for the variants that show them beside the calendar
+    RowLayout {
+        Layout.fillWidth: true
+        Layout.topMargin: Tokens.spacing.extraSmall
+        visible: gh.stats
+        spacing: Tokens.spacing.medium
+
+        Stat {
+            icon: "star"
+            label: Tr.tr("Stars")
+            value: gh.compact(gh.profile?.stars)
+        }
+
+        Stat {
+            icon: "group"
+            label: Tr.tr("Followers")
+            value: gh.compact(gh.profile?.followers)
+        }
+    }
+
+    component Stat: RowLayout {
+        id: stat
+
+        property string icon
+        property string label
+        property string value
+
+        Layout.fillWidth: true
+        spacing: Tokens.spacing.extraSmall
+
+        MaterialIcon {
+            text: stat.icon
+            color: Colours.palette.m3primary
+            fontStyle: Tokens.font.icon.small
+        }
+
+        StyledText {
+            text: stat.value
+            color: Colours.palette.m3onSurface
+            font: Tokens.font.label.medium
+        }
+
+        StyledText {
+            Layout.fillWidth: true
+            elide: Text.ElideRight
+            text: stat.label
+            color: Colours.palette.m3outline
+            font: Tokens.font.label.small
+        }
     }
 }

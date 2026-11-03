@@ -265,6 +265,9 @@ Variants {
             sourceComponent: DesktopWidgets {
                 wallpaper: behindClock
                 screenState: widgetsLoader.screenState
+                // The notch centres on the screen minus the bar insets (see modules/drawers/Panels.qml), while the
+                // widget grid covers the whole screen, so the editor's button needs the same shift to sit under it
+                notchOffset: (insets.barLeft - insets.barRight) / 2
             }
         }
     }

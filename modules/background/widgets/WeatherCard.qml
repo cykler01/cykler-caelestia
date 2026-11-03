@@ -10,6 +10,11 @@ import qs.modules.background
 
 // --- Weather ---
 WidgetCard {
+    id: weather
+
+    // The compact variant is the current conditions on their own, without the week under them
+    readonly property bool compact: weather.variant === "compact"
+
     title: Weather.city || Tr.tr("Weather")
     icon: "location_on"
     // The card is created again each time the desktop is uncovered, so only fetch when there is nothing to show
@@ -67,6 +72,7 @@ WidgetCard {
 
     StyledRect {
         Layout.fillWidth: true
+        visible: !weather.compact
         implicitHeight: forecastRow.implicitHeight + Tokens.padding.small * 2
         radius: Tokens.rounding.large
         color: Colours.palette.m3surfaceContainerHigh

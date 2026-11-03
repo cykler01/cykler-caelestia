@@ -65,6 +65,8 @@ Item {
                 return focusCard;
             case "resources":
                 return systemCard;
+            case "network":
+                return networkCard;
             case "media":
                 return mediaCard;
             case "battery":
@@ -142,6 +144,16 @@ Item {
         id: systemCard
 
         SystemCard {
+            variant: root.variant
+            widgetId: root.kind
+            entryIndex: -1
+        }
+    }
+
+    Component {
+        id: networkCard
+
+        NetworkCard {
             variant: root.variant
             widgetId: root.kind
             entryIndex: -1

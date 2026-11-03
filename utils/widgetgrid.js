@@ -18,6 +18,7 @@ const heights = {
     weather: 7,
     pomodoro: 5,
     resources: 5,
+    network: 4,
     media: 6,
     battery: 4,
     fetch: 8,
