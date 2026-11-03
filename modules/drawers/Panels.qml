@@ -208,7 +208,8 @@ Item {
         screenState: root.screenState
 
         anchors.top: root.notifsWithStack && root.notifsTop ? notifications.bottom : parent.top
-        anchors.bottom: utilities.top
+        // With fullHeight the utilities panel never opens alongside it, so the sidebar runs to the bottom edge
+        anchors.bottom: Config.sidebar.fullHeight ? parent.bottom : utilities.top
         anchors.right: parent.right
         anchors.topMargin: root.notifsWithStack && root.notifsTop ? -notifications.anchors.topMargin : 0
     }

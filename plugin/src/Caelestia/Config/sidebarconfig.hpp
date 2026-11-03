@@ -12,6 +12,8 @@ class SidebarConfig : public settings::ObjectNode {
     CONFIG_PROPERTY(bool, enabled, true)
     // Also the side of the notifications, utilities and toasts that stack with the sidebar
     CONFIG_ENUM_PROPERTY(PanelSide, side, PanelSide::Right)
+    // Leaves the utilities panel closed while the sidebar is open, so the sidebar takes the full height
+    CONFIG_PROPERTY(bool, fullHeight, false)
     CONFIG_PROPERTY(bool, showOnHover, false)
     CONFIG_PROPERTY(int, minHoverThreshold, 200)
     CONFIG_PROPERTY(int, dragThreshold, 80)

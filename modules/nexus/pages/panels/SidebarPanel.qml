@@ -31,6 +31,13 @@ PageBase {
         }
 
         ToggleRow {
+            text: Tr.tr("Full height")
+            subtext: Tr.tr("Keep the utilities panel closed with the sidebar, so it spans the whole screen height")
+            checked: Config.sidebar.fullHeight
+            onToggled: GlobalConfig.sidebar.fullHeight = checked
+        }
+
+        ToggleRow {
             text: Tr.tr("Show on hover")
             subtext: Tr.tr("Reveal when the cursor reaches the screen edge, near the top")
             checked: Config.sidebar.showOnHover

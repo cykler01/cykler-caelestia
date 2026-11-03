@@ -386,8 +386,8 @@ CustomMouseArea {
                 screenState.dashboard = false;
         }
 
-        // Show utilities on hover
-        const showUtilities = inBottomPanel(panels.utilities, x, y, true);
+        // Show utilities on hover. Not while a full-height sidebar is covering the space they would open in
+        const showUtilities = inBottomPanel(panels.utilities, x, y, true) && !(Config.sidebar.fullHeight && screenState.sidebar);
 
         // Always update visibility based on hover if not in shortcut mode
         if (!utilitiesShortcutActive) {
@@ -413,7 +413,7 @@ CustomMouseArea {
         property point lastPosition
 
         function updateUtilities(x: real, y: real): void {
-            const showUtilities = root.inBottomPanel(root.panels.utilities, x, y, true);
+            const showUtilities = root.inBottomPanel(root.panels.utilities, x, y, true) && !(Config.sidebar.fullHeight && root.screenState.sidebar);
 
             if (!root.utilitiesShortcutActive)
                 root.screenState.utilities = showUtilities;
