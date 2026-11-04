@@ -51,6 +51,24 @@ bool ScrollGain::eventFilter(QObject* watched, QEvent* event) {
         wheel->buttons(), wheel->modifiers(), wheel->phase(), wheel->inverted(), wheel->source(),
         wheel->pointingDevice());
 
+    // QWheelEvent's constructor takes no timestamp, so the copy would carry QInputEvent's
+    // default of 0 - and 0 is not "no opinion", it selects a different clock.
+    // QQuickFlickablePrivate::computeCurrentTime() returns event->timestamp() when it is
+    // non-zero and falls back to its own QElapsedTimer otherwise, and that timer is only
+    // started by a ScrollBegin or a mouse press. The real events still reach the flickable
+    // unscaled, because ScrollBegin and ScrollEnd both carry a null pixelDelta and return
+    // above, so dropping the timestamp here leaves one gesture straddling two clocks.
+    //
+    // QQuickFlickable::wheelEvent() then drops any frame where
+    //     (currentTimestamp - lastPosTime) <= 0
+    // and stores the offending value in lastPosTime on the way out. With a wheel or any
+    // other NoScrollPhase device the flickable's timer is never started at all, so every
+    // frame computes a timestamp of 0 against a lastPosTime of 0 and scrolling stops dead
+    // after the first event - which, having been divided by an elapsed time of 0.001s,
+    // flicks a few lines first. A mouse press restarts that timer, which is why clicking
+    // and dragging revives it until it wedges again.
+    scaled.setTimestamp(wheel->timestamp());
+
     m_scaling = true;
     QCoreApplication::sendEvent(watched, &scaled);
     m_scaling = false;
