@@ -133,6 +133,11 @@ QtObject {
                 Component {
                     AddWidgetPanel {}
                 }
+
+                // Dashboard home page widgets sub-page
+                Component {
+                    DashWidgetsPanel {}
+                }
             }
         },
         Component {

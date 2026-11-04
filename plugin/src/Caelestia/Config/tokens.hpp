@@ -130,6 +130,22 @@ class DashboardTokens : public settings::ObjectNode {
     CONFIG_PROPERTY(int, mediaProgressThickness, 6)
     CONFIG_PROPERTY(int, resourceProgressThickness, 6)
     CONFIG_PROPERTY(int, weatherWidth, 275)
+    // Narrowest the home page's calendar card is allowed to get - it is the only card there
+    // that stretches horizontally, so without this a column holding just the calendar would
+    // shrink to the width of its own (zero) implicit size
+    CONFIG_PROPERTY(int, calendarWidth, 340)
+    // Floor for the home page's height, used when nothing content-sized (weather, calendar) is
+    // left enabled and every remaining card would otherwise stretch to nothing
+    CONFIG_PROPERTY(int, homeMinHeight, 300)
+    // Least height each height-flexible home card is given before any spare height is shared
+    // out by weight. These are what keep the page as tall as its contents need: a column of
+    // nothing but flexible cards has no content height of its own to be measured by, and
+    // without them a card sharing a column with the calendar (as the profile does by default)
+    // would be squeezed to nothing
+    CONFIG_PROPERTY(int, homeClockMinHeight, 140)
+    CONFIG_PROPERTY(int, homeProfileMinHeight, 110)
+    CONFIG_PROPERTY(int, homeResourcesMinHeight, 180)
+    CONFIG_PROPERTY(int, homeMediaMinHeight, 200)
     CONFIG_PROPERTY(int, mediaCoverArtSize, 200)
     CONFIG_PROPERTY(int, mediaTabWidth, 1000)
     CONFIG_PROPERTY(int, mediaTabHeight, 400)

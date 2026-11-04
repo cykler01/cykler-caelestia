@@ -3,6 +3,8 @@ pragma ComponentBehavior: Bound
 import QtQuick
 import QtQuick.Layouts
 import Quickshell
+import Caelestia.Config
+import Caelestia.I18n
 import qs.components
 import qs.components.controls
 import qs.services
@@ -57,6 +59,8 @@ Item {
     // live drag isn't laggy behind the mouse
     property var activeResize: null
 
+    readonly property real framePadding: Tokens.padding.large
+
     function realIndexOf(id: string): int {
         return root.list.values.findIndex(e => e.id === id);
     }
@@ -81,8 +85,6 @@ Item {
             return null;
         return item.entry;
     }
-
-    readonly property real framePadding: Tokens.padding.large
 
     implicitHeight: screenFrame.height
 
@@ -130,7 +132,7 @@ Item {
                 StyledText {
                     Layout.alignment: Qt.AlignHCenter
                     Layout.maximumWidth: 64
-                    text: qsTr("Clock stays here")
+                    text: Tr.tr("Clock stays here")
                     color: Qt.alpha(Colours.palette.m3onSurface, 0.35)
                     font: Tokens.font.label.small
                     horizontalAlignment: Text.AlignHCenter
@@ -152,17 +154,13 @@ Item {
 
         required property string column
 
+        readonly property var items: root.entriesFor(columnArea.column)
+        readonly property real totalWeight: columnArea.items.reduce((sum, e) => sum + e.weight, 0) || 1
+
         Layout.fillWidth: true
         implicitHeight: columnArea.contentHeight
         spacing: root.tileSpacing
         interactive: false
-
-        readonly property var items: root.entriesFor(columnArea.column)
-        readonly property real totalWeight: columnArea.items.reduce((sum, e) => sum + e.weight, 0) || 1
-
-        Behavior on implicitHeight {
-            Anim {}
-        }
 
         model: ScriptModel {
             values: columnArea.items
@@ -216,6 +214,10 @@ Item {
                 properties: "y"
             }
         }
+
+        Behavior on implicitHeight {
+            Anim {}
+        }
     }
 
     // One row: drag handle + icon + label + switch, with a resize strip under it
@@ -251,6 +253,7 @@ Item {
         // actively being dragged, or the visual feedback would lag behind the pointer
         Behavior on height {
             enabled: !root.activeResize
+
             Anim {}
         }
 
@@ -263,11 +266,13 @@ Item {
 
             Behavior on x {
                 enabled: !tile.held
+
                 Anim {}
             }
 
             Behavior on y {
                 enabled: !tile.held
+
                 Anim {}
             }
 
@@ -281,6 +286,7 @@ Item {
 
                 Behavior on implicitHeight {
                     enabled: !root.activeResize
+
                     Anim {}
                 }
 
@@ -290,10 +296,10 @@ Item {
                 MouseArea {
                     id: dragHandle
 
+                    property point pressPos
+
                     anchors.fill: parent
                     preventStealing: true
-
-                    property point pressPos
 
                     onPressed: e => {
                         tile.held = true;
@@ -369,6 +375,11 @@ Item {
         MouseArea {
             id: resizeHandle
 
+            property real pressY
+            property string belowId
+            property real aboveWeight0
+            property real belowWeight0
+
             visible: tile.resizable
             anchors.top: content.bottom
             anchors.left: parent.left
@@ -377,19 +388,6 @@ Item {
             cursorShape: Qt.SizeVerCursor
             preventStealing: true
             hoverEnabled: true
-
-            property real pressY
-            property string belowId
-            property real aboveWeight0
-            property real belowWeight0
-
-            StyledRect {
-                anchors.centerIn: parent
-                width: parent.width * 0.3
-                implicitHeight: 4
-                radius: Tokens.rounding.full
-                color: resizeHandle.pressed || resizeHandle.containsMouse ? Colours.palette.m3primary : Colours.palette.m3outlineVariant
-            }
 
             onPressed: e => {
                 pressY = e.y;
@@ -432,6 +430,14 @@ Item {
                     root.list.at(root.realIndexOf(r.belowId)).weight = r.belowWeight;
                 }
                 root.activeResize = null;
+            }
+
+            StyledRect {
+                anchors.centerIn: parent
+                width: parent.width * 0.3
+                implicitHeight: 4
+                radius: Tokens.rounding.full
+                color: resizeHandle.pressed || resizeHandle.containsMouse ? Colours.palette.m3primary : Colours.palette.m3outlineVariant
             }
         }
     }

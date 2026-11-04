@@ -112,6 +112,12 @@ PageBase {
 
         DialogSelectButton {
             rootParent: root.flickable
+            // Nothing connects to this button's top edge — the reset button
+            // above it is a right-aligned pill, not a row in the group — so it
+            // is the start of its own group and takes the full outer radius.
+            // Left unset it defaults to false and renders a 4px top with a 28px
+            // bottom, which reads as a row torn off the list above it.
+            first: true
             icon: "add"
             label: Tr.tr("Add widget")
             header: Tr.tr("Add a widget")
