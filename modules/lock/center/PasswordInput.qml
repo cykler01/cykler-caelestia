@@ -24,14 +24,16 @@ StyledRect {
     color: Colours.tPalette.m3surfaceContainer
     radius: Tokens.rounding.full
 
-    focus: true
+    // The dino game in the notifications dock takes the keys while it is up, so the field only
+    // holds on to them the rest of the time
+    focus: !root.lock.dinoPlaying
     onActiveFocusChanged: {
-        if (!activeFocus)
+        if (!activeFocus && !root.lock.dinoPlaying)
             forceActiveFocus();
     }
 
     Keys.onPressed: event => {
-        if (root.lock.unlocking)
+        if (root.lock.unlocking || root.lock.dinoPlaying)
             return;
 
         if (event.key === Qt.Key_Enter || event.key === Qt.Key_Return)

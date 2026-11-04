@@ -16,6 +16,9 @@ WlSessionLockSurface {
     required property Pam pam
 
     readonly property alias unlocking: unlockAnim.running
+    // The dino game is up in this screen's notifications dock, which takes the keys from the
+    // password field for as long as it lasts (see modules/lock/NotifDock.qml)
+    property bool dinoPlaying: false
 
     contentItem.Config.screen: screen.name
     contentItem.Tokens.screen: screen.name
@@ -24,6 +27,7 @@ WlSessionLockSurface {
 
     Connections {
         function onUnlock(): void {
+            root.dinoPlaying = false;
             unlockAnim.start();
         }
 

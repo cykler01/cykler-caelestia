@@ -12,11 +12,15 @@ import qs.components.controls
 import qs.components.effects
 import qs.services
 import qs.utils
+import qs.modules.notifpopout as NotifPopout
 
 ColumnLayout {
     id: root
 
     required property var lock
+    // The dino game is up in place of the empty dock, and the dock's own store for its best run
+    readonly property bool dinoShown: root.lock.dinoPlaying
+    readonly property Props props: Props {}
 
     anchors.fill: parent
     anchors.margins: Tokens.padding.large
@@ -85,7 +89,7 @@ ColumnLayout {
             asynchronous: true
             anchors.centerIn: parent
             active: opacity > 0
-            opacity: Notifs.list.length > 0 && !Config.lock.hideNotifs ? 0 : 1
+            opacity: (Notifs.list.length > 0 && !Config.lock.hideNotifs) || root.dinoShown ? 0 : 1
 
             sourceComponent: ColumnLayout {
                 spacing: Tokens.spacing.largeIncreased
@@ -120,7 +124,7 @@ ColumnLayout {
 
         StyledListView {
             anchors.fill: parent
-            visible: !Config.lock.hideNotifs
+            visible: !Config.lock.hideNotifs && !root.dinoShown
             spacing: Tokens.spacing.small
             clip: true
 
@@ -178,6 +182,38 @@ ColumnLayout {
                 }
                 Anim {
                     property: "y"
+                }
+            }
+        }
+
+        // An empty dock is the way into a run: the picture and line that say there is nothing to
+        // read are the target
+        MouseArea {
+            anchors.fill: parent
+            enabled: !root.dinoShown && (Notifs.list.length === 0 || Config.lock.hideNotifs)
+            hoverEnabled: true
+            cursorShape: Qt.PointingHandCursor
+
+            onClicked: root.lock.dinoPlaying = true
+        }
+
+        StyledRect {
+            id: dinoCard
+
+            anchors.fill: parent
+            visible: root.dinoShown
+            radius: Tokens.rounding.medium
+            color: Colours.tPalette.m3surfaceContainerLow
+
+            Loader {
+                anchors.fill: parent
+                active: root.dinoShown
+
+                sourceComponent: NotifPopout.DinoGame {
+                    live: root.dinoShown
+                    best: root.props.dinoBest ?? 0
+                    onBestBeaten: score => root.props.dinoBest = score
+                    onExit: root.lock.dinoPlaying = false
                 }
             }
         }
