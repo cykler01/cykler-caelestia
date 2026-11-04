@@ -19,7 +19,7 @@ ColumnLayout {
 
     required property var lock
     // The dino game is up in place of the empty dock, and the dock's own store for its best run
-    readonly property bool dinoShown: root.lock.dinoPlaying
+    readonly property bool dinoShown: root.lock.dinoPlaying && Config.lock.dinoGame
     readonly property Props props: Props {}
 
     anchors.fill: parent
@@ -190,7 +190,7 @@ ColumnLayout {
         // read are the target
         MouseArea {
             anchors.fill: parent
-            enabled: !root.dinoShown && (Notifs.list.length === 0 || Config.lock.hideNotifs)
+            enabled: Config.lock.dinoGame && !root.dinoShown && (Notifs.list.length === 0 || Config.lock.hideNotifs)
             hoverEnabled: true
             cursorShape: Qt.PointingHandCursor
 

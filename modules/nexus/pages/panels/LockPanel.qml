@@ -198,5 +198,19 @@ PageBase {
             subtext: Tr.tr("Reorder, resize and show or hide what's on the side columns")
             onClicked: root.nState.openSubPage(17)
         }
+
+        // Dino game
+        SectionHeader {
+            text: Tr.tr("Notifications")
+        }
+
+        ToggleRow {
+            first: true
+            last: true
+            text: Tr.tr("Dino game")
+            subtext: Tr.tr("Play the Chrome dino game by clicking the empty notifications dock")
+            checked: Config.lock.dinoGame
+            onToggled: GlobalConfig.lock.dinoGame = checked
+        }
     }
 }

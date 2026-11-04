@@ -35,6 +35,9 @@ class LockConfig : public settings::ObjectNode {
     CONFIG_GLOBAL_PROPERTY(int, maxHowdyTries, 3)
     CONFIG_GLOBAL_PROPERTY(bool, triggerHowdyOnWake, true)
     CONFIG_PROPERTY(bool, hideNotifs, false)
+    // The same dino game, played in the notification dock from its empty state
+    // (modules/lock/NotifDock.qml)
+    CONFIG_PROPERTY(bool, dinoGame, false)
     // Analogue dial instead of the digital readout in the centre column (modules/lock/Center.qml)
     CONFIG_PROPERTY(bool, analogueClock, false)
     // MaterialShape name (M3Shapes) the profile picture is clipped to - resolved against the

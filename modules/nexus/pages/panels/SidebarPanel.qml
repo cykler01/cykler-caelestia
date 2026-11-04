@@ -56,7 +56,6 @@ PageBase {
         }
 
         StepperRow {
-            last: true
             label: Tr.tr("Drag threshold")
             subtext: Tr.tr("Pixels dragged before the sidebar opens")
             value: Config.sidebar.dragThreshold
@@ -64,6 +63,20 @@ PageBase {
             to: 200
             stepSize: 5
             onMoved: v => GlobalConfig.sidebar.dragThreshold = v
+        }
+
+        // Dino game
+        SectionHeader {
+            text: Tr.tr("Notifications")
+        }
+
+        ToggleRow {
+            first: true
+            last: true
+            text: Tr.tr("Dino game")
+            subtext: Tr.tr("Play the Chrome dino game with space while the notifications tab is empty")
+            checked: Config.sidebar.dinoGame
+            onToggled: GlobalConfig.sidebar.dinoGame = checked
         }
     }
 }

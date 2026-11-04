@@ -43,7 +43,7 @@ Item {
     readonly property int notifCount: Notifs.list.reduce((acc, n) => n.closed ? acc : acc + 1, 0)
     // The dino game is up in place of the empty notification dock, started with space and put
     // away again by its close button. On the screen state so the drawer knows to take the keys
-    readonly property bool dinoShown: root.screenState.dinoGame
+    readonly property bool dinoShown: root.screenState.dinoGame && Config.sidebar.dinoGame
 
     // The phone whose storage is being browsed, if any. The file explorer takes the card over
     // rather than sitting in the utilities panel (see modules/utilities/cards/PhoneShare.qml),
@@ -98,7 +98,7 @@ Item {
     // a key handler on the dock, because the to-do tab keeps the window's focus item and a key
     // handler on the dock never gets the focus it would need to see the press
     Shortcut {
-        enabled: root.tab === 0 && root.shown && root.notifCount === 0 && !root.dinoShown
+        enabled: Config.sidebar.dinoGame && root.tab === 0 && root.shown && root.notifCount === 0 && !root.dinoShown
         sequence: "Space"
 
         onActivated: root.screenState.dinoGame = true

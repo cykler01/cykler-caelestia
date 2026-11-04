@@ -17,6 +17,9 @@ class SidebarConfig : public settings::ObjectNode {
     CONFIG_PROPERTY(bool, showOnHover, false)
     CONFIG_PROPERTY(int, minHoverThreshold, 200)
     CONFIG_PROPERTY(int, dragThreshold, 80)
+    // The Chrome dino game in the notifications tab, started with space while the tab has nothing
+    // to show (modules/notifpopout/Content.qml)
+    CONFIG_PROPERTY(bool, dinoGame, false)
 };
 
 } // namespace caelestia::shell::config
