@@ -240,16 +240,39 @@ WidgetCard {
         }
     }
 
-    StyledText {
-        // The total, or the day under the pointer while one is hovered
-        readonly property int total: gh.shown.reduce((sum, day) => sum + day.count, 0)
-
+    // The card's last line: the commit total (or the day under the pointer), and in the stats variants the
+    // profile counts on the same line in front of it rather than on a row of their own, which leaves that
+    // line of height to the calendar
+    RowLayout {
         Layout.fillWidth: true
         visible: gh.days.length > 0
-        horizontalAlignment: Text.AlignRight
-        text: gh.hoveredDay ? gh.hoveredDay.date + " · " + (gh.hoveredDay.count === 1 ? Tr.tr("1 commit") : Tr.tr("%1 commits").arg(gh.hoveredDay.count)) : gh.monthView ? Tr.tr("%1 in 30 days").arg(total) : Tr.tr("%1 this week").arg(total)
-        color: gh.hoveredDay ? Colours.palette.m3onSurface : Colours.palette.m3onSurfaceVariant
-        font: Tokens.font.label.small
+        spacing: Tokens.spacing.medium
+
+        Stat {
+            visible: gh.stats
+
+            icon: "star"
+            value: gh.compact(gh.profile?.stars)
+        }
+
+        Stat {
+            visible: gh.stats
+
+            icon: "group"
+            value: gh.compact(gh.profile?.followers)
+        }
+
+        StyledText {
+            // The total, or the day under the pointer while one is hovered
+            readonly property int total: gh.shown.reduce((sum, day) => sum + day.count, 0)
+
+            Layout.fillWidth: true
+            horizontalAlignment: Text.AlignRight
+            elide: Text.ElideRight
+            text: gh.hoveredDay ? gh.hoveredDay.date + " · " + (gh.hoveredDay.count === 1 ? Tr.tr("1 commit") : Tr.tr("%1 commits").arg(gh.hoveredDay.count)) : gh.monthView ? Tr.tr("%1 in 30 days").arg(total) : Tr.tr("%1 this week").arg(total)
+            color: gh.hoveredDay ? Colours.palette.m3onSurface : Colours.palette.m3onSurfaceVariant
+            font: Tokens.font.label.small
+        }
     }
 
     // The day turns over at midnight, so the days are fetched again rather than left showing the month the
@@ -265,34 +288,15 @@ WidgetCard {
         }
     }
 
-    // Stars and followers, for the variants that show them beside the calendar
-    RowLayout {
-        Layout.fillWidth: true
-        Layout.topMargin: Tokens.spacing.extraSmall
-        visible: gh.stats
-        spacing: Tokens.spacing.medium
-
-        Stat {
-            icon: "star"
-            label: Tr.tr("Stars")
-            value: gh.compact(gh.profile?.stars)
-        }
-
-        Stat {
-            icon: "group"
-            label: Tr.tr("Followers")
-            value: gh.compact(gh.profile?.followers)
-        }
-    }
-
+    // A profile count on the last line. The icon carries the meaning, so the word label is left out: the
+    // total on the same line needs the room more, and two words of label pushed the line over the card
     component Stat: RowLayout {
         id: stat
 
         property string icon
-        property string label
         property string value
 
-        Layout.fillWidth: true
+        Layout.alignment: Qt.AlignVCenter
         spacing: Tokens.spacing.extraSmall
 
         MaterialIcon {
@@ -305,14 +309,6 @@ WidgetCard {
             text: stat.value
             color: Colours.palette.m3onSurface
             font: Tokens.font.label.medium
-        }
-
-        StyledText {
-            Layout.fillWidth: true
-            elide: Text.ElideRight
-            text: stat.label
-            color: Colours.palette.m3outline
-            font: Tokens.font.label.small
         }
     }
 }

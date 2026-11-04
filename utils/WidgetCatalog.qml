@@ -238,12 +238,12 @@ Singleton {
                 {
                     id: "week-stats",
                     name: Tr.tr("Squares · last 7 days and stats"),
-                    height: 6
+                    height: 4
                 },
                 {
                     id: "month-stats",
                     name: Tr.tr("Squares · last 30 days and stats"),
-                    height: 7
+                    height: 5
                 },
                 {
                     id: "week-line",
