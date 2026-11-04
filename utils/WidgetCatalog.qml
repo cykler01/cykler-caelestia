@@ -188,6 +188,11 @@ Singleton {
                     id: "default",
                     name: Tr.tr("Spectrum"),
                     height: 5
+                },
+                {
+                    id: "mirror",
+                    name: Tr.tr("Mirrored"),
+                    height: 5
                 }
             ]
         },
