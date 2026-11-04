@@ -33,6 +33,11 @@ Singleton {
     // anything else the user has in there
     property string savedText: ""
     property bool loaded: false
+    // The managed block parsed back off disk. overrides only ever holds what was changed in this
+    // session, and a write replaces the whole block, so without this a setting changed today
+    // would delete every setting made before the last restart - which is what stopped these
+    // surviving a reboot.
+    property var fileOverrides: ({})
 
     readonly property real sensitivity: root.current(root.sensitivityKey, 0)
     readonly property string accelProfile: root.current(root.accelProfileKey, "")
@@ -110,8 +115,61 @@ Singleton {
         }).join("\n");
     }
 
+    // Reads a value back out of the block exactly as luaValue() wrote it
+    function parseLuaValue(raw: string): var {
+        const value = raw.trim();
+        if (value === "true")
+            return true;
+        if (value === "false")
+            return false;
+        if (/^".*"$/.test(value))
+            return value.slice(1, -1).replace(/\\"/g, "\"").replace(/\\\\/g, "\\");
+        const num = Number(value);
+        return value !== "" && Number.isFinite(num) ? num : value;
+    }
+
+    // The block is written by block() below, so its shape is known exactly: an hl.config({ ... })
+    // wrapper around nested `key = {` tables and `key = value,` leaves. Parsed back into the flat
+    // "input:touchpad:scroll_factor" keys that set() and Hypr.extras.applyOptions() both use.
+    function parseBlock(text: string): var {
+        const start = text.indexOf(root.blockStart);
+        if (start === -1)
+            return ({});
+        const end = text.indexOf(root.blockEnd, start);
+        if (end === -1)
+            return ({});
+
+        const parsed = {};
+        const path = [];
+        for (const raw of text.slice(start + root.blockStart.length, end).split("\n")) {
+            const line = raw.trim();
+            if (line === "" || line.startsWith("--") || line.startsWith("hl.config") || line === "})")
+                continue;
+            if (line === "}," || line === "}") {
+                path.pop();
+                continue;
+            }
+
+            const open = /^([A-Za-z_][A-Za-z0-9_]*)\s*=\s*\{$/.exec(line);
+            if (open) {
+                path.push(open[1]);
+                continue;
+            }
+
+            const leaf = /^([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.*?),?$/.exec(line);
+            if (leaf)
+                parsed[path.concat(leaf[1]).join(":")] = root.parseLuaValue(leaf[2]);
+        }
+        return parsed;
+    }
+
+    // What the block already held, with this session's changes on top
+    function merged(): var {
+        return Object.assign({}, root.fileOverrides, root.overrides);
+    }
+
     function block(): string {
-        return `${root.blockStart}\nhl.config({\n${root.luaTable(root.nest(root.overrides), "    ")}\n})\n${root.blockEnd}\n`;
+        return `${root.blockStart}\nhl.config({\n${root.luaTable(root.nest(root.merged()), "    ")}\n})\n${root.blockEnd}\n`;
     }
 
     // Appended to the end of the file, so it is read after whatever the user wrote there and wins
@@ -160,6 +218,7 @@ Singleton {
         onFileChanged: reload()
         onLoaded: {
             root.savedText = text();
+            root.fileOverrides = root.parseBlock(root.savedText);
             root.loaded = true;
             // Anything changed before this could be written down lands in the config now
             root.write();
@@ -169,6 +228,7 @@ Singleton {
             // preserve - only the block to add
             if (err === FileViewError.FileNotFound) {
                 root.savedText = "";
+                root.fileOverrides = ({});
                 root.loaded = true;
                 root.write();
             }
