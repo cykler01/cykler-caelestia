@@ -131,7 +131,8 @@ Scope {
                 return;
             }
 
-            // Notifications, the media library, the to-do list and the notepad, then back to the first
+            // Notifications, the media library, the to-do list and the notepad, then back to
+            // the first
             screenState.notifPopoutTab = (screenState.notifPopoutTab + 1) % 4;
         }
     }

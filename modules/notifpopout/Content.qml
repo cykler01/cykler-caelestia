@@ -14,9 +14,11 @@ import qs.modules.utilities as Utilities
 // Sits on the drawers window's frame (see Wrapper.qml), so there is no background of its own: the panel's
 // morphing blob is the surface, and the content rests on it in the same containers the sidebar uses.
 //
-// Four tabs, moved between with the same swipe that opens the popout: the
-// notification dock, the local music library, the to-do list and the notepad, so all four sit
-// in the one panel that swipe already reaches rather than each needing a window of its own.
+// Four tabs, moved between with the same swipe that opens the popout: the notification dock, the
+// local music library, the to-do list and the notepad, so they all sit in the one panel that
+// swipe already reaches rather than each needing a window of its own. The dino game is not a tab:
+// with nothing to read, the notification dock turns into it on space, and turns back when it is
+// closed.
 Item {
     id: root
 
@@ -26,8 +28,8 @@ Item {
     // position many times a second, are only built then
     property bool shown: true
 
-    // 0 notifications, 1 media library, 2 to-do, 3 notepad. Lives on the screen state so
-    // closing the popout doesn't send it back to the first tab
+    // 0 notifications, 1 media library, 2 to-do, 3 notepad. Lives on the screen state so closing
+    // the popout doesn't send it back to the first tab
     readonly property int tab: root.screenState.notifPopoutTab
     // The library walks the music folder, so it is only built the first time the tab is
     // actually opened, and kept afterwards rather than rebuilt on every switch back.
@@ -36,6 +38,12 @@ Item {
     // Where the tab switch is, in tabs: follows the tab through an animation, and is what
     // everything that moves between the panes below reads
     property real tabPos: root.tab
+    // How many notifications are up, which is what makes the dino game reachable: it is the
+    // reward for an empty dock, not something to play over the things waiting to be read
+    readonly property int notifCount: Notifs.list.reduce((acc, n) => n.closed ? acc : acc + 1, 0)
+    // The dino game is up in place of the empty notification dock, started with space and put
+    // away again by its close button. On the screen state so the drawer knows to take the keys
+    readonly property bool dinoShown: root.screenState.dinoGame
 
     // The phone whose storage is being browsed, if any. The file explorer takes the card over
     // rather than sitting in the utilities panel (see modules/utilities/cards/PhoneShare.qml),
@@ -57,12 +65,17 @@ Item {
     onTabChanged: {
         if (root.tab === 1)
             root.libraryLoaded = true;
+        if (root.tab !== 0)
+            root.screenState.dinoGame = false;
     }
 
-    // Closing the sidebar puts the tabs back, so the timer panel does not greet the next open
+    // Closing the sidebar puts the tabs back, so neither the timer panel nor a run in the
+    // notification dock greets the next open
     onShownChanged: {
-        if (!root.shown)
+        if (!root.shown) {
             root.screenState.timerPane = false;
+            root.screenState.dinoGame = false;
+        }
     }
 
     Behavior on tabPos {
@@ -79,6 +92,16 @@ Item {
         }
 
         target: KdeConnect
+    }
+
+    // Space starts the dino game while the dock has nothing to read. A window shortcut rather than
+    // a key handler on the dock, because the to-do tab keeps the window's focus item and a key
+    // handler on the dock never gets the focus it would need to see the press
+    Shortcut {
+        enabled: root.tab === 0 && root.shown && root.notifCount === 0 && !root.dinoShown
+        sequence: "Space"
+
+        onActivated: root.screenState.dinoGame = true
     }
 
     StyledRect {
@@ -176,9 +199,26 @@ Item {
 
                 Sidebar.NotifDock {
                     anchors.fill: parent
+                    // Nothing of the dock is left showing behind the game: not its heading, and
+                    // not the picture and line that say there is nothing to read
+                    visible: !root.dinoShown
 
                     props: root.props
                     screenState: root.screenState
+                }
+
+                // Only built while it is being played, so an idle dock costs nothing and every
+                // run starts from the top
+                Loader {
+                    anchors.fill: parent
+                    active: root.dinoShown
+
+                    sourceComponent: DinoGame {
+                        live: root.tab === 0 && root.shown
+                        best: root.props.dinoBest ?? 0
+                        onBestBeaten: score => root.props.dinoBest = score
+                        onExit: root.screenState.dinoGame = false
+                    }
                 }
             }
 

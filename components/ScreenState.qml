@@ -23,6 +23,11 @@ PersistentProperties {
     // greet the next open
     property bool timerPane
 
+    // The dino game is up in place of the sidebar's empty notification dock, started with space
+    // (see modules/notifpopout/Content.qml). Cleared as the sidebar closes, and kept here so the
+    // drawer knows to take the keyboard for it
+    property bool dinoGame
+
     // The desktop's widget layout is being rearranged: the cards are draggable and snap to the grid
     property bool widgetEdit
 
@@ -30,8 +35,8 @@ PersistentProperties {
     signal overviewPageRequested(int delta)
 
     // Which tab the sidebar's top card is showing: 0 notifications, 1 media library, 2 to-do,
-    // 3 notepad (see modules/sidebar/Content.qml). Kept here so it survives the sidebar closing,
-    // and so the swipe gestures can move it without reaching into a panel
+    // 3 notepad (see modules/sidebar/Content.qml). Kept here so it survives the sidebar
+    // closing, and so the swipe gestures can move it without reaching into a panel
     property int notifPopoutTab
 
     // Dashboard state
