@@ -1,6 +1,7 @@
 #pragma once
 
 #include <qstring.h>
+#include <qvariantlist.h>
 
 #include "settings/objectnode.hpp"
 #include "common.hpp"
@@ -9,6 +10,22 @@
 namespace caelestia::shell::config {
 
 using Qt::StringLiterals::operator""_s;
+using settings::vmap;
+
+// One card on the dashboard's home (Dash) page. The page keeps the two-row shape it has always
+// had - a top row and a bottom row side by side, with full-height columns either side of them -
+// and a card says which of those four places it sits in; its position in the list is its order
+// within that place. Mirrors LockWidgetEntry (lockconfig.hpp), which does the same for the lock
+// screen's side columns
+class DashWidgetEntry : public settings::ObjectNode {
+    CONFIG_NODE(DashWidgetEntry, settings::ObjectNode)
+
+    CONFIG_PROPERTY(QString, id, {})
+    CONFIG_PROPERTY(bool, enabled, true)
+    // "top" or "bottom" for the two rows, "left" or "right" for a full-height column beside them
+    CONFIG_PROPERTY(QString, zone, u"top"_s)
+};
+CONFIG_LIST_TYPE(DashWidgetEntry, DashWidgetList)
 
 class DashboardPerformance : public settings::ObjectNode {
     CONFIG_NODE(DashboardPerformance, settings::ObjectNode)
@@ -52,6 +69,19 @@ class DashboardConfig : public settings::ObjectNode {
     CONFIG_GLOBAL_PROPERTY(int, mediaUpdateInterval, 500)
     CONFIG_GLOBAL_PROPERTY(int, resourceUpdateInterval, 1000)
     CONFIG_PROPERTY(int, dragThreshold, 50)
+    // Which cards the home page shows, where, and in what order (ids: weather, clock, profile,
+    // calendar, resources, media). The defaults are the fixed layout this page had before it
+    // became arrangeable. Settings > Panels > Dashboard > Widgets writes it
+    // (modules/nexus/pages/panels/DashWidgetsPanel.qml)
+    CONFIG_LIST(DashWidgetList, widgets,
+        DEFAULT_ARG({
+            vmap({ { u"id"_s, u"weather"_s }, { u"zone"_s, u"top"_s } }),
+            vmap({ { u"id"_s, u"profile"_s }, { u"zone"_s, u"top"_s } }),
+            vmap({ { u"id"_s, u"clock"_s }, { u"zone"_s, u"bottom"_s } }),
+            vmap({ { u"id"_s, u"calendar"_s }, { u"zone"_s, u"bottom"_s } }),
+            vmap({ { u"id"_s, u"resources"_s }, { u"zone"_s, u"bottom"_s } }),
+            vmap({ { u"id"_s, u"media"_s }, { u"zone"_s, u"right"_s } }),
+        }))
     CONFIG_SUBOBJECT(DashboardPerformance, performance)
 };
 

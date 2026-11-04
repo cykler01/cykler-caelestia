@@ -3,6 +3,8 @@ pragma ComponentBehavior: Bound
 import QtQuick
 import QtQuick.Layouts
 import Quickshell
+import Caelestia.Config
+import Caelestia.I18n
 import qs.components
 import qs.components.controls
 import qs.services
@@ -130,7 +132,7 @@ Item {
                 StyledText {
                     Layout.alignment: Qt.AlignHCenter
                     Layout.maximumWidth: 64
-                    text: qsTr("Clock stays here")
+                    text: Tr.tr("Clock stays here")
                     color: Qt.alpha(Colours.palette.m3onSurface, 0.35)
                     font: Tokens.font.label.small
                     horizontalAlignment: Text.AlignHCenter

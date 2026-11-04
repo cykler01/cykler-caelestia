@@ -1,104 +1,116 @@
-import "dash"
+pragma ComponentBehavior: Bound
+
+import QtQuick
 import QtQuick.Layouts
 import Caelestia.Config
 import qs.components
 import qs.components.filedialog
 import qs.services
 
-GridLayout {
+// The dashboard's home page. It keeps the shape it has always had - a top row above a bottom
+// row, with full-height columns either side of them - but which cards are in each of those four
+// places, and in what order, now comes from Config.dashboard.widgets rather than being fixed
+// here. The shipped defaults are the old layout exactly.
+//
+// The settings page renders this same component, scaled down and with `editing` set, as a live
+// preview you rearrange the real cards in; see modules/nexus/common/DashPreview.qml.
+Item {
     id: root
 
     required property ScreenState screenState
     required property FileDialog facePicker
 
-    rowSpacing: Tokens.spacing.medium
-    columnSpacing: Tokens.spacing.medium
+    // Set by the settings preview, never on the real page
+    property bool editing: false
+    property var editController: null
+    property real editScale: 1
 
-    Rect {
-        Layout.column: 2
-        Layout.columnSpan: 3
-        Layout.preferredWidth: Tokens.sizes.dashboard.userWidth
-        Layout.fillHeight: true
+    readonly property real spacing: Tokens.spacing.medium
 
-        radius: Tokens.rounding.extraLarge
+    // Exposed so the preview can hit-test a drag against the real places
+    readonly property var zones: [leftZone, topZone, bottomZone, rightZone]
 
-        User {
-            id: user
+    // The two rows stacked, with a gap between them only when both have something in them
+    readonly property real rowsHeight: topZone.naturalHeight + bottomZone.naturalHeight + (topZone.visible && bottomZone.visible ? root.spacing : 0)
 
+    // A full-height column has to fit too, so the page is as tall as the taller of the two -
+    // and never shorter than the floor, for a layout left with nothing that has a height of
+    // its own to be measured by
+    readonly property real contentHeight: Math.max(root.rowsHeight, leftZone.naturalHeight, rightZone.naturalHeight, Tokens.sizes.dashboard.homeMinHeight)
+
+    implicitWidth: outer.implicitWidth
+    implicitHeight: root.contentHeight
+
+    RowLayout {
+        id: outer
+
+        anchors.fill: parent
+        spacing: root.spacing
+
+        DashZone {
+            id: leftZone
+
+            Layout.fillHeight: true
+            visible: !leftZone.empty || root.editing
+            zoneId: "left"
+            vertical: true
             screenState: root.screenState
             facePicker: root.facePicker
+            editing: root.editing
+            editController: root.editController
+            editScale: root.editScale
         }
-    }
 
-    Rect {
-        Layout.row: 0
-        Layout.columnSpan: 2
-        Layout.preferredWidth: Tokens.sizes.dashboard.weatherWidth
-        Layout.preferredHeight: weather.implicitHeight
+        ColumnLayout {
+            Layout.fillWidth: true
+            Layout.fillHeight: true
+            spacing: root.spacing
 
-        radius: Tokens.rounding.extraLarge * 1.5
+            DashZone {
+                id: topZone
 
-        SmallWeather {
-            id: weather
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+                Layout.preferredHeight: topZone.naturalHeight
+                visible: !topZone.empty || root.editing
+                zoneId: "top"
+                vertical: false
+                screenState: root.screenState
+                facePicker: root.facePicker
+                editing: root.editing
+                editController: root.editController
+                editScale: root.editScale
+            }
+
+            DashZone {
+                id: bottomZone
+
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+                Layout.preferredHeight: bottomZone.naturalHeight
+                visible: !bottomZone.empty || root.editing
+                zoneId: "bottom"
+                vertical: false
+                screenState: root.screenState
+                facePicker: root.facePicker
+                editing: root.editing
+                editController: root.editController
+                editScale: root.editScale
+            }
         }
-    }
 
-    Rect {
-        Layout.row: 1
-        Layout.preferredWidth: dateTime.implicitWidth
-        Layout.fillHeight: true
+        DashZone {
+            id: rightZone
 
-        radius: Tokens.rounding.large
-
-        DateTime {
-            id: dateTime
-        }
-    }
-
-    Rect {
-        Layout.row: 1
-        Layout.column: 1
-        Layout.columnSpan: 3
-        Layout.fillWidth: true
-        Layout.preferredHeight: calendar.implicitHeight
-
-        radius: Tokens.rounding.extraLarge
-
-        Calendar {
-            id: calendar
-
+            Layout.fillHeight: true
+            visible: !rightZone.empty || root.editing
+            zoneId: "right"
+            vertical: true
             screenState: root.screenState
+            facePicker: root.facePicker
+            editing: root.editing
+            editController: root.editController
+            editScale: root.editScale
         }
-    }
-
-    Rect {
-        Layout.row: 1
-        Layout.column: 4
-        Layout.preferredWidth: resources.implicitWidth
-        Layout.fillHeight: true
-
-        radius: Tokens.rounding.large
-
-        Resources {
-            id: resources
-        }
-    }
-
-    Rect {
-        Layout.row: 0
-        Layout.column: 5
-        Layout.rowSpan: 2
-        Layout.preferredWidth: media.implicitWidth
-        Layout.fillHeight: true
-
-        radius: Tokens.rounding.extraLarge * 2
-
-        Media {
-            id: media
-        }
-    }
-
-    component Rect: StyledRect {
-        color: Colours.tPalette.m3surfaceContainer
     }
 }

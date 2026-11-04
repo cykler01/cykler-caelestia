@@ -17,12 +17,19 @@ Item {
     anchors.top: parent.top
     anchors.bottom: parent.bottom
     implicitWidth: Tokens.sizes.dashboard.dateTimeWidth
+    // What the stacked readout needs to show without clipping. The card itself stretches to
+    // whatever height its column gives it, but DashColumn.qml floors that at this so a clock
+    // sharing a short column cannot squeeze the digits off the bottom. The analogue dial
+    // scales to fit whatever it gets, so it has nothing to ask for here
+    implicitHeight: root.analogue ? 0 : digital.implicitHeight + Tokens.padding.largeIncreased * 2
 
     // This card shows seconds, so the shared clock has to tick every second for as long as it exists
     Component.onCompleted: Time.secondsUsers++
     Component.onDestruction: Time.secondsUsers--
 
     ColumnLayout {
+        id: digital
+
         visible: !root.analogue
         anchors.left: parent.left
         anchors.right: parent.right
