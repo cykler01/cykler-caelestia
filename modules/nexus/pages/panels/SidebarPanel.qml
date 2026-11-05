@@ -65,6 +65,47 @@ PageBase {
             onMoved: v => GlobalConfig.sidebar.dragThreshold = v
         }
 
+        SectionHeader {
+            text: Tr.tr("Tabs")
+        }
+
+        ToggleRow {
+            first: true
+            text: Tr.tr("Notifications")
+            subtext: Tr.tr("Always shown as the sidebar's first tab")
+            checked: true
+            enabled: false
+        }
+
+        ToggleRow {
+            text: Tr.tr("Music")
+            subtext: Tr.tr("Show the local music library as a tab")
+            checked: Config.sidebar.music ?? true
+            onToggled: GlobalConfig.sidebar.music = checked
+        }
+
+        ToggleRow {
+            text: Tr.tr("Checklist")
+            subtext: Tr.tr("Show the to-do list as a tab")
+            checked: Config.sidebar.todo ?? true
+            onToggled: GlobalConfig.sidebar.todo = checked
+        }
+
+        ToggleRow {
+            text: Tr.tr("Notes")
+            subtext: Tr.tr("Show the notepad as a tab")
+            checked: Config.sidebar.notes ?? true
+            onToggled: GlobalConfig.sidebar.notes = checked
+        }
+
+        ToggleRow {
+            last: true
+            text: Tr.tr("AI chat")
+            subtext: Tr.tr("Show a chat tab that saves conversations; it uses the provider and key set in the Launcher settings")
+            checked: Config.sidebar.aiChat ?? false
+            onToggled: GlobalConfig.sidebar.aiChat = checked
+        }
+
         // Dino game
         SectionHeader {
             text: Tr.tr("Notifications")
@@ -77,21 +118,6 @@ PageBase {
             subtext: Tr.tr("Play the Chrome dino game with space while the notifications tab is empty")
             checked: Config.sidebar.dinoGame
             onToggled: GlobalConfig.sidebar.dinoGame = checked
-        }
-
-        SectionHeader {
-            text: Tr.tr("AI")
-        }
-
-        ToggleRow {
-            id: aiChatToggle
-
-            first: true
-            last: true
-            text: Tr.tr("AI chat tab")
-            subtext: Tr.tr("Show a chat tab in the sidebar that saves conversations; it uses the provider and key set in the Launcher settings")
-            checked: Config.sidebar.aiChat ?? false
-            onToggled: GlobalConfig.sidebar.aiChat = checked
         }
     }
 }

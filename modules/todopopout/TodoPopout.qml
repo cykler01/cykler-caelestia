@@ -4,9 +4,10 @@ import Quickshell.Io
 import qs.services
 
 // The to-do list's own IPC target: `qs -c caelestia ipc call todo open|close|toggle`, or the
-// `caelestia:todoPopout` global shortcut. The list itself is the sidebar's third tab (see
+// `caelestia:todoPopout` global shortcut. The list itself is a tab of the sidebar (see
 // modules/sidebar/Content.qml, modules/notifpopout/Content.qml) rather than a panel of its own,
-// so this just points the shared sidebar/notifPopoutTab state at it.
+// so this just points the shared sidebar/notifPopoutTabKey state at it. Does nothing while the
+// tab is turned off in the settings.
 Scope {
     id: root
 
@@ -15,15 +16,18 @@ Scope {
         if (!state)
             return;
 
-        if (open)
-            state.notifPopoutTab = 2;
+        if (open) {
+            if (!SidebarTabs.isEnabled("todo"))
+                return;
+            state.notifPopoutTabKey = "todo";
+        }
         state.sidebar = open;
     }
 
     function toggle(): void {
         const state = ShellState.forActive();
         if (state)
-            root.setActive(!(state.sidebar && state.notifPopoutTab === 2));
+            root.setActive(!(state.sidebar && state.notifPopoutTabKey === "todo"));
     }
 
     IpcHandler {

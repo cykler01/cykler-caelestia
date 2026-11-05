@@ -104,7 +104,7 @@ StyledWindow {
     // the keyboard while any is up. So
     // does the timer panel, which has a field whether or not a tab is up behind it, and an empty
     // notification dock, where space starts the dino game
-    WlrLayershell.keyboardFocus: screenState.launcher || screenState.session || (screenState.sidebar && (screenState.notifPopoutTab !== 0 || screenState.timerPane || screenState.dinoGame || Notifs.list.every(n => n.closed))) ? WlrKeyboardFocus.OnDemand : WlrKeyboardFocus.None
+    WlrLayershell.keyboardFocus: screenState.launcher || screenState.session || (screenState.sidebar && (screenState.notifPopoutTabKey !== "notifications" || screenState.timerPane || screenState.dinoGame || Notifs.list.every(n => n.closed))) ? WlrKeyboardFocus.OnDemand : WlrKeyboardFocus.None
 
     mask: hasFullscreen ? emptyRegion : regions
 

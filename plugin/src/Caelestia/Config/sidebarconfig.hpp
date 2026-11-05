@@ -20,6 +20,11 @@ class SidebarConfig : public settings::ObjectNode {
     // The Chrome dino game in the notifications tab, started with space while the tab has nothing
     // to show (modules/notifpopout/Content.qml)
     CONFIG_PROPERTY(bool, dinoGame, false)
+    // Which of the sidebar tabs are shown. The notification dock is always the first tab, so it
+    // has no setting of its own (modules/notifpopout/Content.qml)
+    CONFIG_PROPERTY(bool, music, true)
+    CONFIG_PROPERTY(bool, todo, true)
+    CONFIG_PROPERTY(bool, notes, true)
     // The AI chat tab, with conversations saved between sessions
     // (modules/aichatpopout/Content.qml)
     CONFIG_PROPERTY(bool, aiChat, false)

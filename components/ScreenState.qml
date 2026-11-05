@@ -31,17 +31,18 @@ PersistentProperties {
     // The desktop's widget layout is being rearranged: the cards are draggable and snap to the grid
     property bool widgetEdit
 
-    // Asks the overview to turn its page (-1 back, 1 forward), for the swipe gestures
-    signal overviewPageRequested(int delta)
-
-    // Which tab the sidebar's top card is showing: 0 notifications, 1 media library, 2 to-do,
-    // 3 notepad, 4 AI chat when it is enabled (see modules/sidebar/Content.qml). Kept here so it
+    // Which tab the sidebar's top card is showing, as one of the enabled tab keys (see
+    // services/SidebarTabs.qml). Kept as a key rather than an index so turning a tab off doesn't
+    // make the remembered position point at whichever tab took its place. Kept here so it
     // survives the sidebar closing, and so the swipe gestures can move it without reaching into
     // a panel
-    property int notifPopoutTab
+    property string notifPopoutTabKey: "notifications"
 
     // Dashboard state
     property int dashboardTab
 
     property date dashboardDate: new Date()
+
+    // Asks the overview to turn its page (-1 back, 1 forward), for the swipe gestures
+    signal overviewPageRequested(int delta)
 }

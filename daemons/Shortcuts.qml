@@ -86,9 +86,8 @@ Scope {
     // qmllint disable unresolved-type
     CustomShortcut {
         // qmllint enable unresolved-type
-        // Notifications, the media library and the to-do list are tabs of the sidebar's own top
-        // card (see modules/sidebar/Content.qml), along with the notepad, rather than a separate
-        // popout
+        // The notification dock, media library, to-do list, notepad and AI chat are tabs of the
+        // sidebar's own top card (see modules/sidebar/Content.qml), rather than a separate popout
         name: "notifPopoutOpen"
         description: "Open the sidebar"
         onPressed: {
@@ -131,10 +130,10 @@ Scope {
                 return;
             }
 
-            // Notifications, the media library, the to-do list and the notepad, plus the AI
-            // chat when it is turned on, then back to the first
-            const tabCount = Config.sidebar.aiChat ? 5 : 4;
-            screenState.notifPopoutTab = (screenState.notifPopoutTab % tabCount + 1) % tabCount;
+            // Every enabled tab in the tab bar's order, then back to the first. The notification
+            // dock always comes first
+            const tabs = SidebarTabs.keys;
+            screenState.notifPopoutTabKey = tabs[(tabs.indexOf(screenState.notifPopoutTabKey) + 1) % tabs.length];
         }
     }
 
@@ -173,18 +172,18 @@ Scope {
     // qmllint disable unresolved-type
     CustomShortcut {
         // qmllint enable unresolved-type
-        // The to-do list is the sidebar's third tab rather than a panel of its own
+        // The to-do list is a tab of the sidebar rather than a panel of its own
         name: "todoPopout"
         description: "Toggle the to-do list"
         onPressed: {
             const screenState = ShellState.forActive();
-            const isTodoOpen = screenState.sidebar && screenState.notifPopoutTab === 2;
+            const isTodoOpen = screenState.sidebar && screenState.notifPopoutTabKey === "todo";
             if (isTodoOpen) {
                 screenState.sidebar = false;
             } else {
-                if (root.hasFullscreen)
+                if (root.hasFullscreen || !SidebarTabs.isEnabled("todo"))
                     return;
-                screenState.notifPopoutTab = 2;
+                screenState.notifPopoutTabKey = "todo";
                 screenState.sidebar = true;
             }
         }
@@ -193,18 +192,18 @@ Scope {
     // qmllint disable unresolved-type
     CustomShortcut {
         // qmllint enable unresolved-type
-        // The notepad is the sidebar's fourth tab rather than a panel of its own
+        // The notepad is a tab of the sidebar rather than a panel of its own
         name: "notepadPopout"
         description: "Toggle the notepad"
         onPressed: {
             const screenState = ShellState.forActive();
-            const isNotepadOpen = screenState.sidebar && screenState.notifPopoutTab === 3;
+            const isNotepadOpen = screenState.sidebar && screenState.notifPopoutTabKey === "notes";
             if (isNotepadOpen) {
                 screenState.sidebar = false;
             } else {
-                if (root.hasFullscreen)
+                if (root.hasFullscreen || !SidebarTabs.isEnabled("notes"))
                     return;
-                screenState.notifPopoutTab = 3;
+                screenState.notifPopoutTabKey = "notes";
                 screenState.sidebar = true;
             }
         }

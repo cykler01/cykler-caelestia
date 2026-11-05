@@ -24,9 +24,9 @@ Item {
             radius: Tokens.rounding.large
             color: Colours.tPalette.m3surfaceContainerLow
 
-            // Notifications, the local music library, the to-do list, the notepad and the AI
-            // chat when it is turned on, as tabs of one card (see modules/notifpopout/Content.qml,
-            // shared with the swipe gesture)
+            // The tabs that are turned on (the notification dock always is), as tabs of one card
+            // (see services/SidebarTabs.qml, modules/notifpopout/Content.qml, shared with the
+            // swipe gesture)
             NotifPopout.Content {
                 objectName: "sidebarNotifications"
                 anchors.fill: parent

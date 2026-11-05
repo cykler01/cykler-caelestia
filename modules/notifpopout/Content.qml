@@ -15,12 +15,12 @@ import qs.modules.dashboard.media
 // Sits on the drawers window's frame (see Wrapper.qml), so there is no background of its own: the panel's
 // morphing blob is the surface, and the content rests on it in the same containers the sidebar uses.
 //
-// Five tabs, moved between with the same swipe that opens the popout: the notification dock, the
-// local music library, the to-do list, the notepad and, when turned on in the settings, the AI
+// Up to five tabs, moved between with the same swipe that opens the popout: the notification dock,
+// the local music library, the to-do list, the notepad and, when turned on in the settings, the AI
 // chat, so they all sit in the one panel that swipe already reaches rather than each needing a
-// window of its own. The dino game is not a tab:
-// with nothing to read, the notification dock turns into it on space, and turns back when it is
-// closed.
+// window of its own. The dock is always the first tab; each of the others can be turned off in the
+// settings. The dino game is not a tab: with nothing to read, the notification dock turns into it
+// on space, and turns back when it is closed.
 Item {
     id: root
 
@@ -30,15 +30,19 @@ Item {
     // position many times a second, are only built then
     property bool shown: true
 
-    // 0 notifications, 1 media library, 2 to-do, 3 notepad, 4 AI chat (when enabled). Lives on
-    // the screen state so closing the popout doesn't send it back to the first tab
-    readonly property int tab: root.screenState.notifPopoutTab
+    // The tabs that are turned on, in order. The notification dock is always the first one
+    // (see services/SidebarTabs.qml)
+    readonly property var tabs: SidebarTabs.keys
+    // The current tab's index in that list. Lives on the screen state as a key so turning a tab
+    // off doesn't leave the remembered position pointing at its neighbour, and so closing the
+    // popout doesn't send it back to the first tab
+    readonly property int tab: Math.max(0, root.tabs.indexOf(root.screenState.notifPopoutTabKey))
     // The AI chat is optional, so the tab only exists while it is turned on
-    readonly property bool aiChatEnabled: Config.sidebar.aiChat ?? false
+    readonly property bool aiChatEnabled: root.tabs.indexOf("aiChat") !== -1
     // The library walks the music folder, so it is only built the first time the tab is
     // actually opened, and kept afterwards rather than rebuilt on every switch back.
     // Seeded from the tab so a config reload on the library tab doesn't sit empty
-    property bool libraryLoaded: root.tab === 1
+    property bool libraryLoaded: root.screenState.notifPopoutTabKey === "music"
     // Where the tab switch is, in tabs: follows the tab through an animation, and is what
     // everything that moves between the panes below reads
     property real tabPos: root.tab
@@ -63,21 +67,22 @@ Item {
     readonly property bool timerShown: root.screenState.timerPane
 
     function showTab(index: int): void {
-        root.screenState.notifPopoutTab = index;
+        const key = SidebarTabs.keys[index];
+        if (key)
+            root.screenState.notifPopoutTabKey = key;
     }
 
-    // Turning the chat off while it is on show, or a remembered tab left over from before,
-    // leaves the tab bar with no tab it can accept
+    // Turning the tab that is on show off, or a remembered tab left over from before, leaves the
+    // tab bar with no tab it can accept
     function closeHiddenTab(): void {
-        if (!root.aiChatEnabled && root.tab === 4)
-            root.showTab(0);
+        if (!SidebarTabs.isEnabled(root.screenState.notifPopoutTabKey))
+            root.screenState.notifPopoutTabKey = "notifications";
     }
 
     Component.onCompleted: root.closeHiddenTab()
-    onAiChatEnabledChanged: root.closeHiddenTab()
 
     onTabChanged: {
-        if (root.tab === 1)
+        if (root.screenState.notifPopoutTabKey === "music")
             root.libraryLoaded = true;
         if (root.tab !== 0)
             root.screenState.dinoGame = false;
@@ -106,6 +111,15 @@ Item {
         }
 
         target: KdeConnect
+    }
+
+    Connections {
+        // A tab turned off in the settings while it is on show goes back to the first one
+        function onKeysChanged(): void {
+            root.closeHiddenTab();
+        }
+
+        target: SidebarTabs
     }
 
     // Space starts the dino game while the dock has nothing to read. A window shortcut rather than
@@ -163,31 +177,39 @@ Item {
 
         SegmentedBar {
             Layout.fillWidth: true
-            // Icon-only: four full labels ("Notifications" is a long word) don't fit this
+            // Icon-only: the full labels ("Notifications" is a long word) don't fit this
             // panel's width without the icon and text squeezing into each other
             compact: true
 
-            model: {
-                const tabs = [{
-                    icon: "notifications",
-                    text: Tr.tr("Notifications")
-                }, {
-                    icon: "library_music",
-                    text: Tr.tr("Music")
-                }, {
-                    icon: "checklist",
-                    text: Tr.tr("To-do")
-                }, {
-                    icon: "edit_note",
-                    text: Tr.tr("Notepad")
-                }];
-                if (root.aiChatEnabled)
-                    tabs.push({
+            model: root.tabs.map(key => {
+                switch (key) {
+                case "music":
+                    return {
+                        icon: "library_music",
+                        text: Tr.tr("Music")
+                    };
+                case "todo":
+                    return {
+                        icon: "checklist",
+                        text: Tr.tr("To-do")
+                    };
+                case "notes":
+                    return {
+                        icon: "edit_note",
+                        text: Tr.tr("Notepad")
+                    };
+                case "aiChat":
+                    return {
                         icon: "forum",
                         text: Tr.tr("AI chat")
-                    });
-                return tabs;
-            }
+                    };
+                default:
+                    return {
+                        icon: "notifications",
+                        text: Tr.tr("Notifications")
+                    };
+                }
+            })
             currentIndex: root.tab
             onActivated: index => root.showTab(index)
         }
@@ -242,7 +264,7 @@ Item {
             StyledRect {
                 id: libraryPane
 
-                readonly property real offset: 1 - root.tabPos
+                readonly property real offset: root.tabs.indexOf("music") - root.tabPos
 
                 x: offset * panes.width * 0.6
                 width: panes.width
@@ -266,7 +288,7 @@ Item {
             StyledRect {
                 id: todoPane
 
-                readonly property real offset: 2 - root.tabPos
+                readonly property real offset: root.tabs.indexOf("todo") - root.tabPos
 
                 x: offset * panes.width * 0.6
                 width: panes.width
@@ -279,7 +301,7 @@ Item {
                 TodoPopout.Content {
                     anchors.fill: parent
 
-                    open: root.tab === 2
+                    open: root.screenState.notifPopoutTabKey === "todo"
                     screenState: root.screenState
                 }
             }
@@ -287,7 +309,7 @@ Item {
             StyledRect {
                 id: notepadPane
 
-                readonly property real offset: 3 - root.tabPos
+                readonly property real offset: root.tabs.indexOf("notes") - root.tabPos
 
                 x: offset * panes.width * 0.6
                 width: panes.width
@@ -300,7 +322,7 @@ Item {
                 NotepadPopout.Content {
                     anchors.fill: parent
 
-                    open: root.tab === 3
+                    open: root.screenState.notifPopoutTabKey === "notes"
                     screenState: root.screenState
                 }
             }
@@ -308,7 +330,7 @@ Item {
             StyledRect {
                 id: aiChatPane
 
-                readonly property real offset: 4 - root.tabPos
+                readonly property real offset: root.tabs.indexOf("aiChat") - root.tabPos
 
                 x: offset * panes.width * 0.6
                 width: panes.width
@@ -324,7 +346,7 @@ Item {
                     active: root.aiChatEnabled
 
                     sourceComponent: AiChatPopout.Content {
-                        open: root.tab === 4
+                        open: root.screenState.notifPopoutTabKey === "aiChat"
                         screenState: root.screenState
                     }
                 }
@@ -339,8 +361,9 @@ Item {
         Loader {
             id: localControls
 
-            // 1 right on the music tab, fading out towards either neighbour
-            readonly property real nearMusic: Math.max(0, 1 - Math.abs(root.tabPos - 1))
+            readonly property int musicIndex: root.tabs.indexOf("music")
+            // Right on the music tab, fading out towards either neighbour
+            readonly property real nearMusic: Math.max(0, 1 - Math.abs(root.tabPos - musicIndex))
 
             Layout.fillWidth: true
             Layout.leftMargin: Tokens.padding.medium
@@ -349,7 +372,7 @@ Item {
             visible: nearMusic > 0.01
             opacity: nearMusic
             clip: true
-            active: root.shown && (root.tab === 1 || nearMusic > 0.01)
+            active: root.shown && (root.tab === musicIndex || nearMusic > 0.01)
 
             sourceComponent: LocalControls {}
         }
