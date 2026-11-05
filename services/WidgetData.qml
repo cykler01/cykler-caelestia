@@ -30,9 +30,6 @@ Singleton {
     readonly property bool wantsSystem: root.widgetConfig.enabled && root.entries.some(e => e.enabled && e.id === "resources")
     // Likewise for the GitHub calendar: a desktop without the card shouldn't fetch one
     readonly property bool wantsGithub: root.widgetConfig.enabled && root.entries.some(e => e.enabled && e.id === "github")
-    // And for the lyrics engine, which has nothing to keep warm unless a card is asking it for lines
-    readonly property bool wantsLyrics: root.widgetConfig.enabled && root.entries.some(e => e.enabled && e.id === "lyrics")
-
     property real cpu
     property real memory
     property real disk
@@ -77,13 +74,6 @@ Singleton {
 
     ServiceRef {
         service: root.wantsSystem ? Storage : null
-    }
-
-    // Held for the same reason as the readings above: a rebuilt lyrics card hands the engine the same track
-    // again, and an engine that is still here treats that as a no-op and draws the lines it already has instead
-    // of going back to "Loading..." and searching again every time the desktop comes back into view
-    ServiceRef {
-        service: root.wantsLyrics ? Lyrics : null
     }
 
     Timer {

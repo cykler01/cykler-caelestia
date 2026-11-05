@@ -131,9 +131,10 @@ Scope {
                 return;
             }
 
-            // Notifications, the media library, the to-do list and the notepad, then back to
-            // the first
-            screenState.notifPopoutTab = (screenState.notifPopoutTab + 1) % 4;
+            // Notifications, the media library, the to-do list and the notepad, plus the AI
+            // chat when it is turned on, then back to the first
+            const tabCount = Config.sidebar.aiChat ? 5 : 4;
+            screenState.notifPopoutTab = (screenState.notifPopoutTab % tabCount + 1) % tabCount;
         }
     }
 

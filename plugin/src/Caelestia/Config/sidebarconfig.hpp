@@ -20,6 +20,9 @@ class SidebarConfig : public settings::ObjectNode {
     // The Chrome dino game in the notifications tab, started with space while the tab has nothing
     // to show (modules/notifpopout/Content.qml)
     CONFIG_PROPERTY(bool, dinoGame, false)
+    // The AI chat tab, with conversations saved between sessions
+    // (modules/aichatpopout/Content.qml)
+    CONFIG_PROPERTY(bool, aiChat, false)
 };
 
 } // namespace caelestia::shell::config

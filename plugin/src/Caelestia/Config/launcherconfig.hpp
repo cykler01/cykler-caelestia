@@ -37,10 +37,15 @@ class LauncherConfig : public settings::ObjectNode {
     CONFIG_GLOBAL_PROPERTY(QString, actionPrefix, u">"_s)
     CONFIG_GLOBAL_PROPERTY(bool, enableDangerousActions, false)
     CONFIG_GLOBAL_PROPERTY(bool, enableSupergfxctl, false)
-    // Gemini API key and model for the launcher's AI search (">ai ")
+    // AI search (">ai "): the service to ask, its key and model, and an endpoint
+    // override for OpenAI-compatible ones. The provider ids and their defaults live
+    // in modules/launcher/services/Ai.qml
     CONFIG_GLOBAL_PROPERTY(bool, enableAiSearch, false)
+    CONFIG_GLOBAL_PROPERTY(QString, aiProvider, u"gemini"_s)
     CONFIG_GLOBAL_PROPERTY(QString, aiApiKey, u""_s)
-    CONFIG_GLOBAL_PROPERTY(QString, aiModel, u"gemini-3.5-flash-lite"_s)
+    CONFIG_GLOBAL_PROPERTY(QString, aiBaseUrl, u""_s)
+    // Empty asks for the provider's own default model
+    CONFIG_GLOBAL_PROPERTY(QString, aiModel, u""_s)
     CONFIG_PROPERTY(int, dragThreshold, 50)
     CONFIG_GLOBAL_PROPERTY(bool, vimKeybinds, false)
     CONFIG_GLOBAL_PROPERTY(QStringList, favouriteApps, {})
@@ -57,7 +62,7 @@ class LauncherConfig : public settings::ObjectNode {
             vmap({
                 { u"name"_s, markCtx(u"AI search"_s, u"launcher action"_s) },
                 { u"icon"_s, u"auto_awesome"_s },
-                { u"description"_s, mark(u"Ask a question with Google Gemini"_s) },
+                { u"description"_s, mark(u"Ask a question with the configured AI service"_s) },
                 { u"command"_s, QStringList{ u"autocomplete"_s, u"ai"_s } },
             }),
             vmap({

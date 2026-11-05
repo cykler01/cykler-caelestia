@@ -100,7 +100,8 @@ StyledWindow {
     WlrLayershell.exclusionMode: ExclusionMode.Ignore
     WlrLayershell.layer: (fsTransitionProg > 0 && contentItem.Config.general.showOverFullscreen) || (hasSpecialWorkspace && hasFullscreenOnNormalWs) ? WlrLayer.Overlay : WlrLayer.Top
     // The sidebar's library tab has a search field, its to-do tab has add-task and scheduling
-    // fields, and its notepad tab is a text editor, so it takes the keyboard while any is up. So
+    // fields, its notepad tab is a text editor and its AI chat tab has a composer, so it takes
+    // the keyboard while any is up. So
     // does the timer panel, which has a field whether or not a tab is up behind it, and an empty
     // notification dock, where space starts the dino game
     WlrLayershell.keyboardFocus: screenState.launcher || screenState.session || (screenState.sidebar && (screenState.notifPopoutTab !== 0 || screenState.timerPane || screenState.dinoGame || Notifs.list.every(n => n.closed))) ? WlrKeyboardFocus.OnDemand : WlrKeyboardFocus.None

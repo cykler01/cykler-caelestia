@@ -35,8 +35,9 @@ PersistentProperties {
     signal overviewPageRequested(int delta)
 
     // Which tab the sidebar's top card is showing: 0 notifications, 1 media library, 2 to-do,
-    // 3 notepad (see modules/sidebar/Content.qml). Kept here so it survives the sidebar
-    // closing, and so the swipe gestures can move it without reaching into a panel
+    // 3 notepad, 4 AI chat when it is enabled (see modules/sidebar/Content.qml). Kept here so it
+    // survives the sidebar closing, and so the swipe gestures can move it without reaching into
+    // a panel
     property int notifPopoutTab
 
     // Dashboard state

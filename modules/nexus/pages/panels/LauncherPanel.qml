@@ -6,6 +6,7 @@ import Caelestia.Config
 import Caelestia.I18n
 import qs.components.controls
 import qs.modules.nexus
+import qs.modules.launcher.services
 import qs.modules.nexus.common
 
 PageBase {
@@ -21,6 +22,20 @@ PageBase {
         Tr.trCtx("Top", "panel edge"),
         Tr.trCtx("Bottom", "panel edge")
     ]
+
+    // The AI services Ai.qml can ask, offered in the order it lists them so the
+    // stored provider id is all the rest of the shell has to know. The entries are
+    // made from Ai.providers rather than written out here, so a provider added
+    // there shows up without touching this page
+    readonly property Component providerItem: Component {
+        MenuItem {}
+    }
+
+    readonly property list<MenuItem> providerItems: Ai.providers.map(p => root.providerItem.createObject(root, {
+            text: p.name,
+            icon: p.icon,
+            value: p.id
+        }))
 
     title: Tr.tr("Launcher")
     isSubPage: true
@@ -152,7 +167,7 @@ PageBase {
         ToggleRow {
             last: true
             text: Tr.tr("Enable AI search")
-            subtext: Tr.tr("Ask Google Gemini questions from the launcher with the AI action")
+            subtext: Tr.tr("Ask the configured AI service questions from the launcher with the AI action")
             checked: GlobalConfig.launcher.enableAiSearch
             onToggled: GlobalConfig.launcher.enableAiSearch = checked
         }
@@ -187,24 +202,38 @@ PageBase {
             text: Tr.tr("AI search")
         }
 
-        TextFieldRow {
+        SelectRow {
             first: true
+            label: Tr.tr("Provider")
+            subtext: Tr.tr("Which AI service the launcher asks")
+            menuItems: root.providerItems
+            active: root.providerItems.find(i => i.value === Config.launcher.aiProvider) ?? root.providerItems[0]
+            fallbackIcon: "smart_toy"
+            onSelected: item => GlobalConfig.launcher.aiProvider = item.value
+        }
+
+        TextFieldRow {
             label: Tr.tr("API key")
-            subtext: Tr.tr("Google Gemini API key for the launcher's AI search")
+            subtext: Ai.provider.key ? Tr.tr("Key for %1").arg(Ai.provider.name) : Tr.tr("%1 needs no key").arg(Ai.provider.name)
             value: GlobalConfig.launcher.aiApiKey
             onEditingFinished: value => GlobalConfig.launcher.aiApiKey = value.trim()
         }
 
         TextFieldRow {
-            last: true
             label: Tr.tr("Model")
-            subtext: Tr.tr("Gemini model to ask, e.g. gemini-3.5-flash-lite")
+            subtext: Ai.provider.defaultModel ? Tr.tr("Model to ask; empty uses %1").arg(Ai.provider.defaultModel) : Tr.tr("Model to ask, which this provider needs you to name")
+            placeholderText: Ai.provider.defaultModel
             value: GlobalConfig.launcher.aiModel
-            onEditingFinished: value => {
-                const trimmed = value.trim();
-                if (trimmed)
-                    GlobalConfig.launcher.aiModel = trimmed;
-            }
+            onEditingFinished: value => GlobalConfig.launcher.aiModel = value.trim()
+        }
+
+        TextFieldRow {
+            last: true
+            label: Tr.tr("Base URL")
+            subtext: Ai.provider.baseUrl ? Tr.tr("Leave empty to use %1").arg(Ai.provider.baseUrl) : Tr.tr("API endpoint for an OpenAI-compatible service")
+            placeholderText: Ai.provider.baseUrl
+            value: GlobalConfig.launcher.aiBaseUrl
+            onEditingFinished: value => GlobalConfig.launcher.aiBaseUrl = value.trim()
         }
     }
 }

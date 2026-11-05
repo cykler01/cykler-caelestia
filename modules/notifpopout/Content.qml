@@ -5,18 +5,20 @@ import Caelestia.I18n
 import qs.components
 import qs.components.controls
 import qs.services
-import qs.modules.sidebar as Sidebar
-import qs.modules.dashboard.media
-import qs.modules.todopopout as TodoPopout
+import qs.modules.aichatpopout as AiChatPopout
 import qs.modules.notepadpopout as NotepadPopout
+import qs.modules.sidebar as Sidebar
+import qs.modules.todopopout as TodoPopout
 import qs.modules.utilities as Utilities
+import qs.modules.dashboard.media
 
 // Sits on the drawers window's frame (see Wrapper.qml), so there is no background of its own: the panel's
 // morphing blob is the surface, and the content rests on it in the same containers the sidebar uses.
 //
-// Four tabs, moved between with the same swipe that opens the popout: the notification dock, the
-// local music library, the to-do list and the notepad, so they all sit in the one panel that
-// swipe already reaches rather than each needing a window of its own. The dino game is not a tab:
+// Five tabs, moved between with the same swipe that opens the popout: the notification dock, the
+// local music library, the to-do list, the notepad and, when turned on in the settings, the AI
+// chat, so they all sit in the one panel that swipe already reaches rather than each needing a
+// window of its own. The dino game is not a tab:
 // with nothing to read, the notification dock turns into it on space, and turns back when it is
 // closed.
 Item {
@@ -28,9 +30,11 @@ Item {
     // position many times a second, are only built then
     property bool shown: true
 
-    // 0 notifications, 1 media library, 2 to-do, 3 notepad. Lives on the screen state so closing
-    // the popout doesn't send it back to the first tab
+    // 0 notifications, 1 media library, 2 to-do, 3 notepad, 4 AI chat (when enabled). Lives on
+    // the screen state so closing the popout doesn't send it back to the first tab
     readonly property int tab: root.screenState.notifPopoutTab
+    // The AI chat is optional, so the tab only exists while it is turned on
+    readonly property bool aiChatEnabled: Config.sidebar.aiChat ?? false
     // The library walks the music folder, so it is only built the first time the tab is
     // actually opened, and kept afterwards rather than rebuilt on every switch back.
     // Seeded from the tab so a config reload on the library tab doesn't sit empty
@@ -61,6 +65,16 @@ Item {
     function showTab(index: int): void {
         root.screenState.notifPopoutTab = index;
     }
+
+    // Turning the chat off while it is on show, or a remembered tab left over from before,
+    // leaves the tab bar with no tab it can accept
+    function closeHiddenTab(): void {
+        if (!root.aiChatEnabled && root.tab === 4)
+            root.showTab(0);
+    }
+
+    Component.onCompleted: root.closeHiddenTab()
+    onAiChatEnabledChanged: root.closeHiddenTab()
 
     onTabChanged: {
         if (root.tab === 1)
@@ -153,24 +167,27 @@ Item {
             // panel's width without the icon and text squeezing into each other
             compact: true
 
-            model: [
-                {
+            model: {
+                const tabs = [{
                     icon: "notifications",
                     text: Tr.tr("Notifications")
-                },
-                {
+                }, {
                     icon: "library_music",
                     text: Tr.tr("Music")
-                },
-                {
+                }, {
                     icon: "checklist",
                     text: Tr.tr("To-do")
-                },
-                {
+                }, {
                     icon: "edit_note",
                     text: Tr.tr("Notepad")
-                }
-            ]
+                }];
+                if (root.aiChatEnabled)
+                    tabs.push({
+                        icon: "forum",
+                        text: Tr.tr("AI chat")
+                    });
+                return tabs;
+            }
             currentIndex: root.tab
             onActivated: index => root.showTab(index)
         }
@@ -285,6 +302,31 @@ Item {
 
                     open: root.tab === 3
                     screenState: root.screenState
+                }
+            }
+
+            StyledRect {
+                id: aiChatPane
+
+                readonly property real offset: 4 - root.tabPos
+
+                x: offset * panes.width * 0.6
+                width: panes.width
+                height: panes.height
+                opacity: 1 - Math.min(1, Math.abs(offset))
+                visible: opacity > 0
+                radius: Tokens.rounding.large
+                color: Colours.tPalette.m3surfaceContainerLow
+
+                // Optional, so none of the chat is built while the tab is off
+                Loader {
+                    anchors.fill: parent
+                    active: root.aiChatEnabled
+
+                    sourceComponent: AiChatPopout.Content {
+                        open: root.tab === 4
+                        screenState: root.screenState
+                    }
                 }
             }
         }

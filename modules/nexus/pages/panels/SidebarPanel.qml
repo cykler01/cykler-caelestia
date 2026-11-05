@@ -78,5 +78,20 @@ PageBase {
             checked: Config.sidebar.dinoGame
             onToggled: GlobalConfig.sidebar.dinoGame = checked
         }
+
+        SectionHeader {
+            text: Tr.tr("AI")
+        }
+
+        ToggleRow {
+            id: aiChatToggle
+
+            first: true
+            last: true
+            text: Tr.tr("AI chat tab")
+            subtext: Tr.tr("Show a chat tab in the sidebar that saves conversations; it uses the provider and key set in the Launcher settings")
+            checked: Config.sidebar.aiChat ?? false
+            onToggled: GlobalConfig.sidebar.aiChat = checked
+        }
     }
 }
