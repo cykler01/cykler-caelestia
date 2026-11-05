@@ -71,13 +71,6 @@ PageBase {
 
         ToggleRow {
             first: true
-            text: Tr.tr("Notifications")
-            subtext: Tr.tr("Always shown as the sidebar's first tab")
-            checked: true
-            enabled: false
-        }
-
-        ToggleRow {
             text: Tr.tr("Music")
             subtext: Tr.tr("Show the local music library as a tab")
             checked: Config.sidebar.music ?? true
