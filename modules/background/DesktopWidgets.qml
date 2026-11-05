@@ -213,6 +213,12 @@ Item {
                 }
             }
             DelegateChoice {
+                roleValue: "lyrics"
+                delegate: LyricsCard {
+                    gridHost: root
+                }
+            }
+            DelegateChoice {
                 roleValue: "battery"
                 delegate: BatteryCard {
                     gridHost: root

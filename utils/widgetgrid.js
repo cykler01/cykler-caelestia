@@ -20,6 +20,7 @@ const heights = {
     resources: 5,
     network: 4,
     media: 6,
+    lyrics: 8,
     battery: 4,
     fetch: 8,
     visualiser: 5,

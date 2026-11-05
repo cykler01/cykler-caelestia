@@ -69,6 +69,8 @@ Item {
                 return networkCard;
             case "media":
                 return mediaCard;
+            case "lyrics":
+                return lyricsCard;
             case "battery":
                 return batteryCard;
             case "fetch":
@@ -164,6 +166,16 @@ Item {
         id: mediaCard
 
         MediaCard {
+            variant: root.variant
+            widgetId: root.kind
+            entryIndex: -1
+        }
+    }
+
+    Component {
+        id: lyricsCard
+
+        LyricsCard {
             variant: root.variant
             widgetId: root.kind
             entryIndex: -1

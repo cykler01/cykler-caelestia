@@ -146,6 +146,18 @@ Singleton {
             ]
         },
         {
+            id: "lyrics",
+            name: Tr.tr("Lyrics"),
+            icon: "lyrics",
+            types: [
+                {
+                    id: "default",
+                    name: Tr.tr("Synced lyrics"),
+                    height: 8
+                }
+            ]
+        },
+        {
             id: "battery",
             name: Tr.tr("Battery"),
             icon: "battery_full",
