@@ -97,6 +97,20 @@ PageBase {
             profileConfig: GlobalConfig.dashboard
         }
 
+        // Home page widgets
+        SectionHeader {
+            text: Tr.tr("Widgets")
+        }
+
+        NavRow {
+            first: true
+            last: true
+            icon: "widgets"
+            text: Tr.tr("Widgets")
+            subtext: Tr.tr("Reorder, resize and show or hide the cards on the Dashboard tab")
+            onClicked: root.nState.openSubPage(20)
+        }
+
         // Position
         SectionHeader {
             text: Tr.tr("Position")
