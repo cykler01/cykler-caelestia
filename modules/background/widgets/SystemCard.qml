@@ -24,6 +24,7 @@ WidgetCard {
     readonly property real cpu: WidgetData.cpu
     readonly property real memory: WidgetData.memory
     readonly property real disk: WidgetData.disk
+    readonly property real temperature: WidgetData.temperature
     readonly property var cpuHistory: WidgetData.cpuHistory
     readonly property var ramHistory: WidgetData.ramHistory
     readonly property var diskHistory: WidgetData.diskHistory
@@ -53,11 +54,14 @@ WidgetCard {
             colour: Colours.palette.m3tertiary
         }
 
+        // CPU temperature in place of disk space, which is the reading that actually changes day to day. The
+        // ring fills against a full scale of 100 degrees, the same scale the performance dashboard uses
         Meter {
             visible: !sys.basic
-            label: Tr.tr("Disk")
-            icon: "hard_disk"
-            value: sys.disk
+            label: Tr.tr("Temp")
+            icon: "thermometer"
+            value: sys.temperature / 100
+            valueText: Units.formatSensorTemp(sys.temperature)
             colour: Colours.palette.m3secondary
         }
     }
@@ -126,6 +130,9 @@ component Meter: ColumnLayout {
     property string icon
     property real value
     property color colour
+    // The reading as it should be read out, for a meter whose value isn't a percentage. Percent is assumed
+    // when this is empty
+    property string valueText: ""
 
     Layout.fillWidth: true
     Layout.maximumWidth: Number.POSITIVE_INFINITY
@@ -156,7 +163,7 @@ component Meter: ColumnLayout {
 
     StyledText {
         Layout.alignment: Qt.AlignHCenter
-        text: `${meter.label} ${Math.round(meter.value * 100)}%`
+        text: meter.valueText !== "" ? `${meter.label} ${meter.valueText}` : `${meter.label} ${Math.round(meter.value * 100)}%`
         color: Colours.palette.m3onSurfaceVariant
         font: Tokens.font.label.small
     }

@@ -86,7 +86,7 @@ Singleton {
             types: [
                 {
                     id: "rings-all",
-                    name: Tr.tr("Rings · CPU, RAM and disk"),
+                    name: Tr.tr("Rings · CPU, RAM and temperature"),
                     height: 5
                 },
                 {

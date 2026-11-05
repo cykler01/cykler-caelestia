@@ -34,6 +34,9 @@ Singleton {
     property real cpu
     property real memory
     property real disk
+    // Celsius; the card formats it with the configured sensor unit. Not a percentage, so it only ever feeds the
+    // rings, which read it against a full-scale of 100 degrees
+    property real temperature
     property var cpuHistory: []
     property var ramHistory: []
     property var diskHistory: []
@@ -47,6 +50,7 @@ Singleton {
         root.cpu = Cpu.percentage;
         root.memory = Memory.percentage;
         root.disk = Storage.percentage;
+        root.temperature = Cpu.temperature;
         root.cpuHistory = root.push(root.cpuHistory, root.cpu);
         root.ramHistory = root.push(root.ramHistory, root.memory);
         root.diskHistory = root.push(root.diskHistory, root.disk);
