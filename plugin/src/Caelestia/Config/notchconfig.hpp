@@ -1,5 +1,7 @@
 #pragma once
 
+#include <qstringlist.h>
+
 #include "settings/objectnode.hpp"
 #include "common.hpp"
 #include "enums.hpp"
@@ -36,8 +38,13 @@ class NotchConfig : public settings::ObjectNode {
     CONFIG_PROPERTY(int, keyLockDuration, 1600)
     // Browser and Steam downloads, while any are running (see services/downloads.cpp)
     CONFIG_PROPERTY(bool, showDownloads, true)
-    // Notifications as they arrive
-    CONFIG_PROPERTY(bool, showNotifs, true)
+    // Notifications as they arrive. Off by default: it moves every popup from the corner into the
+    // notch, which is a big change to make to someone's desktop without them asking for it
+    CONFIG_PROPERTY(bool, showNotifs, false)
+    // Which apps the island is for, matched the way silencedApps is: case-insensitively, against
+    // any part of the name a notification carries. Empty means every app, which is the default -
+    // name one and the island becomes that app's alone, with everything else left to the corner.
+    CONFIG_PROPERTY(QStringList, notifApps, DEFAULT_ARG({}))
     CONFIG_PROPERTY(int, notifDuration, 5000)
     // Whether the island stands in for the corner popup rather than doubling it. The notification
     // itself is untouched either way: it waits in the notification centre as usual

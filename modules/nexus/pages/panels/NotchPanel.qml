@@ -2,7 +2,9 @@ import QtQuick
 import QtQuick.Layouts
 import Caelestia.Config
 import Caelestia.I18n
+import qs.components
 import qs.components.controls
+import qs.services
 import qs.modules.nexus
 import qs.modules.nexus.common
 
@@ -14,6 +16,27 @@ PageBase {
         Tr.trCtx("Centre", "panel alignment"),
         Tr.trCtx("Right", "panel alignment")
     ]
+
+    // NOTE(fork): the apps the island is for. A plain string list rather than a rule set: the
+    // question here is only which apps, and the answer to "all of them" is to leave it empty.
+    function addNotifApp(): void {
+        const name = notifAppInput.text.trim();
+        if (!name)
+            return;
+
+        const apps = Config.notch.notifApps;
+        if (apps.some(a => a.toLowerCase() === name.toLowerCase())) {
+            notifAppInput.clear();
+            return;
+        }
+
+        GlobalConfig.notch.notifApps = [...apps, name];
+        notifAppInput.clear();
+    }
+
+    function removeNotifApp(index: int): void {
+        GlobalConfig.notch.notifApps = Config.notch.notifApps.filter((_, i) => i !== index);
+    }
 
     title: Tr.tr("Notch")
     isSubPage: true
@@ -139,6 +162,84 @@ PageBase {
             checked: Config.notch.notifsTakeOver
             enabled: Config.notch.showNotifs
             onToggled: GlobalConfig.notch.notifsTakeOver = checked
+        }
+
+        // Which apps the island is for
+        ConnectedRect {
+            Layout.fillWidth: true
+            implicitHeight: notifAppsRow.implicitHeight + Tokens.padding.medium * 2
+            enabled: Config.notch.showNotifs
+
+            RowLayout {
+                id: notifAppsRow
+
+                anchors.left: parent.left
+                anchors.right: parent.right
+                anchors.top: parent.top
+                anchors.topMargin: Tokens.padding.medium
+                anchors.leftMargin: Tokens.padding.largeIncreased
+                anchors.rightMargin: Tokens.padding.medium
+                spacing: Tokens.spacing.medium
+
+                StyledTextField {
+                    id: notifAppInput
+
+                    Layout.fillWidth: true
+                    placeholderText: Tr.tr("App name or part of it; empty list means every app")
+                    leadingIcon: "apps"
+                    verticalPadding: Tokens.padding.small
+
+                    onAccepted: root.addNotifApp()
+                }
+
+                IconButton {
+                    icon: "add"
+                    type: IconButton.Filled
+                    disabled: !notifAppInput.text.trim()
+                    onClicked: root.addNotifApp()
+                }
+            }
+        }
+
+        Repeater {
+            model: Config.notch.notifApps
+
+            ConnectedRect {
+                id: appRow
+
+                required property string modelData
+                required property int index
+
+                Layout.fillWidth: true
+                implicitHeight: appLayout.implicitHeight + Tokens.padding.medium * 2
+                enabled: Config.notch.showNotifs
+
+                RowLayout {
+                    id: appLayout
+
+                    anchors.left: parent.left
+                    anchors.right: parent.right
+                    anchors.top: parent.top
+                    anchors.topMargin: Tokens.padding.medium
+                    anchors.leftMargin: Tokens.padding.largeIncreased
+                    anchors.rightMargin: Tokens.padding.medium
+                    spacing: Tokens.spacing.medium
+
+                    StyledText {
+                        Layout.fillWidth: true
+                        text: appRow.modelData
+                        color: Colours.palette.m3onSurface
+                        font: Tokens.font.body.medium
+                        elide: Text.ElideRight
+                    }
+
+                    IconButton {
+                        icon: "close"
+                        type: IconButton.Text
+                        onClicked: root.removeNotifApp(appRow.index)
+                    }
+                }
+            }
         }
 
         StepperRow {

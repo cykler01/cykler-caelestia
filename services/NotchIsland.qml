@@ -68,6 +68,20 @@ Singleton {
         lockTimer.restart();
     }
 
+    // Whether this app is one the island is for. With no apps named it is for all of them; name
+    // one and it is that app's alone. Matched the way silenced sources are, case-insensitively
+    // against any part of the name, so "discord" covers vesktop, equibop and the rest.
+    function wantsApp(appName: string): bool {
+        const apps = GlobalConfig.notch.notifApps;
+        if (!apps || apps.length === 0)
+            return true;
+
+        const name = (appName ?? "").toLowerCase();
+        if (name === "")
+            return false;
+        return apps.some(app => app && name.includes(app.toLowerCase()));
+    }
+
     // Shows a notification as it arrives, and - with notifsTakeOver - claims its popup so the
     // corner does not show the same thing twice. The notification is left in the notification
     // centre either way; only its popup is given up.
@@ -78,6 +92,9 @@ Singleton {
         if (!GlobalConfig.notch.enabled || !GlobalConfig.notch.showNotifs)
             return;
         if (!notif?.popup || ShellState.notchCovered())
+            return;
+        // Checked before anything is claimed: an app the island is not for has to keep its popup
+        if (!root.wantsApp(notif.appName))
             return;
 
         root.notifSummary = notif.summary;

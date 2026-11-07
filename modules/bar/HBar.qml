@@ -24,6 +24,8 @@ RowLayout {
     readonly property int hPadding: Tokens.padding.large
     // The notch shows the time and date on an empty workspace, so the bar's clock steps aside
     readonly property bool clockHidden: ShellState.componentsFor(screen)?.panels?.notch?.showsClock ?? false
+    // NOTE(fork): the notch shows the countdown instead, when it is up to show it
+    readonly property bool timerHidden: ShellState.componentsFor(screen)?.panels?.notch?.showsTimer ?? false
 
     // Centre of an item along the bar (x), in bar coordinates
     function centerOf(item: Item): real {
@@ -221,7 +223,7 @@ RowLayout {
                 roleValue: "timer"
                 delegate: EntryWrapper {
                     // Its own section, before the clock, taking no room at all while no timer is set
-                    shown: CountdownTimer.active
+                    shown: CountdownTimer.active && !root.timerHidden
 
                     TimerRing {
                         objectName: "taskbarTimer"

@@ -32,6 +32,16 @@ PageBase {
         return date.toLocaleDateString(Qt.locale(), "d MMM yyyy");
     }
 
+    // NOTE(fork): a few paths on one line, with a count standing in for however many are left
+    function fileList(files: list<string>): string {
+        const shown = files.slice(0, 4);
+        const rest = files.length - shown.length;
+        if (rest > 0)
+            // TRANSLATORS: %1 = a list of file paths, %2 = how many further files there are
+            return Tr.tr("%1 and %2 more").arg(shown.join(", ")).arg(rest);
+        return shown.join(", ");
+    }
+
     title: Tr.tr("Updates")
 
     Component.onCompleted: {
@@ -119,7 +129,7 @@ PageBase {
                         if (ShellUpdater.dirty)
                             root.askingAboutChanges = true;
                         else
-                            ShellUpdater.install(false);
+                            ShellUpdater.install("no");
                     }
                 }
             }
@@ -168,29 +178,62 @@ PageBase {
                     font: Tokens.font.title.small
                 }
 
+                // NOTE(fork): the check already worked out whether these would come back, by
+                // merging them against the update in memory, so say which it is rather than
+                // leaving it to be discovered half way through
                 StyledText {
                     Layout.fillWidth: true
                     wrapMode: Text.Wrap
-                    text: Tr.tr("They can be stashed while the update is pulled and built, then restored afterwards. If restoring them conflicts with the update they stay in the stash.")
+                    text: ShellUpdater.stashSafe ? Tr.tr("They can be stashed while the update is pulled and built, then put back afterwards. Nothing in them clashes with this update, so they will come back cleanly.") : Tr.tr("They can be stashed while the update is pulled and built, but putting them back will conflict: the update changes the same files. You can update anyway and leave them in the stash to sort out by hand.")
                     color: Colours.palette.m3onErrorContainer
                     font: Tokens.font.label.medium
+                }
+
+                StyledText {
+                    Layout.fillWidth: true
+                    visible: ShellUpdater.dirtyFiles.length > 0
+                    wrapMode: Text.Wrap
+                    // TRANSLATORS: %1 = a comma separated list of file paths
+                    text: Tr.tr("Changed here: %1").arg(root.fileList(ShellUpdater.dirtyFiles))
+                    color: Colours.palette.m3onErrorContainer
+                    font: Tokens.font.label.small
+                }
+
+                StyledText {
+                    Layout.fillWidth: true
+                    visible: ShellUpdater.riskFiles.length > 0
+                    wrapMode: Text.Wrap
+                    // TRANSLATORS: %1 = a comma separated list of file paths
+                    text: Tr.tr("Would conflict: %1").arg(root.fileList(ShellUpdater.riskFiles))
+                    color: Colours.palette.m3onErrorContainer
+                    font: Tokens.font.label.small
                 }
 
                 RowLayout {
                     spacing: Tokens.spacing.small
 
                     TextButton {
-                        text: Tr.tr("Stash, update and restore")
-                        type: TextButton.Filled
+                        text: ShellUpdater.stashSafe ? Tr.tr("Stash, update and restore") : Tr.tr("Try it anyway")
+                        type: ShellUpdater.stashSafe ? TextButton.Filled : TextButton.Tonal
                         onClicked: {
                             root.askingAboutChanges = false;
-                            ShellUpdater.install(true);
+                            ShellUpdater.install("stash");
+                        }
+                    }
+
+                    // Nothing is deleted: the changes go to the stash and simply are not put back
+                    TextButton {
+                        text: Tr.tr("Update, keep changes stashed")
+                        type: ShellUpdater.stashSafe ? TextButton.Tonal : TextButton.Filled
+                        onClicked: {
+                            root.askingAboutChanges = false;
+                            ShellUpdater.install("overwrite");
                         }
                     }
 
                     TextButton {
                         text: Tr.tr("Cancel")
-                        type: TextButton.Tonal
+                        type: TextButton.Text
                         onClicked: root.askingAboutChanges = false
                     }
                 }

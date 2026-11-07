@@ -6,11 +6,14 @@
 #       Fetches, then prints HEAD:, BRANCH:, DIRTY:, BEHIND:, CURRENT:, LATEST: and up to 15 LOG: lines.
 #       CURRENT: and LATEST: are the commit dates of this checkout and of origin/BRANCH, which the
 #       Update page shows as the age of this build and of the newest one available.
+#       With local changes it also prints DIRTYFILE: per changed file, STASHSAFE:0|1 for whether
+#       they would come back cleanly after the update, and RISKFILE: for each one that would not.
 #   shell-update.sh branches REPO
 #       Prints the branches available on origin, one BRANCH: line each, for the update page's picker.
-#   shell-update.sh install REPO BRANCH [stash]
-#       Pulls BRANCH from origin (optionally stashing local changes first and restoring them
-#       afterwards), rebuilds, and installs with pkexec. Prints STEP:, WARN:, ERROR: and DONE.
+#   shell-update.sh install REPO BRANCH [no|stash|overwrite]
+#       Pulls BRANCH from origin, rebuilds, and installs with pkexec. Prints STEP:, WARN:, ERROR:
+#       and DONE. With local changes present: 'no' refuses, 'stash' puts them back afterwards, and
+#       'overwrite' leaves them in the stash so the update wins. Nothing is ever discarded.
 #
 # The shell restarts itself after DONE; this script never does.
 
@@ -42,6 +45,39 @@ check)
     echo "CURRENT:$(git log -1 --format=%cI HEAD 2>/dev/null)"
     echo "LATEST:$(git log -1 --format=%cI "origin/$branch" 2>/dev/null)"
     git log --format='LOG:%h %s' -15 "HEAD..origin/$branch" 2>/dev/null
+
+    # Whether the local changes would survive being stashed over the update and restored. Worth
+    # knowing before the update runs rather than after it, which is when the old flow found out.
+    if dirty; then
+        git status --porcelain | sed 's/^...//' | head -40 | sed 's|^|DIRTYFILE:|'
+
+        safe=1
+
+        # Tracked changes, tested exactly: `git stash create` writes a commit object and leaves the
+        # working tree alone, and merge-tree does the same three way merge the restore would, in
+        # memory. It prints the resulting tree, then the conflicted paths, then a blank line and
+        # some prose about them - so the paths are everything between line one and that blank.
+        stash_commit=$(git stash create 2>/dev/null)
+        if [[ -n "$stash_commit" ]]; then
+            if ! merged=$(git merge-tree --write-tree --name-only "origin/$branch" "$stash_commit" 2>/dev/null); then
+                safe=0
+                printf '%s\n' "$merged" | awk 'NR == 1 { next } /^$/ { exit } { print }' |
+                    head -20 | sed 's|^|RISKFILE:|'
+            fi
+        fi
+
+        # Untracked files are not part of a stash commit, so they are checked separately: one the
+        # update also creates is in the way when the stash goes back
+        while IFS= read -r f; do
+            [[ -z "$f" ]] && continue
+            if git cat-file -e "origin/$branch:$f" 2>/dev/null && ! git cat-file -e "HEAD:$f" 2>/dev/null; then
+                safe=0
+                echo "RISKFILE:$f"
+            fi
+        done < <(git ls-files --others --exclude-standard)
+
+        echo "STASHSAFE:$safe"
+    fi
     ;;
 branches)
     # List the branches on origin, one BRANCH: line each. Ask the remote directly so newly pushed
@@ -54,6 +90,9 @@ branches)
     ;;
 install)
     stashed=0
+    # 'overwrite' keeps the changes in the stash instead of putting them back, so the update wins
+    # without anything being thrown away
+    keep_stashed=0
     restore() {
         if [[ "$stashed" == 1 ]]; then
             if git stash pop >/dev/null 2>&1; then
@@ -66,10 +105,14 @@ install)
     }
 
     if dirty; then
-        if [[ "$stash" != "stash" ]]; then
+        case "$stash" in
+        stash) ;;
+        overwrite) keep_stashed=1 ;;
+        *)
             echo "ERROR:you have uncommitted changes"
             exit 2
-        fi
+            ;;
+        esac
         echo "STEP:stashing local changes"
         if ! git stash push -u -m "shell-update" >/dev/null 2>&1; then
             echo "ERROR:could not stash local changes"
@@ -125,7 +168,12 @@ install)
         exit 5
     fi
 
-    restore
+    if [[ "$keep_stashed" == 1 && "$stashed" == 1 ]]; then
+        echo "WARN:your local changes were not put back; they are in 'git stash list' as 'shell-update'"
+        stashed=0
+    else
+        restore
+    fi
     echo "DONE"
     ;;
 *)

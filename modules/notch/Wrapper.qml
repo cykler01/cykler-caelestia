@@ -72,6 +72,8 @@ Item {
     readonly property bool persistent: wanted && (Config.notch.showClock || musicShown || timerShown)
     // Whether the notch is standing in for the clock, so the bar can drop its own
     readonly property bool showsClock: Config.notch.enabled && wanted && Config.notch.showClock
+    // NOTE(fork): and the same for the countdown, so the ring is in one place rather than two
+    readonly property bool showsTimer: Config.notch.enabled && wanted && Config.notch.showTimer
 
     // The brief pill after a track change,
     readonly property bool trackActive: root.playing && shown

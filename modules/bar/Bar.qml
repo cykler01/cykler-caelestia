@@ -24,6 +24,8 @@ ColumnLayout {
     readonly property int vPadding: Tokens.padding.large
     // The notch shows the time and date on an empty workspace, so the bar's clock steps aside
     readonly property bool clockHidden: ShellState.componentsFor(screen)?.panels?.notch?.showsClock ?? false
+    // NOTE(fork): the notch shows the countdown instead, when it is up to show it
+    readonly property bool timerHidden: ShellState.componentsFor(screen)?.panels?.notch?.showsTimer ?? false
 
     // Extent of the empty stretch between the first and last spacer, so the drawers can cut it out of the
     // frame on an empty workspace (y coordinates along the bar)
@@ -201,7 +203,7 @@ ColumnLayout {
                 roleValue: "timer"
                 delegate: EntryWrapper {
                     // Its own section, above the clock, taking no room at all while no timer is set
-                    shown: CountdownTimer.active
+                    shown: CountdownTimer.active && !root.timerHidden
 
                     TimerRing {
                         objectName: "taskbarTimer"

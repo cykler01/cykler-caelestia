@@ -27,6 +27,12 @@ Singleton {
     property string currentDate
     property string latestDate
     property bool dirty
+    // NOTE(fork): what the check found out about the local changes - which files they are, whether
+    // they would come back cleanly once the update has been pulled over the top of them, and which
+    // ones would not. Worked out before the update runs rather than discovered part way through.
+    property list<string> dirtyFiles: []
+    property list<string> riskFiles: []
+    property bool stashSafe: true
     property int behind
     property list<string> commits: []
     property list<string> log: []
@@ -46,15 +52,17 @@ Singleton {
         warnings = [];
     }
 
-    // stash: pass true to stash uncommitted changes, pull, and restore them afterwards
-    function install(stash: bool): void {
+    // NOTE(fork): mode says what to do about uncommitted changes - "no" refuses to update while
+    // any are present, "stash" puts them back once the update is in, and "overwrite" leaves them
+    // in the stash so the update wins. None of them throws anything away.
+    function install(mode: string): void {
         if (busy)
             return;
 
         reset();
         state = "installing";
         currentStep = "";
-        installProc.command = ["bash", script, "install", repoPath, branch, stash ? "stash" : "no"];
+        installProc.command = ["bash", script, "install", repoPath, branch, mode];
         installProc.running = true;
     }
 
@@ -66,6 +74,9 @@ Singleton {
         state = "checking";
         const found = [];
         checkProc.found = found;
+        checkProc.dirtyFound = [];
+        checkProc.riskFound = [];
+        root.stashSafe = true;
         checkProc.command = ["bash", script, "check", repoPath, branch];
         checkProc.running = true;
         fetchBranches();
@@ -107,13 +118,21 @@ Singleton {
         id: checkProc
 
         property var found: []
+        property var dirtyFound: []
+        property var riskFound: []
 
         stdout: SplitParser {
             onRead: line => {
                 const i = line.indexOf(":");
                 const key = line.slice(0, i);
                 const value = line.slice(i + 1);
-                if (key === "HEAD")
+                if (key === "DIRTYFILE")
+                    checkProc.dirtyFound.push(value);
+                else if (key === "RISKFILE")
+                    checkProc.riskFound.push(value);
+                else if (key === "STASHSAFE")
+                    root.stashSafe = value === "1";
+                else if (key === "HEAD")
                     root.head = value;
                 else if (key === "BRANCH")
                     root.localBranch = value;
@@ -140,6 +159,8 @@ Singleton {
                 return;
             }
             root.commits = found;
+            root.dirtyFiles = checkProc.dirtyFound;
+            root.riskFiles = checkProc.riskFound;
             root.checked = true;
             root.state = "idle";
         }
