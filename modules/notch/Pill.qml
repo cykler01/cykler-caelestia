@@ -24,6 +24,8 @@ Item {
     property bool showClock
     // NOTE(fork): the running countdown, beside the clock (see TimerSegment.qml)
     property bool showTimer
+    // NOTE(fork): what is downloading, beside the clock (see DownloadSegment.qml)
+    property bool showDownloads
 
     // NOTE(fork): which Dynamic Island activity has the notch, if any: "keylock", "notif", or ""
     // for the standing content (clock, timer, media). Set by the Wrapper from NotchIsland.
@@ -44,9 +46,11 @@ Item {
     // Eased 0..1 versions of the sections that grow in and out instead of snapping
     property real clockProg: showClock ? 1 : 0
     property real timerProg: showTimer ? 1 : 0
-    // Between the clock and the timer, and between those and the media section
+    property real downloadProg: showDownloads ? 1 : 0
+    // One between each pair of sections that are both up: clock, timer, downloads, media
     property real clockTimerDivider: showClock && showTimer ? 1 : 0
-    property real mediaDivider: (showClock || showTimer) && showMedia ? 1 : 0
+    property real downloadDivider: (showClock || showTimer) && showDownloads ? 1 : 0
+    property real mediaDivider: (showClock || showTimer || showDownloads) && showMedia ? 1 : 0
 
     // Whether the visualiser moves at all: not while Power & battery has visualisers paused or animations off
     // Set by the wrapper: false for a standing pill on battery
@@ -150,7 +154,19 @@ Item {
         }
     }
 
+    Behavior on downloadProg {
+        Anim {
+            type: Anim.DefaultEffects
+        }
+    }
+
     Behavior on clockTimerDivider {
+        Anim {
+            type: Anim.DefaultEffects
+        }
+    }
+
+    Behavior on downloadDivider {
         Anim {
             type: Anim.DefaultEffects
         }
@@ -274,6 +290,34 @@ Item {
 
                 TimerSegment {
                     id: timerSegment
+
+                    anchors.verticalCenter: parent.verticalCenter
+                    anchors.horizontalCenter: parent.horizontalCenter
+
+                    compact: root.tight
+                }
+            }
+
+            StyledRect {
+                visible: root.downloadDivider > 0
+                Layout.alignment: Qt.AlignVCenter
+                Layout.preferredWidth: root.downloadDivider
+                Layout.preferredHeight: root.coverSize
+                opacity: root.downloadDivider
+                color: Colours.palette.m3outlineVariant
+            }
+
+            // NOTE(fork): what is downloading, growing in the same way the others do
+            Item {
+                visible: root.downloadProg > 0
+                Layout.alignment: Qt.AlignVCenter
+                implicitWidth: downloadSegment.implicitWidth * root.downloadProg
+                implicitHeight: downloadSegment.implicitHeight
+                opacity: root.downloadProg
+                clip: true
+
+                DownloadSegment {
+                    id: downloadSegment
 
                     anchors.verticalCenter: parent.verticalCenter
                     anchors.horizontalCenter: parent.horizontalCenter

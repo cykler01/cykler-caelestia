@@ -34,6 +34,8 @@ class NotchConfig : public settings::ObjectNode {
     // A lock key (caps lock, num lock) turning on or off
     CONFIG_PROPERTY(bool, showKeyLocks, true)
     CONFIG_PROPERTY(int, keyLockDuration, 1600)
+    // Browser and Steam downloads, while any are running (see services/downloads.cpp)
+    CONFIG_PROPERTY(bool, showDownloads, true)
     // Notifications as they arrive
     CONFIG_PROPERTY(bool, showNotifs, true)
     CONFIG_PROPERTY(int, notifDuration, 5000)

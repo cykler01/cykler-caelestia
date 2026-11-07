@@ -88,11 +88,18 @@ PageBase {
         }
 
         ToggleRow {
-            last: true
             text: Tr.tr("Show timer")
             subtext: Tr.tr("Show a running countdown in the notch alongside the clock")
             checked: Config.notch.showTimer
             onToggled: GlobalConfig.notch.showTimer = checked
+        }
+
+        ToggleRow {
+            last: true
+            text: Tr.tr("Show downloads")
+            subtext: Tr.tr("Show browser and Steam downloads in the notch while any are running")
+            checked: Config.notch.showDownloads
+            onToggled: GlobalConfig.notch.showDownloads = checked
         }
 
         // Dynamic island

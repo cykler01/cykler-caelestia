@@ -63,6 +63,12 @@ Item {
     // NOTE(fork): a countdown stands beside the clock for as long as it has something left to
     // count, or has rung and not been dismissed (see services/CountdownTimer.qml)
     readonly property bool timerShown: Config.notch.showTimer && CountdownTimer.active
+    // NOTE(fork): a browser or Steam download in flight (see services/downloads.cpp). Unlike the
+    // clock and the timer this does not wait for the notch to be wanted on the workspace: a
+    // download is a thing happening now with an end to it, and on a side bar (or with the standing
+    // notch turned off for workspaces that have windows) there would otherwise be nowhere it could
+    // ever appear. It brings the notch down on its own for as long as it runs, like an activity.
+    readonly property bool downloadsShown: Config.notch.showDownloads && Downloads.busy
     readonly property bool persistent: wanted && (Config.notch.showClock || musicShown || timerShown)
     // Whether the notch is standing in for the clock, so the bar can drop its own
     readonly property bool showsClock: Config.notch.enabled && wanted && Config.notch.showClock
@@ -78,7 +84,7 @@ Item {
 
     // The authentication prompt is a panel of its own, drawn where the notch would be (it has to
     // hold the keyboard, which the drawers window cannot), so the notch steps out of its way
-    readonly property bool shouldBeActive: Config.notch.enabled && (persistent || trackActive || activityShown) && !screenState.dashboard && !screenState.launcher && !NotchIsland.authActive
+    readonly property bool shouldBeActive: Config.notch.enabled && (persistent || trackActive || activityShown || downloadsShown) && !screenState.dashboard && !screenState.launcher && !NotchIsland.authActive
     property real offsetScale: shouldBeActive ? 0 : 1
 
     // NOTE(fork): an activity pulls the notch back out of the bar band (see inBarProg below) for as
@@ -270,6 +276,7 @@ Item {
             showMedia: root.hasRecent && (root.trackActive || (root.persistent && Config.notch.showMusic))
             showClock: root.persistent && Config.notch.showClock
             showTimer: root.persistent && root.timerShown
+            showDownloads: root.downloadsShown
             activity: root.activityShown ? NotchIsland.activity : ""
             compact: root.inBarProg > 0.5
         }
