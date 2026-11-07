@@ -106,6 +106,15 @@ ColumnLayout {
                 elide: Text.ElideRight
             }
 
+            // The level as well as the glyph: the icon alone only says roughly how much is left, and a
+            // headset that is about to die is worth reading at a glance
+            StyledText {
+                visible: device.modelData.state === BluetoothDeviceState.Connected && device.modelData.batteryAvailable
+                text: Strings.percentOne(device.modelData.battery)
+                color: device.modelData.battery < 0.2 ? Colours.palette.m3error : Colours.palette.m3onSurfaceVariant
+                font: Tokens.font.label.small
+            }
+
             MaterialIcon {
                 visible: device.modelData.state === BluetoothDeviceState.Connected
                 text: device.modelData.batteryAvailable ? Icons.getBatteryIcon(device.modelData.battery) : "battery_alert"
