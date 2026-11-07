@@ -225,6 +225,12 @@ Item {
                 }
             }
             DelegateChoice {
+                roleValue: "bluetooth"
+                delegate: BluetoothBatteryCard {
+                    gridHost: root
+                }
+            }
+            DelegateChoice {
                 roleValue: "fetch"
                 delegate: FetchCard {
                     gridHost: root

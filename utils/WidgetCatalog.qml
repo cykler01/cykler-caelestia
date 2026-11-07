@@ -175,6 +175,18 @@ Singleton {
             ]
         },
         {
+            id: "bluetooth",
+            name: Tr.tr("Bluetooth"),
+            icon: "bluetooth",
+            types: [
+                {
+                    id: "default",
+                    name: Tr.tr("Device batteries"),
+                    height: 5
+                }
+            ]
+        },
+        {
             id: "fetch",
             name: Tr.tr("Caelestia fetch"),
             icon: "terminal",

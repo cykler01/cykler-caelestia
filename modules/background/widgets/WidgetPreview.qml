@@ -73,6 +73,8 @@ Item {
                 return lyricsCard;
             case "battery":
                 return batteryCard;
+            case "bluetooth":
+                return bluetoothCard;
             case "fetch":
                 return fetchCard;
             case "visualiser":
@@ -186,6 +188,16 @@ Item {
         id: batteryCard
 
         BatteryCard {
+            variant: root.variant
+            widgetId: root.kind
+            entryIndex: -1
+        }
+    }
+
+    Component {
+        id: bluetoothCard
+
+        BluetoothBatteryCard {
             variant: root.variant
             widgetId: root.kind
             entryIndex: -1

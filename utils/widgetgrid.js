@@ -22,6 +22,7 @@ const heights = {
     media: 6,
     lyrics: 8,
     battery: 4,
+    bluetooth: 5,
     fetch: 8,
     visualiser: 5,
     sticky: 6,
