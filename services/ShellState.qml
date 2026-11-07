@@ -9,8 +9,20 @@ import qs.services
 Singleton {
     property ShellRoot shellRoot
 
+    // NOTE(fork): whether the session lock is up, published here by modules/lock/Lock.qml so
+    // anything that has to know (the notch's island, say) does not have to reach into the lock
+    property bool sessionLocked
+
     function anySidebarOpen(): bool {
         return states.instances.some(s => s.sidebar);
+    }
+
+    // NOTE(fork): whether something is covering the notch - the session lock, or a drawer the
+    // notch hides behind on any screen. The island cannot stand in for a notification popup while
+    // it is, since the popup would then be the only place the notification showed up at all; see
+    // services/NotchIsland.qml.
+    function notchCovered(): bool {
+        return sessionLocked || states.instances.some(s => s.dashboard || s.launcher);
     }
 
     function forScreen(screen: ShellScreen): ScreenState {

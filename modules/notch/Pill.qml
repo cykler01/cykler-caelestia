@@ -22,25 +22,31 @@ Item {
     // What to show: the playing track (cover, title, visualiser) and/or the clock
     property bool showMedia: true
     property bool showClock
+    // NOTE(fork): the running countdown, beside the clock (see TimerSegment.qml)
+    property bool showTimer
+
+    // NOTE(fork): which Dynamic Island activity has the notch, if any: "keylock", "notif", or ""
+    // for the standing content (clock, timer, media). Set by the Wrapper from NotchIsland.
+    property string activity
 
     readonly property string trackTitle: root.local ? Music.title : Players.recentPlayer?.trackTitle ?? ""
     readonly property string trackArtist: root.local ? Music.artist : Players.recentPlayer?.trackArtist ?? ""
 
-    // Eased 0..1 versions of the above so the clock (and its divider) grow in and out instead of snapping
+    // NOTE(fork): the activity last shown, kept while it fades out so the content is not pulled
+    // out from under the fade, and so a switch straight from one activity to another has something
+    // to cross from
+    property string shownActivity: "keylock"
+    // Whether the activity content is still worth having around: up as soon as there is one, and
+    // held for the fade once there is not. The pill's size follows it for as long as it is held,
+    // so the island collapses after the content has gone rather than during it.
+    property bool activityHeld
+
+    // Eased 0..1 versions of the sections that grow in and out instead of snapping
     property real clockProg: showClock ? 1 : 0
-    property real dividerProg: showClock && showMedia ? 1 : 0
-
-    Behavior on clockProg {
-        Anim {
-            type: Anim.DefaultEffects
-        }
-    }
-
-    Behavior on dividerProg {
-        Anim {
-            type: Anim.DefaultEffects
-        }
-    }
+    property real timerProg: showTimer ? 1 : 0
+    // Between the clock and the timer, and between those and the media section
+    property real clockTimerDivider: showClock && showTimer ? 1 : 0
+    property real mediaDivider: (showClock || showTimer) && showMedia ? 1 : 0
 
     // Whether the visualiser moves at all: not while Power & battery has visualisers paused or animations off
     // Set by the wrapper: false for a standing pill on battery
@@ -55,7 +61,16 @@ Item {
     // Sitting inside the bar rather than hanging from it: smaller everything, one line, no date
     property bool compact
 
-    readonly property int coverSize: compact ? Tokens.padding.large + 4 : Tokens.padding.extraLarge
+    // An activity never draws in the bar band - the Wrapper pulls the notch back out of it first
+    // (see activityPop there) - so the compact layout only applies to the standing content
+    readonly property bool tight: root.compact && !root.activityHeld
+
+    readonly property int coverSize: tight ? Tokens.padding.large + 4 : Tokens.padding.extraLarge
+    readonly property int hPad: tight ? Tokens.padding.medium : Tokens.padding.large
+    readonly property int vPad: tight ? Tokens.padding.small : Tokens.padding.medium
+
+    // What the pill is sized by: the activity while it has one, the standing content otherwise
+    readonly property Item currentContent: root.activityHeld ? activityLoader : standing
 
     // Drives the placeholder pattern below; only ticks while that pattern is actually on screen
     property real placeholderPhase
@@ -100,195 +115,321 @@ Item {
         return bars;
     }
 
-    implicitWidth: layout.implicitWidth + (compact ? Tokens.padding.medium : Tokens.padding.large) * 2
+    implicitWidth: currentContent.implicitWidth + hPad * 2
 
-    implicitHeight: layout.implicitHeight + (compact ? Tokens.padding.small : Tokens.padding.medium) * 2
+    implicitHeight: currentContent.implicitHeight + vPad * 2
 
-    RowLayout {
-        id: layout
+    // An activity can be what brings the pill into being in the first place (the Wrapper only
+    // loads it once the notch has something to show), in which case there is no change to catch
+    Component.onCompleted: {
+        if (root.activity !== "") {
+            root.shownActivity = root.activity;
+            root.activityHeld = true;
+        }
+    }
+
+    onActivityChanged: {
+        if (root.activity !== "") {
+            root.shownActivity = root.activity;
+            root.activityHeld = true;
+            holdTimer.stop();
+        } else {
+            holdTimer.restart();
+        }
+    }
+
+    Behavior on clockProg {
+        Anim {
+            type: Anim.DefaultEffects
+        }
+    }
+
+    Behavior on timerProg {
+        Anim {
+            type: Anim.DefaultEffects
+        }
+    }
+
+    Behavior on clockTimerDivider {
+        Anim {
+            type: Anim.DefaultEffects
+        }
+    }
+
+    Behavior on mediaDivider {
+        Anim {
+            type: Anim.DefaultEffects
+        }
+    }
+
+    // Lets go of the activity content once its fade has run
+    Timer {
+        id: holdTimer
+
+        interval: Tokens.anim.durations.expressiveDefaultEffects + 50
+        onTriggered: root.activityHeld = false
+    }
+
+    // The island's content, over the standing content it crossfades with
+    Loader {
+        id: activityLoader
 
         anchors.centerIn: parent
-        spacing: Tokens.spacing.medium
 
-        // Grows and fades in rather than popping; the box's width follows the clock's own
-        Item {
-            visible: root.clockProg > 0
-            Layout.alignment: Qt.AlignVCenter
-            implicitWidth: clockColumn.implicitWidth * root.clockProg
-            implicitHeight: clockColumn.implicitHeight
-            opacity: root.clockProg
-            clip: true
+        active: root.activityHeld
+        opacity: root.activity === "" ? 0 : 1
+        visible: opacity > 0
+        sourceComponent: root.shownActivity === "notif" ? notifPill : lockPill
 
-            ColumnLayout {
-                id: clockColumn
+        Behavior on opacity {
+            Anim {
+                type: Anim.DefaultEffects
+            }
+        }
+    }
 
-                anchors.verticalCenter: parent.verticalCenter
-                anchors.horizontalCenter: parent.horizontalCenter
-                spacing: 0
+    Item {
+        id: standing
 
-                RowLayout {
-                    Layout.alignment: Qt.AlignHCenter
-                    spacing: Tokens.spacing.extraSmall
+        anchors.centerIn: parent
 
-                    StyledText {
-                        text: `${Time.hourStr}:${Time.minuteStr}`
-                        color: Colours.palette.m3primary
-                        font: root.compact ? Tokens.font.label.builders.large.weight(Font.DemiBold).build() : Tokens.font.title.builders.small.weight(Font.DemiBold).build()
+        implicitWidth: layout.implicitWidth
+        implicitHeight: layout.implicitHeight
+        opacity: root.activity === "" ? 1 : 0
+        visible: opacity > 0
+
+        Behavior on opacity {
+            Anim {
+                type: Anim.DefaultEffects
+            }
+        }
+
+        RowLayout {
+            id: layout
+
+            anchors.centerIn: parent
+            spacing: Tokens.spacing.medium
+
+            // Grows and fades in rather than popping; the box's width follows the clock's own
+            Item {
+                visible: root.clockProg > 0
+                Layout.alignment: Qt.AlignVCenter
+                implicitWidth: clockColumn.implicitWidth * root.clockProg
+                implicitHeight: clockColumn.implicitHeight
+                opacity: root.clockProg
+                clip: true
+
+                ColumnLayout {
+                    id: clockColumn
+
+                    anchors.verticalCenter: parent.verticalCenter
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    spacing: 0
+
+                    RowLayout {
+                        Layout.alignment: Qt.AlignHCenter
+                        spacing: Tokens.spacing.extraSmall
+
+                        StyledText {
+                            text: `${Time.hourStr}:${Time.minuteStr}`
+                            color: Colours.palette.m3primary
+                            font: root.tight ? Tokens.font.label.builders.large.weight(Font.DemiBold).build() : Tokens.font.title.builders.small.weight(Font.DemiBold).build()
+                        }
+
+                        StyledText {
+                            visible: Units.twelveHourClock
+                            text: Time.amPmStr.toLowerCase()
+                            color: Colours.palette.m3primary
+                            font: Tokens.font.label.small
+                        }
                     }
 
                     StyledText {
-                        visible: Units.twelveHourClock
-                        text: Time.amPmStr.toLowerCase()
-                        color: Colours.palette.m3primary
+                        visible: !root.tight
+                        Layout.alignment: Qt.AlignHCenter
+                        text: Time.format("ddd d MMM")
+                        color: Colours.palette.m3onSurfaceVariant
                         font: Tokens.font.label.small
                     }
                 }
-
-                StyledText {
-                    visible: !root.compact
-                    Layout.alignment: Qt.AlignHCenter
-                    text: Time.format("ddd d MMM")
-                    color: Colours.palette.m3onSurfaceVariant
-                    font: Tokens.font.label.small
-                }
-            }
-        }
-
-        StyledRect {
-            visible: root.dividerProg > 0
-            Layout.alignment: Qt.AlignVCenter
-            Layout.preferredWidth: root.dividerProg
-            Layout.preferredHeight: root.coverSize
-            opacity: root.dividerProg
-            color: Colours.palette.m3outlineVariant
-        }
-
-        CoverArt {
-            visible: root.showMedia
-            Layout.alignment: Qt.AlignVCenter
-            Layout.preferredWidth: root.coverSize
-            Layout.preferredHeight: root.coverSize
-            source: root.local ? Music.coverPath : Players.getArtUrl(Players.recentPlayer)
-            // Turns only while the pill is allowed to animate (the same rule as the visualiser): a rotating shape
-            // inside two effect layers redraws every frame, which was most of what music cost in the notch
-            spinning: root.live && (root.local ? Music.playing : (Players.recentPlayer?.isPlaying ?? false))
-        }
-
-        StyledText {
-            id: primaryText
-
-            visible: root.showMedia
-            // Each of title and artist gets its own budget and elides on its own, so a long
-            // one can't eat into the other's space - they used to share one combined string
-            Layout.alignment: Qt.AlignVCenter
-            Layout.maximumWidth: root.compact ? Math.min(Config.notch.maxTitleWidth, 200) : Config.notch.maxTitleWidth
-            // Without showArtist this is just the title - artistFirst only matters once
-            // there are two fields to order
-            text: Config.notch.showArtist && Config.notch.artistFirst ? root.trackArtist : root.trackTitle
-            color: Colours.palette.m3onSurface
-            font: root.compact ? Tokens.font.label.large : Tokens.font.title.small
-            elide: Text.ElideRight
-        }
-
-        StyledText {
-            visible: root.showMedia && Config.notch.showArtist && root.trackArtist !== "" && root.trackTitle !== ""
-            Layout.alignment: Qt.AlignVCenter
-            text: Tr.trCtx("-", "separates track title and artist")
-            color: Colours.palette.m3outlineVariant
-            font: primaryText.font
-        }
-
-        StyledText {
-            visible: root.showMedia && Config.notch.showArtist && root.trackArtist !== "" && root.trackTitle !== ""
-            Layout.alignment: Qt.AlignVCenter
-            Layout.maximumWidth: root.compact ? Math.min(Config.notch.maxTitleWidth, 200) : Config.notch.maxTitleWidth
-            text: Config.notch.artistFirst ? root.trackTitle : root.trackArtist
-            color: Colours.palette.m3onSurface
-            font: primaryText.font
-            elide: Text.ElideRight
-        }
-
-        Item {
-            id: visualiserWrapper
-
-            // Matches root.coverSize so the cover and visualiser carry the
-            // same visual weight either side of the title
-            visible: root.showMedia
-            Layout.alignment: Qt.AlignVCenter
-            Layout.preferredWidth: root.coverSize
-            Layout.preferredHeight: root.coverSize
-
-            // Power Saver can pause audio capture; the bars then rest flat (see PowerSaving)
-            ServiceRef {
-                service: !root.live || !root.showMedia ? null : Audio.cava
             }
 
-            VisualiserBars {
-                id: bars
-
-                anchors.fill: parent
-
-                // Centred on the middle line and reflected above and below it rather than rising
-                // from the bottom of the pill, where the bars sat low enough to be easy to miss,
-                // and as one spectrum across the width: the component's default layout would
-                // draw this same spectrum twice, mirrored beside itself
-                // (see mirrored/singleRow in plugin/src/Caelestia/Components/visualiserbars.hpp)
-                mirrored: true
-                singleRow: true
-                values: root.spectrum
-                primaryColor: Colours.palette.m3primary
-                secondaryColor: Colours.palette.m3inversePrimary
-                rounding: Tokens.rounding.small
-                // A quarter of the smallest spacing token: the bars here are only a few pixels
-                // wide, so a full-sized gap between them would swallow them whole
-                spacing: Tokens.spacing.extraSmall / 4
-                animationDuration: Tokens.anim.durations.normal
+            StyledRect {
+                visible: root.clockTimerDivider > 0
+                Layout.alignment: Qt.AlignVCenter
+                Layout.preferredWidth: root.clockTimerDivider
+                Layout.preferredHeight: root.coverSize
+                opacity: root.clockTimerDivider
+                color: Colours.palette.m3outlineVariant
             }
 
-            // The one thing that moves the visualiser, at the shared decorative rate (PowerSaving.fps). It replaces
-            // frame-driven animations: those ask for a redraw on every screen refresh for as long as they run, which
-            // kept the whole shell window redrawing at full rate (and most of its power) for a few small bars. When
-            // the pill is at rest (not live) nothing runs at all.
-            Timer {
-                property real last
+            // NOTE(fork): the countdown, growing in beside the clock the same way it does
+            Item {
+                visible: root.timerProg > 0
+                Layout.alignment: Qt.AlignVCenter
+                implicitWidth: timerSegment.implicitWidth * root.timerProg
+                implicitHeight: timerSegment.implicitHeight
+                opacity: root.timerProg
+                clip: true
 
-                interval: PowerSaving.frameMs
-                repeat: true
-                triggeredOnStart: true
-                running: root.showMedia && root.live
-                onRunningChanged: last = Date.now()
-                onTriggered: {
-                    const now = Date.now();
-                    const dt = Math.min(0.25, (now - last) / 1000);
-                    last = now;
+                TimerSegment {
+                    id: timerSegment
 
-                    if (!root.cavaWarm)
-                        root.placeholderPhase += dt * 4;
-                    root.spectrum = root.cavaWarm ? root.sampleSpectrum(Audio.cava.values, root.barCount) : root.placeholderSpectrum(root.barCount);
-                    if (!bars.settled)
-                        bars.advance(dt);
+                    anchors.verticalCenter: parent.verticalCenter
+                    anchors.horizontalCenter: parent.horizontalCenter
+
+                    compact: root.tight
                 }
             }
 
-            // Not live: the bars come to rest flat and stay there, without anything running
-            function rest(): void {
-                root.spectrum = Array(root.barCount).fill(0.2);
-                Qt.callLater(() => bars.advance(1));
+            StyledRect {
+                visible: root.mediaDivider > 0
+                Layout.alignment: Qt.AlignVCenter
+                Layout.preferredWidth: root.mediaDivider
+                Layout.preferredHeight: root.coverSize
+                opacity: root.mediaDivider
+                color: Colours.palette.m3outlineVariant
             }
 
-            Connections {
-                function onLiveChanged(): void {
+            CoverArt {
+                visible: root.showMedia
+                Layout.alignment: Qt.AlignVCenter
+                Layout.preferredWidth: root.coverSize
+                Layout.preferredHeight: root.coverSize
+                source: root.local ? Music.coverPath : Players.getArtUrl(Players.recentPlayer)
+                // Turns only while the pill is allowed to animate (the same rule as the visualiser): a rotating shape
+                // inside two effect layers redraws every frame, which was most of what music cost in the notch
+                spinning: root.live && (root.local ? Music.playing : (Players.recentPlayer?.isPlaying ?? false))
+            }
+
+            StyledText {
+                id: primaryText
+
+                visible: root.showMedia
+                // Each of title and artist gets its own budget and elides on its own, so a long
+                // one can't eat into the other's space - they used to share one combined string
+                Layout.alignment: Qt.AlignVCenter
+                Layout.maximumWidth: root.tight ? Math.min(Config.notch.maxTitleWidth, 200) : Config.notch.maxTitleWidth
+                // Without showArtist this is just the title - artistFirst only matters once
+                // there are two fields to order
+                text: Config.notch.showArtist && Config.notch.artistFirst ? root.trackArtist : root.trackTitle
+                color: Colours.palette.m3onSurface
+                font: root.tight ? Tokens.font.label.large : Tokens.font.title.small
+                elide: Text.ElideRight
+            }
+
+            StyledText {
+                visible: root.showMedia && Config.notch.showArtist && root.trackArtist !== "" && root.trackTitle !== ""
+                Layout.alignment: Qt.AlignVCenter
+                text: Tr.trCtx("-", "separates track title and artist")
+                color: Colours.palette.m3outlineVariant
+                font: primaryText.font
+            }
+
+            StyledText {
+                visible: root.showMedia && Config.notch.showArtist && root.trackArtist !== "" && root.trackTitle !== ""
+                Layout.alignment: Qt.AlignVCenter
+                Layout.maximumWidth: root.tight ? Math.min(Config.notch.maxTitleWidth, 200) : Config.notch.maxTitleWidth
+                text: Config.notch.artistFirst ? root.trackTitle : root.trackArtist
+                color: Colours.palette.m3onSurface
+                font: primaryText.font
+                elide: Text.ElideRight
+            }
+
+            Item {
+                id: visualiserWrapper
+
+                // Matches root.coverSize so the cover and visualiser carry the
+                // same visual weight either side of the title
+                visible: root.showMedia
+                Layout.alignment: Qt.AlignVCenter
+                Layout.preferredWidth: root.coverSize
+                Layout.preferredHeight: root.coverSize
+
+                // Power Saver can pause audio capture; the bars then rest flat (see PowerSaving)
+                ServiceRef {
+                    service: !root.live || !root.showMedia ? null : Audio.cava
+                }
+
+                VisualiserBars {
+                    id: bars
+
+                    anchors.fill: parent
+
+                    // Centred on the middle line and reflected above and below it rather than rising
+                    // from the bottom of the pill, where the bars sat low enough to be easy to miss,
+                    // and as one spectrum across the width: the component's default layout would
+                    // draw this same spectrum twice, mirrored beside itself
+                    // (see mirrored/singleRow in plugin/src/Caelestia/Components/visualiserbars.hpp)
+                    mirrored: true
+                    singleRow: true
+                    values: root.spectrum
+                    primaryColor: Colours.palette.m3primary
+                    secondaryColor: Colours.palette.m3inversePrimary
+                    rounding: Tokens.rounding.small
+                    // A quarter of the smallest spacing token: the bars here are only a few pixels
+                    // wide, so a full-sized gap between them would swallow them whole
+                    spacing: Tokens.spacing.extraSmall / 4
+                    animationDuration: Tokens.anim.durations.normal
+                }
+
+                // The one thing that moves the visualiser, at the shared decorative rate (PowerSaving.fps). It replaces
+                // frame-driven animations: those ask for a redraw on every screen refresh for as long as they run, which
+                // kept the whole shell window redrawing at full rate (and most of its power) for a few small bars. When
+                // the pill is at rest (not live) nothing runs at all.
+                Timer {
+                    property real last
+
+                    interval: PowerSaving.frameMs
+                    repeat: true
+                    triggeredOnStart: true
+                    running: root.showMedia && root.live
+                    onRunningChanged: last = Date.now()
+                    onTriggered: {
+                        const now = Date.now();
+                        const dt = Math.min(0.25, (now - last) / 1000);
+                        last = now;
+
+                        if (!root.cavaWarm)
+                            root.placeholderPhase += dt * 4;
+                        root.spectrum = root.cavaWarm ? root.sampleSpectrum(Audio.cava.values, root.barCount) : root.placeholderSpectrum(root.barCount);
+                        if (!bars.settled)
+                            bars.advance(dt);
+                    }
+                }
+
+                // Not live: the bars come to rest flat and stay there, without anything running
+                function rest(): void {
+                    root.spectrum = Array(root.barCount).fill(0.2);
+                    Qt.callLater(() => bars.advance(1));
+                }
+
+                Connections {
+                    function onLiveChanged(): void {
+                        if (!root.live)
+                            visualiserWrapper.rest();
+                    }
+
+                    target: root
+                }
+
+                Component.onCompleted: {
                     if (!root.live)
-                        visualiserWrapper.rest();
+                        rest();
                 }
-
-                target: root
-            }
-
-            Component.onCompleted: {
-                if (!root.live)
-                    rest();
             }
         }
+    }
+
+    Component {
+        id: lockPill
+
+        LockPill {}
+    }
+
+    Component {
+        id: notifPill
+
+        NotifPill {}
     }
 }

@@ -66,6 +66,15 @@ Scope {
         }
     }
 
+    // NOTE(fork): the notch steps aside while the prompt is up, since the prompt is drawn where the
+    // notch would be (see modules/polkit/Content.qml) and the two would otherwise sit on top of
+    // each other
+    Binding {
+        target: NotchIsland
+        property: "authActive"
+        value: root.agent?.isActive ?? false
+    }
+
     LoggingCategory {
         id: lc
 

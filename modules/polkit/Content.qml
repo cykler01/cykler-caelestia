@@ -9,13 +9,24 @@ import qs.components.controls
 import qs.components.effects
 import qs.services
 
-// The prompt for a polkit authentication request (see Polkit.qml): a dimmed screen with a card
-// asking for the password, built from the same containers and colours as the rest of the shell
+// The prompt for a polkit authentication request (see Polkit.qml): a dimmed screen with a panel
+// asking for the password, built from the same containers and colours as the rest of the shell.
+//
+// NOTE(fork): with the notch's showPolkit on (the default) that panel drops out of the top edge
+// where the notch sits, aligned the way the notch is, so asking for a password reads as the notch
+// opening up for it - the Dynamic Island treatment. Turning it off puts the card back in the
+// middle of the screen.
 Item {
     id: root
 
     // The flow of the request being answered, null once it is over
     property var flow: null
+
+    // NOTE(fork): 0 before there is anything to ask, 1 once the panel is down, so the island slides
+    // out of the top edge rather than simply appearing there
+    property real openProg: root.flow !== null ? 1 : 0
+
+    readonly property bool island: Config.notch.enabled && Config.notch.showPolkit
 
     readonly property bool awaitingInput: root.flow?.isResponseRequired ?? false
     // The password has been handed over and polkit is checking it
@@ -56,6 +67,12 @@ Item {
 
     Keys.onEscapePressed: root.cancel()
 
+    Behavior on openProg {
+        Anim {
+            type: Anim.DefaultSpatial
+        }
+    }
+
     Connections {
         function onIsResponseRequiredChanged(): void {
             if (root.awaitingInput)
@@ -88,7 +105,14 @@ Item {
     StyledRect {
         id: card
 
-        anchors.centerIn: parent
+        // NOTE(fork): the island hangs from the top edge on the notch's own alignment; the plain
+        // card sits in the middle of the screen. Both are plain x/y bindings rather than anchors,
+        // so the setting can be changed while the shell runs.
+        readonly property real islandX: Config.notch.align === PanelAlign.Start ? Tokens.padding.large : Config.notch.align === PanelAlign.End ? root.width - width - Tokens.padding.large : (root.width - width) / 2
+        readonly property real islandY: Tokens.padding.medium - (height + Tokens.padding.medium) * (1 - root.openProg)
+
+        x: root.island ? islandX : (root.width - width) / 2
+        y: root.island ? islandY : (root.height - height) / 2
         width: Math.min(420, parent.width - Tokens.padding.extraLargeIncreased)
         implicitHeight: layout.implicitHeight + Tokens.padding.extraExtraLarge
 

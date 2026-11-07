@@ -24,6 +24,12 @@ Singleton {
 
     property bool loaded
 
+    // NOTE(fork): emitted once a notification has arrived and been wrapped, and again whenever a
+    // chat app replaces one with a new message (see NotifData.beginReplace). The notch's island
+    // listens for it so it can show the notification - and claim its popup - without the server
+    // having to know the notch exists; see services/NotchIsland.qml.
+    signal notified(notif: var)
+
     function hasFullscreen(): bool {
         for (const monitor of Hypr.monitors.values) {
             if (monitor?.activeWorkspace?.toplevels.values.some(t => t.lastIpcObject.fullscreen > 1))
@@ -146,6 +152,7 @@ Singleton {
                 notification: notif
             });
             root.list = [comp, ...root.list];
+            root.notified(comp);
         }
     }
 

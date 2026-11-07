@@ -21,8 +21,16 @@ const config::UtilitiesToasts* toastConfig() {
     return config::ConfigSingleton::instance()->utilities()->toasts();
 }
 
+// NOTE(fork): whether the notch's island is the one reporting lock keys. It drops the notch down to
+// say what changed (see modules/notch/LockPill.qml), so a toast saying the same thing in the same
+// moment would only be the message twice; the toast is left to whoever turns the island off.
+bool notchShowsKeyLocks() {
+    const auto* notch = config::ConfigSingleton::instance()->notch();
+    return notch->enabled() && notch->showKeyLocks();
+}
+
 void toastCapsLock(bool enabled) {
-    if (!toastConfig()->capsLockChanged())
+    if (!toastConfig()->capsLockChanged() || notchShowsKeyLocks())
         return;
 
     const auto title = enabled ? mark(u"Caps lock enabled"_s) : mark(u"Caps lock disabled"_s);
@@ -33,7 +41,7 @@ void toastCapsLock(bool enabled) {
 }
 
 void toastNumLock(bool enabled) {
-    if (!toastConfig()->numLockChanged())
+    if (!toastConfig()->numLockChanged() || notchShowsKeyLocks())
         return;
 
     const auto title = enabled ? mark(u"Num lock enabled"_s) : mark(u"Num lock disabled"_s);

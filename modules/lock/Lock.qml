@@ -23,6 +23,14 @@ Scope {
         }
     }
 
+    // NOTE(fork): published so anything outside the lock can tell the session is locked, e.g. the
+    // notch's island, which must not claim a notification's popup while nothing of the notch shows
+    Binding {
+        target: ShellState
+        property: "sessionLocked"
+        value: lock.locked
+    }
+
     Pam {
         id: pam
 

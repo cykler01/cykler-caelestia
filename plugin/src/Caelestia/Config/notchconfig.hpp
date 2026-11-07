@@ -25,6 +25,24 @@ class NotchConfig : public settings::ObjectNode {
     CONFIG_PROPERTY(bool, showWithWindows, true)
     // Show what is playing in the notch alongside the clock (the brief pill on a track change is separate)
     CONFIG_PROPERTY(bool, showMusic, true)
+    // NOTE(fork): show a running countdown (the utilities panel's timer) in the notch beside the clock
+    CONFIG_PROPERTY(bool, showTimer, true)
+
+    // NOTE(fork): Dynamic Island activities - things that just happened, which the notch stands up
+    // to show for a moment wherever it is, in place of the clock and what is playing
+
+    // A lock key (caps lock, num lock) turning on or off
+    CONFIG_PROPERTY(bool, showKeyLocks, true)
+    CONFIG_PROPERTY(int, keyLockDuration, 1600)
+    // Notifications as they arrive
+    CONFIG_PROPERTY(bool, showNotifs, true)
+    CONFIG_PROPERTY(int, notifDuration, 5000)
+    // Whether the island stands in for the corner popup rather than doubling it. The notification
+    // itself is untouched either way: it waits in the notification centre as usual
+    CONFIG_PROPERTY(bool, notifsTakeOver, true)
+    // Ask for a password in a panel that drops out of the notch, rather than a card in the middle
+    // of the screen (see modules/polkit)
+    CONFIG_PROPERTY(bool, showPolkit, true)
 };
 
 } // namespace caelestia::shell::config

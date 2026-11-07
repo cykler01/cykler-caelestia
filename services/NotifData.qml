@@ -229,6 +229,8 @@ QtObject {
             updateTimeStr();
             popup = Notifs.canPopup(appName);
             timer.restart();
+            // NOTE(fork): a new message, so the notch's island gets to show it like any other
+            Notifs.notified(notif);
         });
     }
 

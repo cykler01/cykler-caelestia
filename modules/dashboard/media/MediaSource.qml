@@ -24,6 +24,21 @@ QtObject {
     readonly property real length: root.local ? Music.duration : (root.mpris?.length ?? 0)
     readonly property real position: root.local ? Music.position : (root.mpris?.position ?? 0)
 
+    // Spotify's own id for the track being played, when Spotify is what is making the sound. The
+    // word-timed lyrics source is asked by this rather than by title and artist, which is why it
+    // needs no matching. Empty for every other player, and for the in-shell one
+    readonly property string spotifyId: {
+        if (root.local)
+            return "";
+        const meta = root.mpris?.metadata ?? ({});
+        for (const field of ["mpris:trackid", "xesam:url"]) {
+            const hit = /(?:spotify[:/]track[:/]|\/com\/spotify\/track\/)([A-Za-z0-9]{22})/.exec(meta[field] ?? "");
+            if (hit !== null)
+                return hit[1];
+        }
+        return "";
+    }
+
     readonly property bool canSeek: root.local ? Music.duration > 0 : (root.mpris?.canSeek ?? false)
     readonly property bool canTogglePlaying: root.local ? Music.hasTrack : (root.mpris?.canTogglePlaying ?? false)
     readonly property bool canGoPrevious: root.local ? Music.hasTrack : (root.mpris?.canGoPrevious ?? false)

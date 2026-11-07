@@ -29,7 +29,10 @@ ENUM(PanelSide, Left, Right)
 ENUM(HotCornerAction, None, Overview, Sidebar)
 ENUM(BarWorkspaceDisplay, Shapes, Text, Icons)
 ENUM(BarWorkspaceCapitalisation, Preserve, Upper, Lower)
-ENUM(LyricsBackend, Auto, Local, LRCLIB, NetEase)
+// SpicyLyrics is where word timings come from; it is not offered as a preferred backend, since the
+// other sources still answer when it has nothing for a track. Appended so the existing values keep
+// their numbers in the config file.
+ENUM(LyricsBackend, Auto, Local, LRCLIB, NetEase, SpicyLyrics)
 ENUM(GpuType, Auto, Nvidia, Generic, None)
 ENUM(NotifsFullscreen, On, Off)
 // What a notification source rule does with the notifications it matches

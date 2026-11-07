@@ -6,6 +6,7 @@
 #include <qnetworkcookiejar.h>
 #include <qsavefile.h>
 #include <qurlquery.h>
+#include <qvariantmap.h>
 
 #include <algorithm>
 
@@ -70,7 +71,8 @@ constexpr qreal k_indexFudge = 0.1;
 Lyrics::Lyrics(QObject* parent)
     : QObject(parent)
     , m_nam(new QNetworkAccessManager(this))
-    , m_loadDebounce(new QTimer(this)) {
+    , m_loadDebounce(new QTimer(this))
+    , m_keyWatcher(new QFileSystemWatcher(this)) {
     m_loadDebounce->setSingleShot(true);
     m_loadDebounce->setInterval(k_loadDebounceMs);
     QObject::connect(m_loadDebounce, &QTimer::timeout, this, &Lyrics::doLoad);
@@ -85,11 +87,43 @@ Lyrics::Lyrics(QObject* parent)
         svcCfg, &config::ServiceConfig::lyricsBackendChanged, this, &Lyrics::onPreferredBackendConfigChanged);
     QObject::connect(paths, &config::UserPaths::lyricsDirChanged, this, &Lyrics::onLyricsDirChanged);
 
+    m_lastSpicyKey = spicyKey();
+    QObject::connect(m_keyWatcher, &QFileSystemWatcher::fileChanged, this, &Lyrics::onSpicyKeyChanged);
+    QObject::connect(m_keyWatcher, &QFileSystemWatcher::directoryChanged, this, &Lyrics::onSpicyKeyChanged);
+    watchSpicyKey();
+
     loadLyricsMap();
 }
 
 QStringList Lyrics::lyrics() const {
     return m_lyrics;
+}
+
+QVariantList Lyrics::lines() const {
+    QVariantList out;
+    out.reserve(m_lines.size());
+    for (const auto& line : m_lines) {
+        QVariantList words;
+        words.reserve(line.words.size());
+        for (const auto& word : line.words) {
+            words.append(QVariantMap{
+                { u"text"_s, word.text },
+                { u"start"_s, word.start },
+                { u"end"_s, word.end },
+                { u"joinNext"_s, word.joinNext },
+            });
+        }
+        out.append(QVariantMap{
+            { u"time"_s, line.time },
+            { u"text"_s, line.text },
+            { u"words"_s, words },
+        });
+    }
+    return out;
+}
+
+bool Lyrics::wordTimed() const {
+    return m_wordTimed;
 }
 
 LyricsBackend Lyrics::backend() const {
@@ -232,11 +266,32 @@ qreal Lyrics::timeForIndex(int index) const {
     return m_lines.at(index).time + m_offset;
 }
 
-void Lyrics::setTrack(const QString& artist, const QString& title, const QString& album, qreal duration) {
+qreal Lyrics::wordProgress(int line, int word, qreal time) const {
+    if (line < 0 || line >= m_lines.size()) {
+        return 0.0;
+    }
+    const auto& words = m_lines.at(line).words;
+    if (word < 0 || word >= words.size()) {
+        return 0.0;
+    }
+
+    const auto& w = words.at(word);
+    // The offset moves the lyrics, not the track: a positive offset means the words land later.
+    const qreal now = time - m_offset;
+    if (w.end <= w.start) {
+        return now >= w.start ? 1.0 : 0.0;
+    }
+    return std::clamp((now - w.start) / (w.end - w.start), 0.0, 1.0);
+}
+
+void Lyrics::setTrack(
+    const QString& artist, const QString& title, const QString& album, qreal duration, const QString& spotifyId) {
     const QString a = artist.trimmed();
     const QString t = title.trimmed();
+    const QString id = spotifyId.trimmed();
 
-    if (a == m_artist && t == m_title && album == m_album && qFuzzyCompare(duration + 1.0, m_duration + 1.0)) {
+    if (a == m_artist && t == m_title && album == m_album && id == m_spotifyId
+        && qFuzzyCompare(duration + 1.0, m_duration + 1.0)) {
         return;
     }
 
@@ -244,6 +299,7 @@ void Lyrics::setTrack(const QString& artist, const QString& title, const QString
     m_title = t;
     m_album = album;
     m_duration = duration;
+    m_spotifyId = id;
     emit trackChanged();
 
     scheduleLoad();
@@ -255,6 +311,7 @@ void Lyrics::clearTrack() {
     m_title.clear();
     m_album.clear();
     m_duration = 0.0;
+    m_spotifyId.clear();
     emit trackChanged();
 
     clearCandidates();
@@ -288,6 +345,9 @@ void Lyrics::setLines(QVector<LyricLine> lines, LyricsBackend source) {
     });
 
     m_lines = std::move(lines);
+    m_wordTimed = std::ranges::any_of(m_lines, [](const LyricLine& l) {
+        return !l.words.isEmpty();
+    });
     QStringList list;
     list.reserve(m_lines.size());
     for (const auto& l : std::as_const(m_lines)) {
@@ -312,6 +372,7 @@ void Lyrics::clearLines() {
 
     // Doesn't actually clear lines, set a flag instead so anims can run
     m_hasLyrics = false;
+    m_wordTimed = false;
     emit hasLyricsChanged();
 }
 
@@ -382,21 +443,48 @@ void Lyrics::doLoad() {
     clearLines();
     clearCandidates();
 
-    // Restore per-track prefs (offset, last-selected backend/id)
+    // The offset belongs to the track, not to whichever source answers, so it is restored here
+    // rather than down in the fallback: a word-timed track needs the same correction the
+    // line-timed one would have had.
     m_settingFromPrefs = true;
+    setOffset(m_lyricsMap.value(trackKey()).toObject().value(u"offset"_s).toDouble(0.0));
+    m_settingFromPrefs = false;
+
+    // Always populate online candidates for the picker, regardless of preferred backend
+    searchLrclibCandidates(reqId);
+    searchNetEaseCandidates(reqId);
+
+    /*
+     * Word timings first, when they could exist: a Spotify stream, whose own track id the
+     * word-timed source takes directly, and a key to ask it with. They are the one thing the
+     * other sources cannot give - those know where each line starts and nothing finer, so a
+     * view can only light the line whole - which makes the extra request worth it.
+     *
+     * Anything short of a syllable sync falls through to the line-timed sources unchanged: no
+     * id, no key, key refused, nothing found, or a track that source only timed by line. The
+     * chain below is untouched, so a track without word timings behaves exactly as it did.
+     */
+    if (!m_spotifyId.isEmpty() && !spicyKey().isEmpty()) {
+        trySpicy(reqId);
+        return;
+    }
+
+    loadFallback(reqId);
+}
+
+void Lyrics::loadFallback(int reqId) {
+    if (reqId != m_currentRequestId) {
+        return;
+    }
+
+    // The backend and id picked for this track last time, if one was saved
     const QJsonObject saved = m_lyricsMap.value(trackKey()).toObject();
-    setOffset(saved.value(u"offset"_s).toDouble(0.0));
     LyricCandidate restored;
     const QString savedBackendKey = saved.value(u"backend"_s).toString();
     const QString savedId = saved.value(u"id"_s).toString();
     if (!savedBackendKey.isEmpty() && !savedId.isEmpty()) {
         restored = LyricCandidate(backendFromKey(savedBackendKey), savedId, m_title, m_artist, m_album, m_duration);
     }
-    m_settingFromPrefs = false;
-
-    // Always populate online candidates for the picker, regardless of preferred backend
-    searchLrclibCandidates(reqId);
-    searchNetEaseCandidates(reqId);
 
     if (restored.isValid()) {
         // Honor saved selection for this track
@@ -628,6 +716,66 @@ void Lyrics::tryNetEase(int reqId) {
     });
 }
 
+/*
+ * Word timings from Spicy Lyrics, which is the one public source that carries them. It is asked
+ * by Spotify's own id rather than by title and artist, so there is no matching to get wrong; the
+ * key is a secret and lives in a file of its own rather than in the config.
+ *
+ * Nothing here is fatal. A refused key, a track it does not know, an answer timed only by line:
+ * all of them hand the track to loadFallback, which is the engine exactly as it was.
+ */
+void Lyrics::trySpicy(int reqId) {
+    if (reqId != m_currentRequestId) {
+        return;
+    }
+
+    const QString key = spicyKey();
+    if (key.isEmpty() || m_spotifyId.isEmpty()) {
+        loadFallback(reqId);
+        return;
+    }
+
+    const QUrl url(u"https://api.spicylyrics.org/v1/lyrics/"_s + m_spotifyId);
+    QHash<QByteArray, QByteArray> headers;
+    headers.insert("Authorization"_ba, "Bearer " + key.toUtf8());
+
+    auto* reply = getJson(url, headers);
+    trackReply(reqId, reply);
+
+    QObject::connect(reply, &QNetworkReply::finished, this, [this, reply, reqId] {
+        reply->deleteLater();
+        if (reqId != m_currentRequestId) {
+            return;
+        }
+
+        const int status = reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
+        if (status != 200 || reply->error() != QNetworkReply::NoError) {
+            qCDebug(lcLyrics) << "spicy /lyrics error:" << status << reply->errorString();
+            loadFallback(reqId);
+            return;
+        }
+
+        const QJsonObject body = QJsonDocument::fromJson(reply->readAll()).object().value(u"Body"_s).toObject();
+        const auto lines = parseSpicy(body);
+        if (lines.isEmpty()) {
+            qCDebug(lcLyrics) << "spicy: no word timings for" << m_artist << "-" << m_title;
+            loadFallback(reqId);
+            return;
+        }
+
+        // Whatever candidate the previous track had picked is still in m_selected, and an offset
+        // change would save its id against this track. Nothing here came from a candidate, so
+        // there is nothing to keep.
+        if (m_selected.isValid()) {
+            m_selected = LyricCandidate();
+            emit selectedCandidateChanged();
+        }
+
+        setLines(lines, LyricsBackend::SpicyLyrics);
+        setLoading(false);
+    });
+}
+
 void Lyrics::searchLrclibCandidates(int reqId) {
     QUrl url(u"https://lrclib.net/api/search"_s);
     QUrlQuery q;
@@ -799,6 +947,50 @@ void Lyrics::onLyricsDirChanged() {
     scheduleLoad();
 }
 
+/*
+ * The key is watched rather than only read when a track loads, so pasting one in reaches the track
+ * already playing instead of the next one.
+ *
+ * The directory is watched as well as the file: a file that does not exist yet cannot be watched at
+ * all, and a key written by an editor (which saves to a temporary and renames over the old file)
+ * takes the watch on the path down with it. Re-adding both on every signal is what keeps the watch
+ * alive across that.
+ */
+void Lyrics::watchSpicyKey() {
+    const QFileInfo info(spicyKeyPath());
+
+    const QString dir = info.absolutePath();
+    if (QFileInfo::exists(dir) && !m_keyWatcher->directories().contains(dir)) {
+        m_keyWatcher->addPath(dir);
+    }
+
+    const QString file = info.absoluteFilePath();
+    if (info.exists() && !m_keyWatcher->files().contains(file)) {
+        m_keyWatcher->addPath(file);
+    }
+}
+
+void Lyrics::onSpicyKeyChanged() {
+    watchSpicyKey();
+
+    // The config directory holds shell.json too, so most of what stirs it has nothing to do with
+    // the key. Only a key that actually reads differently is worth a reload.
+    const QString key = spicyKey();
+    if (key == m_lastSpicyKey) {
+        return;
+    }
+    m_lastSpicyKey = key;
+
+    // Only the word-timed source reads it, and only a Spotify stream can ask that source at all,
+    // so there is nothing for anything else to pick up
+    if (m_spotifyId.isEmpty()) {
+        return;
+    }
+
+    qCInfo(lcLyrics) << (key.isEmpty() ? "spicy key removed" : "spicy key changed") << "- reloading lyrics";
+    scheduleLoad();
+}
+
 void Lyrics::loadLyricsMap() {
     m_lyricsMap = {};
     m_lyricsMapLoaded = false;
@@ -888,6 +1080,8 @@ QString Lyrics::backendKey(LyricsBackend value) {
         return u"LRCLIB"_s;
     case LyricsBackend::NetEase:
         return u"NetEase"_s;
+    case LyricsBackend::SpicyLyrics:
+        return u"SpicyLyrics"_s;
     case LyricsBackend::Auto:
     default:
         return u"Auto"_s;
@@ -903,6 +1097,9 @@ LyricsBackend Lyrics::backendFromKey(const QString& key) {
     }
     if (key.compare(u"NetEase"_s, Qt::CaseInsensitive) == 0) {
         return LyricsBackend::NetEase;
+    }
+    if (key.compare(u"SpicyLyrics"_s, Qt::CaseInsensitive) == 0) {
+        return LyricsBackend::SpicyLyrics;
     }
     return LyricsBackend::Auto;
 }
@@ -1003,6 +1200,95 @@ QString Lyrics::findLocalLrcRecursive(const QString& dir, const QString& artist,
     return {};
 }
 
+/*
+ * The key is a secret, so it lives in a file of its own rather than in the config, which is the
+ * file people paste into issues and commit to dotfile repos. It is read on every load, so pasting
+ * one in takes effect on the next track without restarting the shell.
+ */
+QString Lyrics::spicyKeyPath() {
+    static const QString k_path = [] {
+        QString config = qEnvironmentVariable("XDG_CONFIG_HOME");
+        if (config.isEmpty()) {
+            config = QDir::homePath() + u"/.config"_s;
+        }
+        return config + u"/caelestia/spicylyrics.key"_s;
+    }();
+    return k_path;
+}
+
+QString Lyrics::spicyKey() {
+    QFile f(spicyKeyPath());
+    if (!f.open(QIODevice::ReadOnly)) {
+        return {};
+    }
+    return QString::fromUtf8(f.readAll()).trimmed();
+}
+
+/*
+ * Only a syllable sync is taken here. "Line" and "Static" answers are the same kind of thing
+ * LRCLIB and NetEase give, and those are what the engine already knows how to fall back to, so
+ * the fallback is left to do it rather than this picking up a second line-timed source.
+ *
+ * Background vocals are skipped: they are a second voice with timings of their own, and the views
+ * here show one line at a time, which would turn them into a duplicate row flashing straight
+ * after the lead rather than a voice singing over it.
+ */
+QVector<LyricLine> Lyrics::parseSpicy(const QJsonObject& body) {
+    if (body.value(u"Type"_s).toString() != u"Syllable"_s) {
+        return {};
+    }
+
+    QVector<LyricLine> result;
+    const QJsonArray content = body.value(u"Content"_s).toArray();
+    result.reserve(content.size());
+
+    for (const auto& value : content) {
+        const QJsonObject part = value.toObject().value(u"Lead"_s).toObject();
+        const QJsonArray syllables = part.value(u"Syllables"_s).toArray();
+        if (syllables.isEmpty()) {
+            continue;
+        }
+
+        QList<LyricWord> words;
+        QString text;
+        for (const auto& sv : syllables) {
+            const QJsonObject s = sv.toObject();
+            const QString piece = s.value(u"Text"_s).toString();
+            if (piece.trimmed().isEmpty()) {
+                continue;
+            }
+            /*
+             * IsPartOfWord describes the gap *after* a piece, not before it: it is set on the
+             * one that runs into the next. "e"(true) + "ven"(false) is "even". Read the other
+             * way round, every space in the line lands one syllable late.
+             */
+            const bool joinNext = s.value(u"IsPartOfWord"_s).toBool();
+            words.append(LyricWord{
+                .start = s.value(u"StartTime"_s).toDouble(),
+                .end = s.value(u"EndTime"_s).toDouble(),
+                .text = piece,
+                .joinNext = joinNext,
+            });
+            text += piece;
+            if (!joinNext) {
+                text += u' ';
+            }
+        }
+
+        if (words.isEmpty()) {
+            continue;
+        }
+
+        result.append(LyricLine{
+            .time = part.value(u"StartTime"_s).toDouble(words.first().start),
+            .text = text.trimmed(),
+            .words = words,
+        });
+    }
+
+    return result;
+}
+
 QVector<LyricLine> Lyrics::parseLrc(const QString& text) {
     QVector<LyricLine> result;
     if (text.isEmpty()) {
@@ -1059,7 +1345,7 @@ QVector<LyricLine> Lyrics::parseLrc(const QString& text) {
 
         for (const auto& m : matches) {
             const qreal t = m.captured(1).toInt() * 60.0 + m.captured(2).toDouble();
-            result.append(LyricLine{ .time = t, .text = lyric });
+            result.append(LyricLine{ .time = t, .text = lyric, .words = {} });
         }
     }
 

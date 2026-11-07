@@ -60,15 +60,31 @@ Item {
     readonly property bool wanted: emptyWorkspace ? Config.notch.showOnEmptyWorkspace : (!(root.barRef?.vertical ?? false) && Config.notch.showWithWindows && !root.barActiveWindowShown)
     // Whether the standing notch has music to show
     readonly property bool musicShown: Config.notch.showMusic && root.hasRecent
-    readonly property bool persistent: wanted && (Config.notch.showClock || musicShown)
+    // NOTE(fork): a countdown stands beside the clock for as long as it has something left to
+    // count, or has rung and not been dismissed (see services/CountdownTimer.qml)
+    readonly property bool timerShown: Config.notch.showTimer && CountdownTimer.active
+    readonly property bool persistent: wanted && (Config.notch.showClock || musicShown || timerShown)
     // Whether the notch is standing in for the clock, so the bar can drop its own
     readonly property bool showsClock: Config.notch.enabled && wanted && Config.notch.showClock
 
     // The brief pill after a track change,
     readonly property bool trackActive: root.playing && shown
 
-    readonly property bool shouldBeActive: Config.notch.enabled && (persistent || trackActive) && !screenState.dashboard && !screenState.launcher
+    // NOTE(fork): a Dynamic Island activity - a lock key, a notification - takes the notch over
+    // for a moment, and brings it down wherever it is rather than only where the standing notch is
+    // wanted, so something whose only showing is the island is not lost on a workspace the
+    // standing notch is turned off for. See services/NotchIsland.qml.
+    readonly property bool activityShown: Config.notch.enabled && NotchIsland.hasActivity
+
+    // The authentication prompt is a panel of its own, drawn where the notch would be (it has to
+    // hold the keyboard, which the drawers window cannot), so the notch steps out of its way
+    readonly property bool shouldBeActive: Config.notch.enabled && (persistent || trackActive || activityShown) && !screenState.dashboard && !screenState.launcher && !NotchIsland.authActive
     property real offsetScale: shouldBeActive ? 0 : 1
+
+    // NOTE(fork): an activity pulls the notch back out of the bar band (see inBarProg below) for as
+    // long as it is up: a notification is taller and wider than the band, and the island standing
+    // out is the point of it. Eased on its own so arriving mid-morph still reads as one move.
+    property real activityPop: activityShown ? 1 : 0
 
     // Services are reference counted, so cava - and the PipeWire capture it reads - stops the
     // moment the pill's own ref (in Pill.qml) goes away. Started cold it has to settle its
@@ -98,7 +114,7 @@ Item {
 
     property real morph: 1
 
-    readonly property real inBarProg: barRef && !barRef.vertical ? 1 - morph : 0
+    readonly property real inBarProg: barRef && !barRef.vertical ? (1 - morph) * (1 - activityPop) : 0
 
     readonly property bool morphing: inBarProg > 0.001 && inBarProg < 0.999
 
@@ -145,6 +161,12 @@ Item {
 
     Behavior on offsetScale {
         Anim {}
+    }
+
+    Behavior on activityPop {
+        Anim {
+            type: Anim.DefaultEffects
+        }
     }
 
     // Fluidly resize (rather than snap) when the track title's length changes
@@ -247,6 +269,8 @@ Item {
             allowLive: root.visualiserLive
             showMedia: root.hasRecent && (root.trackActive || (root.persistent && Config.notch.showMusic))
             showClock: root.persistent && Config.notch.showClock
+            showTimer: root.persistent && root.timerShown
+            activity: root.activityShown ? NotchIsland.activity : ""
             compact: root.inBarProg > 0.5
         }
     }

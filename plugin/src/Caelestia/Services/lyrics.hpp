@@ -1,18 +1,35 @@
 #pragma once
 
+#include <qfilesystemwatcher.h>
 #include <qhash.h>
 #include <qjsonobject.h>
+#include <qlist.h>
 #include <qnetworkaccessmanager.h>
 #include <qnetworkreply.h>
 #include <qtimer.h>
+#include <qvariantlist.h>
 
 #include "lyriccandidate.hpp"
 
 namespace caelestia::shell::services {
 
+// One timed piece of a word. A syllable sync splits "even" into "e" and "ven", and the two
+// have to be drawn as one word, so each piece says whether the piece after it follows it with
+// no space in between.
+struct LyricWord {
+    qreal start = 0.0;
+    qreal end = 0.0;
+    QString text;
+    bool joinNext = false;
+};
+
 struct LyricLine {
     qreal time = 0.0;
     QString text;
+    // Word timings, when the source had them; empty when it timed only the line. That empty
+    // list is the signal to light the line whole rather than sweep it, because a sweep is a
+    // claim about where in the line the voice is and nothing else here can support one.
+    QList<LyricWord> words;
 };
 
 class Lyrics : public QObject {
@@ -21,6 +38,10 @@ class Lyrics : public QObject {
     QML_SINGLETON
 
     Q_PROPERTY(QStringList lyrics READ lyrics NOTIFY lyricsChanged)
+    // The same lines with their word timings, as [{time, text, words: [{text, start, end,
+    // joinNext}]}], for the views that sweep a line rather than lighting it whole.
+    Q_PROPERTY(QVariantList lines READ lines NOTIFY lyricsChanged)
+    Q_PROPERTY(bool wordTimed READ wordTimed NOTIFY lyricsChanged)
     Q_PROPERTY(caelestia::shell::config::LyricsBackend::Enum backend READ backend NOTIFY backendChanged)
     Q_PROPERTY(caelestia::shell::config::LyricsBackend::Enum preferredBackend READ preferredBackend WRITE
             setPreferredBackend NOTIFY preferredBackendChanged)
@@ -38,6 +59,8 @@ public:
     explicit Lyrics(QObject* parent = nullptr);
 
     [[nodiscard]] QStringList lyrics() const;
+    [[nodiscard]] QVariantList lines() const;
+    [[nodiscard]] bool wordTimed() const;
     [[nodiscard]] LyricsBackend backend() const;
     [[nodiscard]] LyricsBackend preferredBackend() const;
     void setPreferredBackend(LyricsBackend value);
@@ -53,8 +76,10 @@ public:
 
     [[nodiscard]] Q_INVOKABLE int indexForTime(qreal time) const;
     [[nodiscard]] Q_INVOKABLE qreal timeForIndex(int index) const;
-    Q_INVOKABLE void setTrack(
-        const QString& artist, const QString& title, const QString& album = {}, qreal duration = 0.0);
+    // How far through one word the singing is, 0 to 1, with the per-track offset applied.
+    [[nodiscard]] Q_INVOKABLE qreal wordProgress(int line, int word, qreal time) const;
+    Q_INVOKABLE void setTrack(const QString& artist, const QString& title, const QString& album = {},
+        qreal duration = 0.0, const QString& spotifyId = {});
     Q_INVOKABLE void clearTrack();
     Q_INVOKABLE void refresh();
 
@@ -85,6 +110,9 @@ private:
     void tryLocal(int reqId);
     void tryLrclib(int reqId);
     void tryNetEase(int reqId);
+    void trySpicy(int reqId);
+    // The line-timed sources, which answer whenever no word timings were found.
+    void loadFallback(int reqId);
     void chainNext(LyricsBackend justFailed, int reqId);
 
     void searchLrclibCandidates(int reqId);
@@ -98,6 +126,8 @@ private:
 
     void onPreferredBackendConfigChanged();
     void onLyricsDirChanged();
+    void watchSpicyKey();
+    void onSpicyKeyChanged();
 
     void loadLyricsMap();
     void persistTrackPrefs();
@@ -114,12 +144,17 @@ private:
     [[nodiscard]] static QString readCachedLrc(LyricsBackend backend, const QString& id);
     static void writeCachedLrc(LyricsBackend backend, const QString& id, const QString& text);
 
+    [[nodiscard]] static QString spicyKeyPath();
+    [[nodiscard]] static QString spicyKey();
+    [[nodiscard]] static QVector<LyricLine> parseSpicy(const QJsonObject& body);
+
     [[nodiscard]] static QVector<LyricLine> parseLrc(const QString& text);
     [[nodiscard]] static QString tryReadLocalLrc(const QString& dir, const QString& artist, const QString& title);
     [[nodiscard]] static QString findLocalLrcRecursive(const QString& dir, const QString& artist, const QString& title);
 
     QNetworkAccessManager* m_nam;
     QTimer* m_loadDebounce;
+    QFileSystemWatcher* m_keyWatcher;
 
     QVector<LyricLine> m_lines;
     QStringList m_lyrics;
@@ -135,6 +170,12 @@ private:
     QString m_title;
     QString m_album;
     qreal m_duration = 0.0;
+    // Spotify's own id for the track, which is what the word-timed source is asked by.
+    QString m_spotifyId;
+    // The key as it was last seen, so a stir in the config directory that left it alone costs a
+    // read and nothing else.
+    QString m_lastSpicyKey;
+    bool m_wordTimed = false;
 
     int m_currentRequestId = 0;
     QHash<int, QList<QPointer<QNetworkReply>>> m_pendingReplies;

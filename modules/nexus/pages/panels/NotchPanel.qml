@@ -81,11 +81,76 @@ PageBase {
         }
 
         ToggleRow {
-            last: true
             text: Tr.tr("Show music")
             subtext: Tr.tr("Show the playing track in the notch alongside the clock")
             checked: Config.notch.showMusic
             onToggled: GlobalConfig.notch.showMusic = checked
+        }
+
+        ToggleRow {
+            last: true
+            text: Tr.tr("Show timer")
+            subtext: Tr.tr("Show a running countdown in the notch alongside the clock")
+            checked: Config.notch.showTimer
+            onToggled: GlobalConfig.notch.showTimer = checked
+        }
+
+        // Dynamic island
+        SectionHeader {
+            text: Tr.tr("Dynamic island")
+        }
+
+        ToggleRow {
+            first: true
+            text: Tr.tr("Show lock keys")
+            subtext: Tr.tr("Drop the notch down to say when caps lock or num lock changes, in place of a toast")
+            checked: Config.notch.showKeyLocks
+            onToggled: GlobalConfig.notch.showKeyLocks = checked
+        }
+
+        StepperRow {
+            label: Tr.tr("Lock key duration")
+            // TRANSLATORS: ms is the millisecond unit, leave it untranslated
+            subtext: Tr.tr("How long the notch says a lock key changed for (ms)")
+            value: Config.notch.keyLockDuration
+            from: 500
+            to: 5000
+            stepSize: 100
+            onMoved: v => GlobalConfig.notch.keyLockDuration = Math.round(v)
+        }
+
+        ToggleRow {
+            text: Tr.tr("Show notifications")
+            subtext: Tr.tr("Show notifications as they arrive in the notch")
+            checked: Config.notch.showNotifs
+            onToggled: GlobalConfig.notch.showNotifs = checked
+        }
+
+        ToggleRow {
+            text: Tr.tr("Replace popups")
+            subtext: Tr.tr("Skip the corner popup for what the notch has shown; notifications still wait in the notification centre")
+            checked: Config.notch.notifsTakeOver
+            enabled: Config.notch.showNotifs
+            onToggled: GlobalConfig.notch.notifsTakeOver = checked
+        }
+
+        StepperRow {
+            label: Tr.tr("Notification duration")
+            // TRANSLATORS: ms is the millisecond unit, leave it untranslated
+            subtext: Tr.tr("How long a notification stays in the notch (ms)")
+            value: Config.notch.notifDuration
+            from: 1000
+            to: 15000
+            stepSize: 500
+            onMoved: v => GlobalConfig.notch.notifDuration = Math.round(v)
+        }
+
+        ToggleRow {
+            last: true
+            text: Tr.tr("Authentication prompt")
+            subtext: Tr.tr("Ask for a password in a panel dropping out of the notch instead of a card in the middle of the screen")
+            checked: Config.notch.showPolkit
+            onToggled: GlobalConfig.notch.showPolkit = checked
         }
 
         // Behaviour

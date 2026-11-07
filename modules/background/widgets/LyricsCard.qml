@@ -32,14 +32,21 @@ WidgetCard {
     // which is the same trick the dashboard's lyric pane uses
     readonly property var trackBinding: {
         if (lyrics.source.available)
-            Lyrics.setTrack(lyrics.source.artist, lyrics.source.title, lyrics.source.album, lyrics.source.length);
+            Lyrics.setTrack(lyrics.source.artist, lyrics.source.title, lyrics.source.album, lyrics.source.length, lyrics.source.spotifyId);
         else
             Lyrics.clearTrack();
         return 0;
     }
 
+    // A card is narrow enough that a word swept only as often as the player is polled would jump,
+    // so the lines are placed from a clock that ticks between those readings
+    readonly property LyricsClock clock: LyricsClock {
+        source: lyrics.source
+        wordTimed: Lyrics.wordTimed
+    }
+
     // The line being sung, or -1 before the first one and while a track's lyrics haven't started
-    readonly property int currentLine: Lyrics.hasLyrics ? Lyrics.indexForTime(lyrics.source.position) : -1
+    readonly property int currentLine: Lyrics.hasLyrics ? Lyrics.indexForTime(lyrics.clock.position) : -1
 
     title: Tr.tr("Lyrics")
     icon: "lyrics"
@@ -105,7 +112,7 @@ WidgetCard {
             // Nothing to drag through on a card: the view follows the song instead
             interactive: false
             spacing: Tokens.spacing.small
-            model: Lyrics.lyrics
+            model: Lyrics.lines
 
             currentIndex: lyrics.currentLine
             highlightRangeMode: ListView.ApplyRange
@@ -128,43 +135,30 @@ WidgetCard {
                     positionViewAtIndex(currentIndex, ListView.Center);
             }
 
-            delegate: StyledText {
+            delegate: LyricLine {
                 id: line
 
-                required property string modelData
-                // 0 for the lines around it, 1 for the one being sung; the effect and the colour both follow
-                // this, so they fade in and out together rather than switching on the change
-                property real glow: ListView.isCurrentItem ? 1 : 0
+                required property var modelData
+                required property int index
 
                 width: lines.width
-                horizontalAlignment: Text.AlignHCenter
-                wrapMode: Text.WrapAtWordBoundaryOrAnywhere
-                text: modelData || ". . ."
-                // One font for every line, so a line change does not reflow the list mid-glide
-                font: Tokens.font.body.medium
-                color: ListView.isCurrentItem ? Colours.palette.m3primary : Colours.palette.m3outline
-
-                // The halo the dashboard puts around the sung line: a shadow of the line's own colour, with no
-                // blur of the text itself, so the glyphs stay crisp and only the glow spreads
-                layer.enabled: glow > 0
-                layer.effect: MultiEffect {
-                    shadowEnabled: true
-                    shadowColor: Colours.palette.m3primary
-                    shadowBlur: 0.8
-                    shadowOpacity: 0.5 * line.glow
-                    blur: 0
-                }
+                line: modelData
+                lineIndex: index
+                time: lyrics.clock.position
+                current: ListView.isCurrentItem
+                // Centred, the way every other line on the card is
+                center: true
+                dim: Colours.palette.m3outline
+                // Brightest text colour rather than the accent, so the sweep reads on a neutral
+                // scheme too - see the note in modules/dashboard/media/LyricList.qml
+                lit: Colours.palette.m3onSurface
+                // 0 for the lines around it, 1 for the one being sung; the halo follows this, so
+                // it fades in and out rather than switching on the change
+                glow: ListView.isCurrentItem ? 1 : 0
 
                 Behavior on glow {
                     Anim {
                         type: Anim.SlowEffects
-                    }
-                }
-
-                Behavior on color {
-                    ColorAnimation {
-                        duration: Tokens.anim.durations.large
-                        easing.type: Easing.OutCubic
                     }
                 }
             }

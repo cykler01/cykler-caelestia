@@ -33,6 +33,7 @@ ShellRoot {
     Component.onCompleted: {
         // Force certain singletons to load on shell init instead of lazily
         Notifs;
+        NotchIsland;
         Players;
         Brightness;
         Weather.reload();

@@ -20,13 +20,21 @@ Item {
     // Funny binding hack to make lyrics update
     readonly property var _: {
         if (root.source.available)
-            Lyrics.setTrack(root.source.artist, root.source.title, root.source.album, root.source.length);
+            Lyrics.setTrack(root.source.artist, root.source.title, root.source.album, root.source.length, root.source.spotifyId);
         else
             Lyrics.clearTrack();
     }
 
+    // The word sweep has to be placed from a clock that ticks faster than the player's readings
+    // arrive, or every word would jump a half second at a time
+    readonly property LyricsClock clock: LyricsClock {
+        source: root.source
+        wordTimed: Lyrics.wordTimed
+    }
+
     readonly property real fadeAmount: 0.1
-    property list<string> lyricList: Lyrics.lyrics
+    // The lines with their word timings, so a line can be swept rather than lit whole
+    property var lyricList: Lyrics.lines
 
     layer.enabled: true
     layer.effect: Mask {
@@ -233,7 +241,7 @@ Item {
         Component.onCompleted: {
             currentIndex = Qt.binding(() => {
                 model; // Force update when lyrics change
-                return Lyrics.indexForTime(root.source.position);
+                return Lyrics.indexForTime(clock.position);
             });
             positionViewAtIndex(currentIndex, ListView.Center);
         }
@@ -249,29 +257,30 @@ Item {
         opacity: 0
         enabled: opacity > 0
 
-        delegate: StyledText {
+        delegate: LyricLine {
             id: lyric
 
-            required property string modelData
+            required property var modelData
             required property int index
+            // 1 for the line being sung and 0 for the rest; the halo follows it the same way
             property real effectScale: ListView.isCurrentItem ? 1 : 0
 
             anchors.left: lyrics.contentItem.left
             anchors.right: lyrics.contentItem.right
 
-            text: modelData || ". . ."
-            color: ListView.isCurrentItem ? Colours.palette.m3primary : mouse.containsMouse ? Colours.palette.m3onSurface : Colours.palette.m3outline
-            font: Tokens.font.body.medium
-            wrapMode: Text.WrapAtWordBoundaryOrAnywhere
-
-            layer.enabled: effectScale > 0
-            layer.effect: MultiEffect {
-                shadowEnabled: true
-                shadowColor: Colours.palette.m3primary
-                shadowOpacity: 0.5 * lyric.effectScale
-                shadowBlur: 0.6 * lyric.effectScale
-                blur: 0.4 * lyric.effectScale
-            }
+            line: modelData
+            lineIndex: index
+            time: clock.position
+            current: ListView.isCurrentItem
+            // The sweep runs from the outline colour up to the brightest text colour, rather
+            // than from the text colour across to the accent. A neutral scheme has no accent to
+            // speak of - on this one primary and onSurface are 1.3:1 apart and primary is the
+            // darker of the two, so a word got slightly *dimmer* as it was sung and the sweep was
+            // invisible. Lightness is the one channel every scheme has, so the sung words simply
+            // get brighter; which line is current is carried by the halo (glow below).
+            dim: mouse.containsMouse ? Colours.palette.m3onSurfaceVariant : Colours.palette.m3outline
+            lit: Colours.palette.m3onSurface
+            glow: lyric.effectScale
 
             Behavior on effectScale {
                 Anim {
