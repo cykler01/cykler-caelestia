@@ -42,6 +42,23 @@ PageBase {
             onToggled: GlobalConfig.lock.analogueClock = checked
         }
 
+        // Background
+        SectionHeader {
+            text: Tr.tr("Background")
+        }
+
+        // NOTE(fork): the setting already existed but had no way to reach it short of editing
+        // the config by hand, which matters more now that the UI above it can fade away and
+        // leave the background filling the screen on its own
+        ToggleRow {
+            first: true
+            last: true
+            text: Tr.tr("Use the wallpaper")
+            subtext: Tr.tr("Show the wallpaper rather than a capture of the session behind it")
+            checked: Config.lock.useWallpaper
+            onToggled: GlobalConfig.lock.useWallpaper = checked
+        }
+
         // Idle
         SectionHeader {
             text: Tr.tr("Idle")
