@@ -33,6 +33,10 @@ Item {
     // The bubble on the notch's left opens leftwards, so its circle does not slide across
     property bool mirrored
 
+    // How far its content stands off whatever it is beside. It is only the content: the surface
+    // behind it reaches back under its neighbour so the two are drawn as one shape (see BubbleBg
+    // in modules/drawers/ContentWindow.qml), which is why this can be set for how the ring and the
+    // clock sit next to each other rather than for how the two shapes meet
     readonly property real gap: Tokens.spacing.small
 
     property bool expanded

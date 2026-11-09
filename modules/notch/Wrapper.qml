@@ -296,7 +296,7 @@ Item {
         detailWidth: downloadSegment.detailWidth
         // It stands to the notch's left, so it opens that way and its circle stays where it was
         mirrored: true
-        x: -width - Tokens.spacing.small
+        x: -width - downloadBubble.gap
         y: 0
 
         DownloadSegment {
@@ -316,7 +316,7 @@ Item {
         shown: root.timerShown && root.wanted && root.shouldBeActive && root.inBarProg < 0.001 && !NotchIsland.timerTucked
         size: root.height
         detailWidth: timerSegment.detailWidth
-        x: root.width + Tokens.spacing.small
+        x: root.width + timerBubble.gap
         y: 0
 
         TimerSegment {
@@ -345,7 +345,7 @@ Item {
         // Beyond the countdown's bubble when there is one, and in its place when there is not. The
         // countdown's width is its own animated value, so this slides over as that one comes, goes
         // and opens out on hover rather than jumping past it
-        x: timerBubble.x + (timerBubble.visible ? timerBubble.width + Tokens.spacing.small : 0)
+        x: timerBubble.x + (timerBubble.visible ? timerBubble.width + stopwatchBubble.gap : 0)
         y: 0
 
         StopwatchSegment {

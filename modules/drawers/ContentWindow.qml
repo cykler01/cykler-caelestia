@@ -273,22 +273,35 @@ StyledWindow {
             implicitWidth: panels.notch.inBarProg > 0.999 ? 0 : panels.notch.width
         }
 
-        // NOTE(fork): the notch's side bubbles (a countdown, a download), drawn with the notch's own
-        // surface so they deform on the same springs - but kept out of its smin, so they stay the
-        // detached circles they are meant to be instead of melting into the pill across the gap
+        // NOTE(fork): the notch's side bubbles (a countdown, a stopwatch, a download), drawn with
+        // the notch's own surface and left in its smin, so the gap between them closes into a neck
+        // and they read as the pill growing an arm rather than as circles parked beside it. They
+        // part and join again on their own as they come, go and open out on hover, which is the
+        // whole point of drawing them with the blob renderer instead of as rectangles.
+        //
+        // Their corners are kept out of each other's fill, though. The group packs material into
+        // the corners of shapes that are close, which between a flat-ended pill and a circle is
+        // not symmetric - it hangs a lobe under one side of the join and notches the other. Out of
+        // the fill, the two simply blend, and the join is an even waist from both sides.
         BubbleBg {
+            id: downloadBg
+
             bubble: panels.notch.downloadBubble
-            exclude: [notchBg]
+            excludeCorners: [notchBg]
         }
 
         BubbleBg {
+            id: timerBg
+
             bubble: panels.notch.timerBubble
-            exclude: [notchBg]
+            excludeCorners: [notchBg, stopwatchBg]
         }
 
         BubbleBg {
+            id: stopwatchBg
+
             bubble: panels.notch.stopwatchBubble
-            exclude: [notchBg]
+            excludeCorners: [notchBg, timerBg]
         }
 
         PanelBg {
@@ -483,16 +496,22 @@ StyledWindow {
     // nothing (and collapses back into it) with the content it holds, centred the whole way. The
     // bubble's width is its own to decide - it opens out into a pill when hovered - so the shape
     // follows it and stays fully rounded at whatever width it has reached.
+    //
+    // The shape also reaches back under whatever it stands beside, far enough that the two are
+    // drawn as one surface rather than as two shapes pinched together at a waist. Only the shape
+    // reaches: the bubble's content stays where it is, so the ring is never pushed into the clock.
     component BubbleBg: BlobRect {
         required property Item bubble
 
         readonly property real w: bubble.width * bubble.prog
         readonly property real h: bubble.height * bubble.prog
+        // Towards the notch, which is rightwards for the bubble standing on its left
+        readonly property real reach: Tokens.spacing.extraLarge * bubble.prog
 
         group: blobGroup
-        x: panels.notch.x + bubble.x + bar.insetLeft + (bubble.width - w) / 2
+        x: panels.notch.x + bubble.x + bar.insetLeft + (bubble.width - w) / 2 - (bubble.mirrored ? 0 : reach)
         y: panels.notch.bgY + bubble.y + bar.insetTop + root.notchShift + (bubble.height - h) / 2
-        implicitWidth: w
+        implicitWidth: w + reach
         implicitHeight: h
         radius: h / 2
         deformScale: (0.1 * Config.appearance.deformScale) / 10000
