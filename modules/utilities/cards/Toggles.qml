@@ -113,11 +113,11 @@ StyledRect {
                     roleValue: "timer"
                     delegate: Toggle {
                         icon: "timer"
-                        // Not a switch: pressing it opens the panel the countdown is set in, and it stays lit while
-                        // that panel is open or there is a countdown to show. Pressing it is not what makes `checked`
+                        // Not a switch: pressing it opens the panel the clocks are set in, and it stays lit while
+                        // that panel is open or either of them has something to show. Pressing it is not what makes `checked`
                         // true, so it must not light up on the press and wait for a change that never comes
                         // (see optimistic in ButtonBase) - that left it lit with no timer behind it, and dark with one
-                        checked: CountdownTimer.active || (root.screenState.sidebar && root.screenState.timerPane)
+                        checked: CountdownTimer.active || Stopwatch.active || (root.screenState.sidebar && root.screenState.timerPane)
                         optimistic: false
                         inactiveOnColour: Colours.palette.m3onSurfaceVariant
                         onClicked: {
