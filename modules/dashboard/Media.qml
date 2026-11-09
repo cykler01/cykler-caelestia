@@ -1,4 +1,3 @@
-import "media"
 import QtQuick
 import QtQuick.Layouts
 import Quickshell
@@ -8,6 +7,7 @@ import Caelestia.I18n
 import qs.components
 import qs.components.controls
 import qs.services
+import qs.modules.dashboard.media
 
 // NOTE(fork): one media tab for both the external MPRIS players and the in-shell local
 // player. The player keeps the original layout: browsing the music and picking what to play

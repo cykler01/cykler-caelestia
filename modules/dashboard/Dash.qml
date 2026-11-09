@@ -6,6 +6,7 @@ import Caelestia.Config
 import qs.components
 import qs.components.filedialog
 import qs.services
+import qs.modules.dashboard.dash
 
 // The dashboard's home page. It keeps the shape it has always had - a top row above a bottom
 // row, with full-height columns either side of them - but which cards are in each of those four
