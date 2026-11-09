@@ -38,6 +38,13 @@ WlSessionLockSurface {
             idleTimer.stop();
     }
 
+    contentItem.Config.screen: screen.name
+    contentItem.Tokens.screen: screen.name
+
+    color: "transparent"
+
+    Component.onCompleted: root.noteActivity()
+
     Timer {
         id: idleTimer
 
@@ -84,13 +91,6 @@ WlSessionLockSurface {
             }
         }
     }
-
-    Component.onCompleted: root.noteActivity()
-
-    contentItem.Config.screen: screen.name
-    contentItem.Tokens.screen: screen.name
-
-    color: "transparent"
 
     Connections {
         function onUnlock(): void {
