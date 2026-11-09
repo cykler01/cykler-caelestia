@@ -1,5 +1,7 @@
 import QtQuick
 import QtQuick.Layouts
+import Quickshell
+import Quickshell.Widgets
 import Caelestia.Config
 import Caelestia.I18n
 import qs.components
@@ -19,18 +21,35 @@ PageBase {
 
     // NOTE(fork): the apps the island is for. A plain string list rather than a rule set: the
     // question here is only which apps, and an empty list leaves every popup in the corner.
-    function addNotifApp(): void {
-        const name = notifAppInput.text.trim();
-        if (!name)
+    //
+    // Apps are picked off the installed ones rather than typed (see the picker below), and what is
+    // stored is the name the app shows under, which is what a notification carries and what the
+    // island matches against. Typing one by hand is still there for what has no desktop entry at
+    // all - a script, anything else that only ever speaks through notify-send.
+    readonly property var installedApps: [...DesktopEntries.applications.values].filter(a => !a.noDisplay).map(a => ({
+                id: a.name,
+                label: a.name,
+                icon: a.icon
+            })).filter((a, i, all) => all.findIndex(o => o.id === a.id) === i).sort((a, b) => a.label.localeCompare(b.label))
+
+    function appEntryFor(name: string): var {
+        return DesktopEntries.heuristicLookup(name);
+    }
+
+    function addNotifApp(name: string): void {
+        const trimmed = (name ?? "").trim();
+        if (!trimmed)
             return;
 
         const apps = Config.notch.notifApps;
-        if (apps.some(a => a.toLowerCase() === name.toLowerCase())) {
-            notifAppInput.clear();
+        if (apps.some(a => a.toLowerCase() === trimmed.toLowerCase()))
             return;
-        }
 
-        GlobalConfig.notch.notifApps = [...apps, name];
+        GlobalConfig.notch.notifApps = [...apps, trimmed];
+    }
+
+    function addTypedNotifApp(): void {
+        root.addNotifApp(notifAppInput.text);
         notifAppInput.clear();
     }
 
@@ -165,7 +184,93 @@ PageBase {
         }
 
         // Which apps the island is for
+        StyledText {
+            Layout.fillWidth: true
+            Layout.leftMargin: Tokens.padding.largeIncreased
+            Layout.rightMargin: Tokens.padding.largeIncreased
+            Layout.topMargin: Tokens.spacing.small
+            Layout.bottomMargin: Tokens.spacing.small
+            text: Tr.tr("Only the apps listed here come to the notch; with none listed every notification stays in the corner. Names are matched against what an app puts on its notifications, ignoring case.")
+            color: Colours.palette.m3outline
+            font: Tokens.font.label.small
+            wrapMode: Text.WordWrap
+        }
+
+        Repeater {
+            id: notifAppList
+
+            model: Config.notch.notifApps
+
+            ConnectedRect {
+                id: appRow
+
+                required property string modelData
+                required property int index
+
+                readonly property var entry: root.appEntryFor(appRow.modelData)
+
+                Layout.fillWidth: true
+                first: appRow.index === 0
+                last: false
+                implicitHeight: appLayout.implicitHeight + Tokens.padding.medium * 2
+                enabled: Config.notch.showNotifs
+
+                RowLayout {
+                    id: appLayout
+
+                    anchors.left: parent.left
+                    anchors.right: parent.right
+                    anchors.top: parent.top
+                    anchors.topMargin: Tokens.padding.medium
+                    anchors.leftMargin: Tokens.padding.largeIncreased
+                    anchors.rightMargin: Tokens.padding.medium
+                    spacing: Tokens.spacing.medium
+
+                    // Nothing is installed under that name when it was typed in for a script or
+                    // some other notify-send caller, which simply leaves the row without a picture
+                    IconImage {
+                        visible: (appRow.entry?.icon ?? "") !== ""
+                        asynchronous: true
+                        implicitSize: Math.round(Tokens.font.icon.large.pointSize * 1.8)
+                        source: visible ? Quickshell.iconPath(appRow.entry.icon, "image-missing") : ""
+                    }
+
+                    StyledText {
+                        Layout.fillWidth: true
+                        text: appRow.modelData
+                        color: Colours.palette.m3onSurface
+                        font: Tokens.font.body.medium
+                        elide: Text.ElideRight
+                    }
+
+                    IconButton {
+                        icon: "close"
+                        type: IconButton.Text
+                        onClicked: root.removeNotifApp(appRow.index)
+                    }
+                }
+            }
+        }
+
+        // Picked off the installed apps rather than typed
+        DialogSelectButton {
+            rootParent: root.flickable
+            first: notifAppList.count === 0
+            icon: "add"
+            label: Tr.tr("Add application")
+            header: Tr.tr("Show notifications from")
+            acceptLabel: Tr.trCtx("Add", "button")
+
+            model: root.installedApps
+
+            onAccepted: root.addNotifApp(selectedItem)
+        }
+
+        // For anything with no desktop entry to pick: a script, or an app whose notifications come
+        // under a different name than the one it is installed as
         ConnectedRect {
+            last: true
+
             Layout.fillWidth: true
             implicitHeight: notifAppsRow.implicitHeight + Tokens.padding.medium * 2
             enabled: Config.notch.showNotifs
@@ -185,59 +290,18 @@ PageBase {
                     id: notifAppInput
 
                     Layout.fillWidth: true
-                    placeholderText: Tr.tr("App to show in the notch, e.g. discord; none listed means none")
+                    placeholderText: Tr.tr("Or a name to match, for an app that is not installed")
                     leadingIcon: "apps"
                     verticalPadding: Tokens.padding.small
 
-                    onAccepted: root.addNotifApp()
+                    onAccepted: root.addTypedNotifApp()
                 }
 
                 IconButton {
                     icon: "add"
                     type: IconButton.Filled
                     disabled: !notifAppInput.text.trim()
-                    onClicked: root.addNotifApp()
-                }
-            }
-        }
-
-        Repeater {
-            model: Config.notch.notifApps
-
-            ConnectedRect {
-                id: appRow
-
-                required property string modelData
-                required property int index
-
-                Layout.fillWidth: true
-                implicitHeight: appLayout.implicitHeight + Tokens.padding.medium * 2
-                enabled: Config.notch.showNotifs
-
-                RowLayout {
-                    id: appLayout
-
-                    anchors.left: parent.left
-                    anchors.right: parent.right
-                    anchors.top: parent.top
-                    anchors.topMargin: Tokens.padding.medium
-                    anchors.leftMargin: Tokens.padding.largeIncreased
-                    anchors.rightMargin: Tokens.padding.medium
-                    spacing: Tokens.spacing.medium
-
-                    StyledText {
-                        Layout.fillWidth: true
-                        text: appRow.modelData
-                        color: Colours.palette.m3onSurface
-                        font: Tokens.font.body.medium
-                        elide: Text.ElideRight
-                    }
-
-                    IconButton {
-                        icon: "close"
-                        type: IconButton.Text
-                        onClicked: root.removeNotifApp(appRow.index)
-                    }
+                    onClicked: root.addTypedNotifApp()
                 }
             }
         }
