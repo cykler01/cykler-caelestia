@@ -68,13 +68,13 @@ Singleton {
         lockTimer.restart();
     }
 
-    // Whether this app is one the island is for. With no apps named it is for all of them; name
-    // one and it is that app's alone. Matched the way silenced sources are, case-insensitively
+    // Whether this app is one the island is for. With no apps named it is for none of them, so
+    // notifications stay in the corner until an app is chosen. Matched the way silenced sources are, case-insensitively
     // against any part of the name, so "discord" covers vesktop, equibop and the rest.
     function wantsApp(appName: string): bool {
         const apps = GlobalConfig.notch.notifApps;
         if (!apps || apps.length === 0)
-            return true;
+            return false;
 
         const name = (appName ?? "").toLowerCase();
         if (name === "")

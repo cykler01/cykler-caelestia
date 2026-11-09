@@ -18,7 +18,7 @@ PageBase {
     ]
 
     // NOTE(fork): the apps the island is for. A plain string list rather than a rule set: the
-    // question here is only which apps, and the answer to "all of them" is to leave it empty.
+    // question here is only which apps, and an empty list leaves every popup in the corner.
     function addNotifApp(): void {
         const name = notifAppInput.text.trim();
         if (!name)
@@ -185,7 +185,7 @@ PageBase {
                     id: notifAppInput
 
                     Layout.fillWidth: true
-                    placeholderText: Tr.tr("App name or part of it; empty list means every app")
+                    placeholderText: Tr.tr("App to show in the notch, e.g. discord; none listed means none")
                     leadingIcon: "apps"
                     verticalPadding: Tokens.padding.small
 
