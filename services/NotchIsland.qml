@@ -42,6 +42,7 @@ Singleton {
     // the next download or the next timer is a new thing worth seeing. Kept here rather than in
     // each screen's notch so putting one away on one monitor puts it away on all of them.
     property bool timerTucked
+    property bool stopwatchTucked
     property bool downloadsTucked
 
     // --- Lock keys ---
@@ -144,6 +145,15 @@ Singleton {
         }
 
         target: CountdownTimer
+    }
+
+    Connections {
+        function onActiveChanged(): void {
+            if (!Stopwatch.active)
+                root.stopwatchTucked = false;
+        }
+
+        target: Stopwatch
     }
 
     // Downloads reports every change through the one signal, so this is activeChanged rather than

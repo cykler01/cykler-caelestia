@@ -36,6 +36,18 @@ Singleton {
     readonly property int maxLaps: 99
 
     readonly property string display: root.format(root.elapsed)
+    // The same reading without the hundredths, for the notch's side bubble, where a circle the
+    // size of the clock has no room for digits moving that fast
+    readonly property string shortDisplay: root.formatShort(root.wholeSeconds * 1000)
+    // How far through the current minute it is: the one thing a count with no end can fill a ring
+    // with, which reads as a second hand going round
+    readonly property real minuteProgress: (root.wholeSeconds % 60) / 60
+
+    // Both of the above are read by the notch's side bubble, which is on screen for as long as the
+    // stopwatch runs. Taken off the whole second rather than off `elapsed`, they change once a
+    // second instead of on every tick, so the ring is redrawn once a second rather than thirty
+    // times - the hundredths are for the panel, where someone is actually looking at them
+    readonly property int wholeSeconds: Math.floor(root.elapsed / 1000)
     // What the current, unfinished lap has run for
     readonly property real currentSplit: root.elapsed - (root.laps.length > 0 ? root.laps[0].at : 0)
 
@@ -53,6 +65,18 @@ Singleton {
             if (fastest ? lap.split < best.split : lap.split > best.split)
                 best = lap;
         return best.index;
+    }
+
+    // Minutes:seconds, growing to hours for a long run
+    function formatShort(ms: real): string {
+        const total = Math.max(0, ms);
+        const h = Math.floor(total / 3600000);
+        const m = Math.floor((total % 3600000) / 60000);
+        const s = Math.floor((total % 60000) / 1000);
+
+        if (h > 0)
+            return `${h}:${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
+        return `${m}:${s.toString().padStart(2, "0")}`;
     }
 
     // Minutes:seconds and hundredths, growing to hours for a long run. Hundredths rather than

@@ -31,6 +31,7 @@ Item {
     // NOTE(fork): a side bubble put away from the bubble itself carries on running with only a
     // small mark here to say so. Pressing the mark brings the bubble back. Set by the Wrapper.
     property bool timerTucked
+    property bool stopwatchTucked
     property bool downloadsTucked
 
     readonly property string trackTitle: root.local ? Music.title : Players.recentPlayer?.trackTitle ?? ""
@@ -248,7 +249,7 @@ Item {
             // back when it is pressed. The pill's own width eases, so these grow it rather than
             // appearing in it.
             RowLayout {
-                visible: root.timerTucked || root.downloadsTucked
+                visible: root.timerTucked || root.stopwatchTucked || root.downloadsTucked
                 Layout.alignment: Qt.AlignVCenter
                 spacing: 0
 
@@ -262,6 +263,12 @@ Item {
                     visible: root.timerTucked
                     icon: "timer"
                     onClicked: NotchIsland.timerTucked = false
+                }
+
+                Mark {
+                    visible: root.stopwatchTucked
+                    icon: "timelapse"
+                    onClicked: NotchIsland.stopwatchTucked = false
                 }
             }
 

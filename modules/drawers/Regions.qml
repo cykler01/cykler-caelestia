@@ -92,6 +92,10 @@ Region {
         item: root.panels.notch.timerBubble
     }
 
+    N {
+        item: root.panels.notch.stopwatchBubble
+    }
+
     // Something inside the notch, placed in the notch's own coordinates. Nothing at all while it is
     // not on screen, so a hidden bubble does not go on swallowing clicks at the top of the screen.
     component N: Region {

@@ -286,6 +286,11 @@ StyledWindow {
             exclude: [notchBg]
         }
 
+        BubbleBg {
+            bubble: panels.notch.stopwatchBubble
+            exclude: [notchBg]
+        }
+
         PanelBg {
             id: launcherBg
 

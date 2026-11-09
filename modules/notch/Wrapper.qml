@@ -63,13 +63,16 @@ Item {
     // NOTE(fork): a countdown stands beside the clock for as long as it has something left to
     // count, or has rung and not been dismissed (see services/CountdownTimer.qml)
     readonly property bool timerShown: Config.notch.showTimer && CountdownTimer.active
+    // NOTE(fork): and a stopwatch stands beside it, on the same switch - they are the same panel's
+    // two clocks, and nobody wants one of them in the notch and not the other
+    readonly property bool stopwatchShown: Config.notch.showTimer && Stopwatch.active
     // NOTE(fork): a browser or Steam download in flight (see services/downloads.cpp). Unlike the
     // clock and the timer this does not wait for the notch to be wanted on the workspace: a
     // download is a thing happening now with an end to it, and on a side bar (or with the standing
     // notch turned off for workspaces that have windows) there would otherwise be nowhere it could
     // ever appear. It brings the notch down on its own for as long as it runs, like an activity.
     readonly property bool downloadsShown: Config.notch.showDownloads && Downloads.busy && emptyWorkspace
-    readonly property bool persistent: wanted && (Config.notch.showClock || musicShown || timerShown)
+    readonly property bool persistent: wanted && (Config.notch.showClock || musicShown || timerShown || stopwatchShown)
     // Whether the notch is standing in for the clock, so the bar can drop its own
     readonly property bool showsClock: Config.notch.enabled && wanted && Config.notch.showClock
     // NOTE(fork): and the same for the countdown, so the ring is in one place rather than two
@@ -98,11 +101,12 @@ Item {
     // their surfaces and marks out where the pointer can reach them
     readonly property alias downloadBubble: downloadBubble
     readonly property alias timerBubble: timerBubble
+    readonly property alias stopwatchBubble: stopwatchBubble
 
     // Whether the pill is carrying a mark for a bubble that has been put away. The pill only takes
     // the pointer while it is (see modules/drawers/Regions.qml): with nothing to press on it there
     // is no reason for it to be in the way of whatever is under the top of the screen.
-    readonly property bool hasMarks: (timerShown && NotchIsland.timerTucked) || (downloadsShown && NotchIsland.downloadsTucked)
+    readonly property bool hasMarks: (timerShown && NotchIsland.timerTucked) || (stopwatchShown && NotchIsland.stopwatchTucked) || (downloadsShown && NotchIsland.downloadsTucked)
 
     // Services are reference counted, so cava - and the PipeWire capture it reads - stops the
     // moment the pill's own ref (in Pill.qml) goes away. Started cold it has to settle its
@@ -332,6 +336,33 @@ Item {
         }
     }
 
+    Bubble {
+        id: stopwatchBubble
+
+        shown: root.stopwatchShown && root.wanted && root.shouldBeActive && root.inBarProg < 0.001 && !NotchIsland.stopwatchTucked
+        size: root.height
+        detailWidth: stopwatchSegment.detailWidth
+        // Beyond the countdown's bubble when there is one, and in its place when there is not. The
+        // countdown's width is its own animated value, so this slides over as that one comes, goes
+        // and opens out on hover rather than jumping past it
+        x: timerBubble.x + (timerBubble.visible ? timerBubble.width + Tokens.spacing.small : 0)
+        y: 0
+
+        StopwatchSegment {
+            id: stopwatchSegment
+
+            anchors.fill: parent
+
+            expandProg: stopwatchBubble.expandProg
+            mirrored: stopwatchBubble.mirrored
+            onDismissed: NotchIsland.stopwatchTucked = true
+            onActivated: {
+                root.screenState.timerPane = true;
+                root.screenState.sidebar = true;
+            }
+        }
+    }
+
     Loader {
         id: content
 
@@ -352,6 +383,7 @@ Item {
             activity: root.activityShown ? NotchIsland.activity : ""
             compact: root.inBarProg > 0.5
             timerTucked: root.timerShown && NotchIsland.timerTucked
+            stopwatchTucked: root.stopwatchShown && NotchIsland.stopwatchTucked
             downloadsTucked: root.downloadsShown && NotchIsland.downloadsTucked
         }
     }
