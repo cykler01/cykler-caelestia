@@ -24,6 +24,9 @@ class SidebarConfig : public settings::ObjectNode {
     // has no setting of its own (modules/notifpopout/Content.qml)
     CONFIG_PROPERTY(bool, music, true)
     CONFIG_PROPERTY(bool, todo, true)
+    // How long a checked-off task stays in the to-do list before it goes away by itself
+    // (modules/launcher/services/Todo.qml)
+    CONFIG_ENUM_PROPERTY(TodoClearAfter, clearCompletedAfter, TodoClearAfter::Never)
     CONFIG_PROPERTY(bool, notes, true)
     // The AI chat tab, with conversations saved between sessions
     // (modules/aichatpopout/Content.qml)

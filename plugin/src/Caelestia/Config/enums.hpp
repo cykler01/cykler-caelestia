@@ -40,6 +40,9 @@ ENUM(NotifSourceAction, Allow, Discard, Silence)
 ENUM(TemperatureUnit, Auto, Celsius, Fahrenheit, Kelvin)
 ENUM(DataUnit, Binary, Decimal)
 ENUM(ClockFormat, Auto, TwelveHour, TwentyFourHour)
+// How long a checked-off to-do task stays in the list before it is removed by itself
+// (modules/launcher/services/Todo.qml)
+ENUM(TodoClearAfter, Never, FiveMinutes, OneDay, SevenDays, EndOfWeek)
 ENUM(PerfGraphColours, Scheme, Vibrant, Monochrome, Custom)
 ENUM(WallpaperTransition,
     // clang-format off

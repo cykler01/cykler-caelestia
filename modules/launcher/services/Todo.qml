@@ -3,6 +3,7 @@ pragma Singleton
 import QtQuick
 import Quickshell
 import Quickshell.Io
+import Caelestia.Config
 import Caelestia.I18n
 import qs.utils
 
@@ -22,9 +23,10 @@ Singleton {
             id: root.defaultListId,
             name: Tr.tr("Tasks")
         }]
-    // { id, text, listId, done, deadline, reminders }. deadline is an ISO date-time string, or
-    // "" when not set. reminders is a list of { at, reminded }, each an independent alarm; there
-    // can be any number of them, including none.
+    // { id, text, listId, done, doneAt, deadline, reminders }. doneAt is the epoch time the task
+    // was checked off, or 0 while it is not done; the optional auto-clear uses it. deadline is an
+    // ISO date-time string, or "" when not set. reminders is a list of { at, reminded }, each an
+    // independent alarm; there can be any number of them, including none.
     property var tasks: []
     property int revision
     property bool imported: false
@@ -98,6 +100,7 @@ Singleton {
                 text: trimmed,
                 listId: listId || root.defaultListId,
                 done: false,
+                doneAt: 0,
                 deadline: "",
                 reminders: []
             }];
@@ -142,9 +145,51 @@ Singleton {
     }
 
     function toggleDone(id: string): void {
+        const task = root.tasks.find(t => t.id === id);
+        if (!task)
+            return;
+
+        const done = !task.done;
         root.editTask(id, {
-            done: !root.tasks.find(t => t.id === id)?.done
+            done,
+            doneAt: done ? Date.now() : 0
         });
+    }
+
+    // The end of the week containing [timestamp]: weeks run Monday to Sunday, so a task done on
+    // Sunday clears that night rather than a whole week later
+    function endOfWeek(timestamp: number): number {
+        const d = new Date(timestamp);
+        const daysUntilSunday = (7 - d.getDay()) % 7;
+        return new Date(d.getFullYear(), d.getMonth(), d.getDate() + daysUntilSunday + 1).getTime();
+    }
+
+    function isExpired(task: var, now: number): bool {
+        if (!task.done || !task.doneAt)
+            return false;
+
+        switch (Config.sidebar.clearCompletedAfter) {
+        case TodoClearAfter.FiveMinutes:
+            return now - task.doneAt >= 5 * 60 * 1000;
+        case TodoClearAfter.OneDay:
+            return now - task.doneAt >= 24 * 60 * 60 * 1000;
+        case TodoClearAfter.SevenDays:
+            return now - task.doneAt >= 7 * 24 * 60 * 60 * 1000;
+        case TodoClearAfter.EndOfWeek:
+            return now >= root.endOfWeek(task.doneAt);
+        default:
+            return false;
+        }
+    }
+
+    function clearExpired(): void {
+        const now = Date.now();
+        const next = root.tasks.filter(t => !root.isExpired(t, now));
+        if (next.length === root.tasks.length)
+            return;
+
+        root.tasks = next;
+        root.save();
     }
 
     function removeTask(id: string): void {
@@ -156,7 +201,8 @@ Singleton {
         root.save();
     }
 
-    // Nothing removes a done task by itself; this is the only way one goes away other than by hand
+    // Clears a whole list's completed tasks by hand. The optional auto-clear above is the other
+    // way a done task goes away without being deleted one at a time.
     function clearCompleted(listId: string): void {
         const next = root.tasks.filter(t => t.listId !== listId || !t.done);
         if (next.length === root.tasks.length)
@@ -183,11 +229,16 @@ Singleton {
         else
             reminders = [];
 
+        // A task already done without a time (saved before auto-clear existed) starts its countdown
+        // from now rather than never being cleared
+        const done = !!t.done;
+
         return {
             id: typeof t.id === "string" && t.id ? t.id : root.uid(),
             text: t.text,
             listId: typeof t.listId === "string" && t.listId ? t.listId : root.defaultListId,
-            done: !!t.done,
+            done,
+            doneAt: typeof t.doneAt === "number" && t.doneAt > 0 ? t.doneAt : (done ? Date.now() : 0),
             deadline: typeof t.deadline === "string" ? t.deadline : "",
             reminders
         };
@@ -205,8 +256,19 @@ Singleton {
             } else if (data && typeof data === "object") {
                 if (Array.isArray(data.lists) && data.lists.length > 0)
                     root.lists = data.lists;
-                if (Array.isArray(data.tasks))
-                    root.tasks = data.tasks.filter(t => t && typeof t.text === "string" && t.text.length > 0).map(root.normaliseTask);
+                if (Array.isArray(data.tasks)) {
+                    let adopted = false;
+                    root.tasks = data.tasks.filter(t => t && typeof t.text === "string" && t.text.length > 0).map(t => {
+                        const task = root.normaliseTask(t);
+                        // Persist the completion time adopted for a done task saved before doneAt
+                        // existed, so restarting the shell doesn't keep putting off its countdown
+                        if (task.done && (typeof t.doneAt !== "number" || t.doneAt <= 0))
+                            adopted = true;
+                        return task;
+                    });
+                    if (adopted)
+                        root.save();
+                }
             }
         } catch (e) {
             console.warn(lc, `Unable to parse the to-do list: ${e}`);
@@ -304,5 +366,15 @@ Singleton {
                 root.save();
             }
         }
+    }
+
+    // Sweeps away checked-off tasks once the sidebar's auto-clear time has passed, if it is set.
+    // A short interval keeps a five minute setting close to five minutes without busy-waiting.
+    Timer {
+        interval: 15000
+        running: Config.sidebar.clearCompletedAfter !== TodoClearAfter.Never
+        repeat: true
+        triggeredOnStart: true
+        onTriggered: root.clearExpired()
     }
 }

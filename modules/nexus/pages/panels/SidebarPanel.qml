@@ -4,10 +4,31 @@ import QtQuick
 import QtQuick.Layouts
 import Caelestia.Config
 import Caelestia.I18n
+import qs.components.controls
 import qs.modules.nexus.common
 
 PageBase {
     id: root
+
+    // Auto-clear times, ordered to match config::TodoClearAfter (Never, FiveMinutes, OneDay,
+    // SevenDays, EndOfWeek)
+    readonly property list<MenuItem> clearCompletedItems: [
+        MenuItem {
+            text: Tr.trCtx("Never", "auto-clear completed tasks")
+        },
+        MenuItem {
+            text: Tr.tr("5 minutes")
+        },
+        MenuItem {
+            text: Tr.tr("1 day")
+        },
+        MenuItem {
+            text: Tr.tr("7 days")
+        },
+        MenuItem {
+            text: Tr.tr("End of week")
+        }
+    ]
 
     title: Tr.tr("Sidebar")
     isSubPage: true
@@ -82,6 +103,15 @@ PageBase {
             subtext: Tr.tr("Show the to-do list as a tab")
             checked: Config.sidebar.todo ?? true
             onToggled: GlobalConfig.sidebar.todo = checked
+        }
+
+        SelectRow {
+            visible: Config.sidebar.todo
+            label: Tr.tr("Clear completed after")
+            subtext: Tr.tr("Remove checked-off tasks once they have been done for this long")
+            menuItems: root.clearCompletedItems
+            active: root.clearCompletedItems[Config.sidebar.clearCompletedAfter]
+            onSelected: item => GlobalConfig.sidebar.clearCompletedAfter = root.clearCompletedItems.indexOf(item)
         }
 
         ToggleRow {

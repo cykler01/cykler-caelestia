@@ -253,8 +253,8 @@ Item {
                     }
                 }
 
-                // Nothing here removes a done task on its own: it just sits struck through at the bottom
-                // until cleared by hand or deleted one at a time. Deleting the list is only offered for
+                // A done task sits struck through at the bottom until cleared by hand, deleted one at a
+                // time, or swept away by the auto-clear setting. Deleting the list is only offered for
                 // non-default lists.
                 RowLayout {
                     Layout.fillWidth: true
