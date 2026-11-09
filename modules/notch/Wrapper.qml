@@ -68,7 +68,7 @@ Item {
     // download is a thing happening now with an end to it, and on a side bar (or with the standing
     // notch turned off for workspaces that have windows) there would otherwise be nowhere it could
     // ever appear. It brings the notch down on its own for as long as it runs, like an activity.
-    readonly property bool downloadsShown: Config.notch.showDownloads && Downloads.busy
+    readonly property bool downloadsShown: Config.notch.showDownloads && Downloads.busy && emptyWorkspace
     readonly property bool persistent: wanted && (Config.notch.showClock || musicShown || timerShown)
     // Whether the notch is standing in for the clock, so the bar can drop its own
     readonly property bool showsClock: Config.notch.enabled && wanted && Config.notch.showClock
@@ -260,6 +260,33 @@ Item {
         target: Music
     }
 
+    // NOTE(fork): the countdown and the downloads stand beside the pill as detached circles (see
+    // Bubble.qml), downloads on the left and the timer on the right. They only exist while the
+    // notch itself is down: Wrapper's own opacity and visibility carry them in and out.
+    Bubble {
+        shown: root.downloadsShown && root.shouldBeActive && !root.onVerticalBar
+        width: root.height
+        height: root.height
+        x: -width - Tokens.spacing.small
+        y: 0
+
+        DownloadSegment {
+            anchors.fill: parent
+        }
+    }
+
+    Bubble {
+        shown: root.timerShown && root.wanted && root.shouldBeActive && !root.onVerticalBar
+        width: root.height
+        height: root.height
+        x: root.width + Tokens.spacing.small
+        y: 0
+
+        TimerSegment {
+            anchors.fill: parent
+        }
+    }
+
     Loader {
         id: content
 
@@ -276,9 +303,7 @@ Item {
             cavaWarm: root.cavaWarm
             allowLive: root.visualiserLive
             showMedia: root.hasRecent && (root.trackActive || (root.persistent && Config.notch.showMusic))
-            showClock: root.persistent && Config.notch.showClock
-            showTimer: root.persistent && root.timerShown
-            showDownloads: root.downloadsShown
+            showClock: (root.persistent || root.downloadsShown) && Config.notch.showClock
             activity: root.activityShown ? NotchIsland.activity : ""
             compact: root.inBarProg > 0.5
         }

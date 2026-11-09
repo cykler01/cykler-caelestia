@@ -2,6 +2,7 @@
 
 #include <qdatetime.h>
 #include <qdir.h>
+#include <qdiriterator.h>
 #include <qfile.h>
 #include <qfileinfo.h>
 #include <qloggingcategory.h>
@@ -45,6 +46,29 @@ constexpr qreal k_preallocRatio = 0.97;
  * is counted.
  */
 constexpr int k_steamDownloading = 256 | 1024;
+
+/*
+ * Steam only rewrites BytesDownloaded in the manifest when a download pauses or stops, so while one
+ * runs the manifest sits at whatever it said last. What does move is the staging directory
+ * (steamapps/downloading/<appid>): files are written there as chunks arrive, and the blocks
+ * allocated in it track the manifest's own BytesStaged to within a few megabytes. Blocks rather
+ * than apparent size, because Steam reserves its files whole up front.
+ */
+qint64 allocatedBytes(const QString& dirPath) {
+    if (!QFileInfo(dirPath).isDir()) {
+        return 0;
+    }
+
+    qint64 sum = 0;
+    QDirIterator it(dirPath, QDir::Files | QDir::NoDotAndDotDot, QDirIterator::Subdirectories);
+    while (it.hasNext()) {
+        struct stat st {};
+        if (::stat(it.next().toUtf8().constData(), &st) == 0) {
+            sum += static_cast<qint64>(st.st_blocks) * 512;
+        }
+    }
+    return sum;
+}
 
 const QStringList& partSuffixes() {
     static const QStringList k_suffixes{ u"crdownload"_s, u"part"_s, u"download"_s, u"opdownload"_s };
@@ -265,9 +289,19 @@ void Downloads::scanSteam(QHash<QString, DownloadItem>& found) {
             }
 
             const qint64 total = vdfValue(text, u"BytesToDownload"_s).toLongLong();
-            const qint64 done = vdfValue(text, u"BytesDownloaded"_s).toLongLong();
+            qint64 done = vdfValue(text, u"BytesDownloaded"_s).toLongLong();
             if (total <= 0 || done >= total) {
                 continue;
+            }
+
+            // The manifest is stale while the download runs (see allocatedBytes), so take the
+            // staging directory's progress as a fraction of what is to be staged, if it is ahead
+            const qint64 toStage = vdfValue(text, u"BytesToStage"_s).toLongLong();
+            if (toStage > 0) {
+                const QString appId = info.completeBaseName().mid(QStringLiteral("appmanifest_").size());
+                const qint64 staged = allocatedBytes(dirPath + u"/downloading/"_s + appId);
+                const qreal frac = qBound(0.0, static_cast<qreal>(staged) / static_cast<qreal>(toStage), 1.0);
+                done = qBound(done, static_cast<qint64>(frac * static_cast<qreal>(total)), total - 1);
             }
 
             DownloadItem item;
