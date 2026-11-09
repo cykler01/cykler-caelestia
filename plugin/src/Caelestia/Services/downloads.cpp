@@ -45,7 +45,11 @@ constexpr qreal k_preallocRatio = 0.97;
  * (6 = installed + update required) and a paused one (518) are not in flight either, so neither
  * is counted.
  */
+// StateUpdateRunning | StateUpdateStarted: what a manifest says while an update is under way
 constexpr int k_steamDownloading = 256 | 1024;
+// StateUpdatePaused | StateUpdateStopping: set alongside the two above while an update is stopped
+// rather than running, which is not a download anyone wants told about
+constexpr int k_steamNotRunning = 512 | 8388608;
 
 /*
  * Steam only rewrites BytesDownloaded in the manifest when a download pauses or stops, so while one
@@ -271,7 +275,38 @@ void Downloads::scanBrowser(QHash<QString, DownloadItem>& found) {
     }
 }
 
+// Whether Steam itself is up. A manifest left behind by a download that was interrupted goes on
+// saying it is mid-update for as long as it sits there, so without this the notch keeps showing a
+// download that stopped when Steam did - and there is nothing to walk the staging directory for
+// either, so this is also what keeps a closed Steam from costing anything at all.
+bool Downloads::steamRunning() {
+    // Steam writes its pid here while it runs, and leaves the file behind when it stops, so the
+    // pid in it is checked rather than taken as proof on its own
+    QFile pidFile(QDir::homePath() + u"/.steam/steam.pid"_s);
+    if (!pidFile.open(QIODevice::ReadOnly)) {
+        return false;
+    }
+
+    bool ok = false;
+    const qint64 pid = QString::fromUtf8(pidFile.readAll()).trimmed().toLongLong(&ok);
+    if (!ok || pid <= 0) {
+        return false;
+    }
+
+    // A pid on its own could have been handed to anything once Steam let go of it, so the process
+    // it names has to still be Steam
+    QFile comm(u"/proc/%1/comm"_s.arg(pid));
+    if (!comm.open(QIODevice::ReadOnly)) {
+        return false;
+    }
+    return QString::fromUtf8(comm.readAll()).trimmed().startsWith(u"steam"_s);
+}
+
 void Downloads::scanSteam(QHash<QString, DownloadItem>& found) {
+    if (!steamRunning()) {
+        return;
+    }
+
     const auto dirs = steamAppsDirs();
     for (const QString& dirPath : dirs) {
         QDir dir(dirPath);
@@ -284,7 +319,7 @@ void Downloads::scanSteam(QHash<QString, DownloadItem>& found) {
             const QString text = QString::fromUtf8(f.readAll());
 
             const int flags = vdfValue(text, u"StateFlags"_s).toInt();
-            if ((flags & k_steamDownloading) == 0) {
+            if ((flags & k_steamDownloading) == 0 || (flags & k_steamNotRunning) != 0) {
                 continue;
             }
 

@@ -81,6 +81,7 @@ private:
 
     [[nodiscard]] static QString downloadDir();
     [[nodiscard]] static QStringList steamAppsDirs();
+    [[nodiscard]] static bool steamRunning();
     [[nodiscard]] static QString vdfValue(const QString& text, const QString& key);
 
     QFileSystemWatcher* m_watcher;
