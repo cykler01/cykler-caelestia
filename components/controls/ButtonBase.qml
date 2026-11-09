@@ -41,6 +41,13 @@ StyledRect {
     property color disabledOnColour: Qt.alpha(Colours.palette.m3onSurface, 0.38)
 
     property bool internalChecked
+    // NOTE(fork): a toggle lights up the instant it is pressed and lets whatever it is bound to catch
+    // up, which is right for a switch - the state always follows the press. For a button whose
+    // `checked` is not what the press changes (the utilities timer button lights up while a countdown
+    // is running, but pressing it opens the panel), that optimistic flip leaves the button showing a
+    // state nothing backs, and since `checked` never changes there is nothing to put it right again.
+    // Such a button turns this off and simply shows what it is bound to.
+    property bool optimistic: true
     property real shapeMorphExpansion: shapeMorph && pressed ? 24 : 0 // Apparently it's always 24px no matter the width of the button
     readonly property color onColour: disabled ? disabledOnColour : internalChecked ? activeOnColour : inactiveOnColour
 
@@ -73,7 +80,7 @@ StyledRect {
         color: root.internalChecked ? root.activeOnColour : root.inactiveOnColour
         disabled: root.disabled
         onClicked: {
-            if (root.isToggle)
+            if (root.isToggle && root.optimistic)
                 root.internalChecked = !root.internalChecked;
             root.clicked();
         }

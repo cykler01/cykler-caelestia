@@ -273,6 +273,19 @@ StyledWindow {
             implicitWidth: panels.notch.inBarProg > 0.999 ? 0 : panels.notch.width
         }
 
+        // NOTE(fork): the notch's side bubbles (a countdown, a download), drawn with the notch's own
+        // surface so they deform on the same springs - but kept out of its smin, so they stay the
+        // detached circles they are meant to be instead of melting into the pill across the gap
+        BubbleBg {
+            bubble: panels.notch.downloadBubble
+            exclude: [notchBg]
+        }
+
+        BubbleBg {
+            bubble: panels.notch.timerBubble
+            exclude: [notchBg]
+        }
+
         PanelBg {
             id: launcherBg
 
@@ -458,6 +471,26 @@ StyledWindow {
         screen: root.screen
         slot: "panels"
         component: panels
+    }
+
+    // NOTE(fork): one of the notch's side bubbles. It sits in the notch's coordinates rather than
+    // the panel area's, and is sized by the bubble's own eased progress so the circle grows out of
+    // nothing (and collapses back into it) with the content it holds, centred the whole way. The
+    // bubble's width is its own to decide - it opens out into a pill when hovered - so the shape
+    // follows it and stays fully rounded at whatever width it has reached.
+    component BubbleBg: BlobRect {
+        required property Item bubble
+
+        readonly property real w: bubble.width * bubble.prog
+        readonly property real h: bubble.height * bubble.prog
+
+        group: blobGroup
+        x: panels.notch.x + bubble.x + bar.insetLeft + (bubble.width - w) / 2
+        y: panels.notch.bgY + bubble.y + bar.insetTop + root.notchShift + (bubble.height - h) / 2
+        implicitWidth: w
+        implicitHeight: h
+        radius: h / 2
+        deformScale: (0.1 * Config.appearance.deformScale) / 10000
     }
 
     component PanelBg: BlobRect {

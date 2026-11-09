@@ -102,6 +102,7 @@ Singleton {
         [["battery"], "power"],
         [["screenshot"], "screenshot_monitor"],
         [["welcome"], "waving_hand"],
+        [["timer"], "timer"],
         [["time", "a break"], "schedule"],
         [["installed"], "download"],
         [["update"], "update"],

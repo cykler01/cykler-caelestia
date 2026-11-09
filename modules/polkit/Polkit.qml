@@ -27,6 +27,32 @@ Scope {
     // Built through a loader so the retry below can throw away the refused one and ask again
     readonly property var agent: agentLoader.item
 
+    // Whether there is a request to answer right now
+    readonly property bool active: root.agent?.isActive ?? false
+
+    // NOTE(fork): the window is held up for a moment after the request is over, so the panel can
+    // collapse back into the notch instead of blinking out of existence with it (see Content.qml).
+    // Nothing can be typed into it in that moment: the keyboard goes back the instant the request
+    // does, and the panel has no flow left to submit to.
+    property bool shown
+
+    onActiveChanged: {
+        if (root.active) {
+            closeTimer.stop();
+            root.shown = true;
+        } else if (root.shown) {
+            closeTimer.restart();
+        }
+    }
+
+    Timer {
+        id: closeTimer
+
+        // Long enough for the panel's own close animation (Anim.DefaultSpatial) to finish
+        interval: 600
+        onTriggered: root.shown = false
+    }
+
     Loader {
         id: agentLoader
 
@@ -45,14 +71,14 @@ Scope {
         name: "polkit"
         screen: root.promptScreen ?? root.focusedScreen
 
-        visible: root.agent?.isActive ?? false
+        visible: root.shown
         implicitWidth: screen.width
         implicitHeight: screen.height
         WlrLayershell.exclusionMode: ExclusionMode.Ignore
         WlrLayershell.layer: WlrLayer.Overlay
         // Holds the keyboard for as long as the prompt is up, so what gets typed into it cannot
         // reach anything underneath, and the shell's own keybinds stay out of the way
-        WlrLayershell.keyboardFocus: (root.agent?.isActive ?? false) ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
+        WlrLayershell.keyboardFocus: root.active ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
 
         anchors.top: true
         anchors.bottom: true
@@ -72,7 +98,7 @@ Scope {
     Binding {
         target: NotchIsland
         property: "authActive"
-        value: root.agent?.isActive ?? false
+        value: root.shown
     }
 
     LoggingCategory {
@@ -95,7 +121,7 @@ Scope {
 
         interval: 10000
         repeat: true
-        running: root.agent !== null && !root.agent.isRegistered && !(root.agent.isActive ?? false)
+        running: root.agent !== null && !root.agent.isRegistered && !root.active
 
         onTriggered: {
             if (++attempts > maxAttempts) {

@@ -296,7 +296,7 @@ Singleton {
     // own. Sent over the same org.freedesktop.Notifications interface the shell itself listens
     // on (that is what "notify-send" is), rather than anything special-cased for the to-do list.
     function notifyReminder(text: string): void {
-        Quickshell.execDetached(["notify-send", "--app-name=To-do", "--icon=notifications-active", "--urgency=normal", Tr.tr("Task reminder"), text]);
+        Quickshell.execDetached(["notify-send", "--app-name=To-do", "--urgency=normal", Tr.tr("Task reminder"), text]);
     }
 
     LoggingCategory {

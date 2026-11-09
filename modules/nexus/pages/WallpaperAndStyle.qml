@@ -121,12 +121,26 @@ PageBase {
         ToggleRow {
             Layout.topMargin: Tokens.spacing.extraSmall / 2 - parent.spacing
 
-            last: true
             text: Tr.tr("Transparency")
             // TRANSLATORS: %1/%2 = opacity values from 0 to 1 for the base surface and layered surfaces
             subtext: Tr.tr("Base %1, layers %2").arg(Colours.transparency.base).arg(Colours.transparency.layers)
             checked: Colours.transparency.enabled
             onToggled: GlobalConfig.appearance.transparency.enabled = checked
+        }
+
+        // NOTE(fork): how long everything the shell animates takes, as a multiplier on the whole
+        // set of durations at once. The defaults are Material 3's expressive ones, which are on the
+        // slow side for a panel that opens and closes all day; below 1 the shell moves the same way,
+        // just more briskly. 0 would stop the motion being animation at all, so it stops short of it.
+        StepperRow {
+            last: true
+            label: Tr.tr("Animation speed")
+            subtext: Tr.tr("How long the shell's own animations take, as a multiple of the usual; lower is quicker")
+            value: Config.appearance.anim.durations.scale
+            from: 0.1
+            to: 2
+            stepSize: 0.05
+            onMoved: v => GlobalConfig.appearance.anim.durations.scale = v
         }
     }
 }

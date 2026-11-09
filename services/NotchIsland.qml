@@ -3,6 +3,7 @@ pragma Singleton
 import QtQuick
 import Quickshell
 import Caelestia.Config
+import Caelestia.Services
 import qs.services
 
 // NOTE(fork): the notch's Dynamic Island activities - the short lived things it stands up to show
@@ -30,6 +31,18 @@ Singleton {
     // keyboard, which the drawers window cannot), so the notch steps aside for it rather than
     // drawing it: see modules/polkit.
     property bool authActive
+
+    // --- Tucked-away side bubbles ---
+
+    // A side bubble (the countdown, the downloads) put away from the bubble itself rather than from
+    // the settings: the thing it was showing carries on, and the pill keeps a small mark to say so,
+    // which brings the bubble back when it is pressed (see modules/notch/Pill.qml).
+    //
+    // Deliberately not saved anywhere: it lasts as long as the thing being tucked away does, and
+    // the next download or the next timer is a new thing worth seeing. Kept here rather than in
+    // each screen's notch so putting one away on one monitor puts it away on all of them.
+    property bool timerTucked
+    property bool downloadsTucked
 
     // --- Lock keys ---
 
@@ -121,6 +134,27 @@ Singleton {
         root.notifShown = false;
         lockTimer.stop();
         notifTimer.stop();
+    }
+
+    // Nothing left to tuck away: the next one starts out on show again
+    Connections {
+        function onActiveChanged(): void {
+            if (!CountdownTimer.active)
+                root.timerTucked = false;
+        }
+
+        target: CountdownTimer
+    }
+
+    // Downloads reports every change through the one signal, so this is activeChanged rather than
+    // a busyChanged that does not exist (see plugin/src/Caelestia/Services/downloads.hpp)
+    Connections {
+        function onActiveChanged(): void {
+            if (!Downloads.busy)
+                root.downloadsTucked = false;
+        }
+
+        target: Downloads
     }
 
     // A device refresh can leave Hypr without a main keyboard for a moment, which reads as both

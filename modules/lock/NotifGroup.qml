@@ -39,7 +39,9 @@ StyledRect {
         };
     }
     readonly property string image: props.img
-    readonly property string appIcon: props.icon
+    // An icon name no theme carries would draw as a missing-image chequer, so it counts as none at
+    // all and the Material icon stands in (same rule as modules/notifications/Notification.qml)
+    readonly property string appIcon: props.icon && (props.icon.includes("/") || Quickshell.hasThemeIcon(props.icon)) ? props.icon : ""
     readonly property string urgency: props.urgency
 
     property bool expanded

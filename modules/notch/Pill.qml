@@ -5,6 +5,7 @@ import Caelestia.Config
 import Caelestia.I18n
 import Caelestia.Services
 import qs.components
+import qs.components.controls
 import qs.components.widgets
 import qs.services
 
@@ -26,6 +27,11 @@ Item {
     // NOTE(fork): which Dynamic Island activity has the notch, if any: "keylock", "notif", or ""
     // for the standing content (clock, media). Set by the Wrapper from NotchIsland.
     property string activity
+
+    // NOTE(fork): a side bubble put away from the bubble itself carries on running with only a
+    // small mark here to say so. Pressing the mark brings the bubble back. Set by the Wrapper.
+    property bool timerTucked
+    property bool downloadsTucked
 
     readonly property string trackTitle: root.local ? Music.title : Players.recentPlayer?.trackTitle ?? ""
     readonly property string trackArtist: root.local ? Music.artist : Players.recentPlayer?.trackArtist ?? ""
@@ -237,6 +243,28 @@ Item {
                 }
             }
 
+            // NOTE(fork): what is left of a side bubble that has been put away - enough to say the
+            // countdown is still counting or the download still running, and to bring the bubble
+            // back when it is pressed. The pill's own width eases, so these grow it rather than
+            // appearing in it.
+            RowLayout {
+                visible: root.timerTucked || root.downloadsTucked
+                Layout.alignment: Qt.AlignVCenter
+                spacing: 0
+
+                Mark {
+                    visible: root.downloadsTucked
+                    icon: "download"
+                    onClicked: NotchIsland.downloadsTucked = false
+                }
+
+                Mark {
+                    visible: root.timerTucked
+                    icon: "timer"
+                    onClicked: NotchIsland.timerTucked = false
+                }
+            }
+
             StyledRect {
                 visible: root.mediaDivider > 0
                 Layout.alignment: Qt.AlignVCenter
@@ -386,5 +414,19 @@ Item {
         id: notifPill
 
         NotifPill {}
+    }
+
+    // A mark for a side bubble that has been put away: an outline glyph rather than a filled one,
+    // so it reads as a small note on the pill rather than another button competing with the clock.
+    // isToggle leaves the glyph unfilled; optimistic keeps the press from lighting it up, since
+    // pressing it does not turn anything on - it brings the bubble back (see ButtonBase)
+    component Mark: IconButton {
+        type: IconButton.Text
+        isToggle: true
+        optimistic: false
+        checked: false
+        padding: Tokens.padding.extraSmall / 2
+        font: root.tight ? Tokens.font.icon.small : Tokens.font.icon.medium
+        inactiveOnColour: Colours.palette.m3primary
     }
 }

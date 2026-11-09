@@ -21,7 +21,9 @@ RowLayout {
     id: root
 
     readonly property bool hasImage: NotchIsland.notifImage !== ""
-    readonly property bool hasAppIcon: NotchIsland.notifAppIcon !== ""
+    // An icon name no theme carries draws as a missing-image chequer, so it counts as no icon at
+    // all and the bell below stands in (same rule as modules/notifications/Notification.qml)
+    readonly property bool hasAppIcon: NotchIsland.notifAppIcon !== "" && (NotchIsland.notifAppIcon.includes("/") || Quickshell.hasThemeIcon(NotchIsland.notifAppIcon))
     readonly property bool critical: NotchIsland.notifUrgency === NotificationUrgency.Critical
     readonly property int avatarSize: Tokens.padding.extraLarge
     // Wrapped lines would grow the pill down the screen, so both lines elide instead
