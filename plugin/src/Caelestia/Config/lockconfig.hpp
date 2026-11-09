@@ -35,6 +35,11 @@ class LockConfig : public settings::ObjectNode {
     CONFIG_GLOBAL_PROPERTY(int, maxHowdyTries, 3)
     CONFIG_GLOBAL_PROPERTY(bool, triggerHowdyOnWake, true)
     CONFIG_PROPERTY(bool, hideNotifs, false)
+    // NOTE(fork): the lock UI fades out after hideIdleDelay seconds with no pointer movement or
+    // keystroke, leaving only the background behind it (modules/lock/LockSurface.qml). Worth
+    // pairing with useWallpaper, since the background is otherwise a capture of the session
+    CONFIG_PROPERTY(bool, hideIdle, false)
+    CONFIG_PROPERTY(int, hideIdleDelay, 30)
     // The same dino game, played in the notification dock from its empty state
     // (modules/lock/NotifDock.qml)
     CONFIG_PROPERTY(bool, dinoGame, false)

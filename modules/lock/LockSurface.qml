@@ -20,6 +20,73 @@ WlSessionLockSurface {
     // password field for as long as it lasts (see modules/lock/NotifDock.qml)
     property bool dinoPlaying: false
 
+    // NOTE(fork): everything but the background is faded out once the screen has been left
+    // alone, so a locked session does not sit there showing the time and a password field. The
+    // field keeps focus throughout, so the first key both brings the UI back and still lands in
+    // the buffer (modules/lock/center/PasswordInput.qml)
+    property bool idleHidden: false
+
+    // GlobalConfig rather than Config for the two settings below: only contentItem is given a
+    // screen, so reading Config from out here lands on the defaults and the countdown never starts
+    function noteActivity(): void {
+        root.idleHidden = false;
+
+        // Not a binding on running: the first restart() would overwrite it anyway
+        if (GlobalConfig.lock.hideIdle && !root.unlocking)
+            idleTimer.restart();
+        else
+            idleTimer.stop();
+    }
+
+    Timer {
+        id: idleTimer
+
+        interval: Math.max(1, GlobalConfig.lock.hideIdleDelay) * 1000
+        repeat: false
+        onTriggered: {
+            if (GlobalConfig.lock.hideIdle && !root.unlocking)
+                root.idleHidden = true;
+        }
+    }
+
+    // NOTE(fork): a pointer that has actually moved is what counts as the screen being used.
+    // HoverHandler rather than a filled MouseArea, so the cards underneath keep their own hover
+    // states and nothing swallows clicks. The position is compared by hand because pointChanged
+    // also fires for velocity and timestamp updates while the pointer sits still, which would
+    // hold the countdown open for as long as it is anywhere over the screen
+    Item {
+        id: activityLayer
+
+        property real lastX: -1
+        property real lastY: -1
+
+        anchors.fill: parent
+        z: 100
+
+        // NOTE(fork): takes the pointer away with the rest of it, and is enabled only while
+        // hidden so the cursors the cards set for themselves are untouched otherwise
+        HoverHandler {
+            enabled: root.idleHidden
+            cursorShape: Qt.BlankCursor
+        }
+
+        HoverHandler {
+            id: activityHover
+
+            onPointChanged: {
+                const pos = activityHover.point.position;
+                if (pos.x === activityLayer.lastX && pos.y === activityLayer.lastY)
+                    return;
+
+                activityLayer.lastX = pos.x;
+                activityLayer.lastY = pos.y;
+                root.noteActivity();
+            }
+        }
+    }
+
+    Component.onCompleted: root.noteActivity()
+
     contentItem.Config.screen: screen.name
     contentItem.Tokens.screen: screen.name
 
@@ -28,10 +95,28 @@ WlSessionLockSurface {
     Connections {
         function onUnlock(): void {
             root.dinoPlaying = false;
+            root.idleHidden = false;
+            idleTimer.stop();
             unlockAnim.start();
         }
 
+        // The surface outlives any one lock, so the countdown is armed here rather than only
+        // in Component.onCompleted, which can run before the config has been read
+        function onLockedChanged(): void {
+            if (root.lock.locked)
+                root.noteActivity();
+        }
+
         target: root.lock
+    }
+
+    // So switching it on in the settings takes hold without waiting for the next lock
+    Connections {
+        function onHideIdleChanged(): void {
+            root.noteActivity();
+        }
+
+        target: GlobalConfig.lock
     }
 
     SequentialAnimation {
@@ -170,7 +255,10 @@ WlSessionLockSurface {
         layer.effect: MultiEffect {
             autoPaddingEnabled: false
             blurEnabled: true
-            blur: 1
+            // NOTE(fork): follows the fade instead of easing on its own, since the blur is only
+            // there to hold the wallpaper back from what sits on top of it. Two animations over
+            // the same moment drifted against each other and flickered
+            blur: lockContent.opacity
             blurMax: 64
             blurMultiplier: 1
         }
@@ -211,6 +299,11 @@ WlSessionLockSurface {
         visible: Config.lock.enabled
         rotation: 180
         scale: 0
+        opacity: root.idleHidden ? 0 : 1
+
+        Behavior on opacity {
+            Anim {}
+        }
 
         StyledRect {
             id: lockBg

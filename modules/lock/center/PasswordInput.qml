@@ -33,7 +33,14 @@ StyledRect {
     }
 
     Keys.onPressed: event => {
-        if (root.lock.unlocking || root.lock.dinoPlaying)
+        if (root.lock.unlocking)
+            return;
+
+        // NOTE(fork): counted before the key is handled, so starting on the password while the
+        // UI is hidden brings it back rather than leaving the field invisible under the typing
+        root.lock.noteActivity();
+
+        if (root.lock.dinoPlaying)
             return;
 
         if (event.key === Qt.Key_Enter || event.key === Qt.Key_Return)

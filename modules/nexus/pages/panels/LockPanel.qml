@@ -42,6 +42,31 @@ PageBase {
             onToggled: GlobalConfig.lock.analogueClock = checked
         }
 
+        // Idle
+        SectionHeader {
+            text: Tr.tr("Idle")
+        }
+
+        ToggleRow {
+            first: true
+            text: Tr.tr("Hide when idle")
+            subtext: Tr.tr("Fade everything but the background away until the screen is touched again")
+            checked: Config.lock.hideIdle
+            onToggled: GlobalConfig.lock.hideIdle = checked
+        }
+
+        StepperRow {
+            last: true
+            visible: Config.lock.hideIdle
+            label: Tr.tr("Hide after")
+            subtext: Tr.tr("Seconds without input before it hides")
+            value: Config.lock.hideIdleDelay
+            from: 5
+            to: 300
+            stepSize: 5
+            onMoved: v => GlobalConfig.lock.hideIdleDelay = v
+        }
+
         // Profile picture
         SectionHeader {
             text: Tr.tr("Profile picture")
