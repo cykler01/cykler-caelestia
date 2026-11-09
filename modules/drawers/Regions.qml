@@ -77,6 +77,38 @@ Region {
         intersection: Intersection.Subtract
     }
 
+    // NOTE(fork): the notch's side bubbles take the pointer, so they can open on hover and be put
+    // away again. The notch pill itself takes it too, for the marks a put-away bubble leaves on it
+    // (see modules/notch/Pill.qml) - without that there would be no way to bring one back.
+    N {
+        item: root.panels.notch
+    }
+
+    N {
+        item: root.panels.notch.downloadBubble
+    }
+
+    N {
+        item: root.panels.notch.timerBubble
+    }
+
+    // Something inside the notch, placed in the notch's own coordinates. Nothing at all while it is
+    // not on screen, so a hidden bubble does not go on swallowing clicks at the top of the screen.
+    component N: Region {
+        required property Item item
+
+        readonly property Item notch: root.panels.notch
+        // The pill only takes the pointer while it is carrying a mark to press; the bubbles always
+        // do, since hovering one is the whole point of them
+        readonly property bool on: root.panels.notch.visible && item.visible && (item !== notch || notch.hasMarks)
+
+        x: root.bar.insetLeft + notch.x + (item === notch ? 0 : item.x)
+        y: root.bar.insetTop + notch.y + (item === notch ? 0 : item.y)
+        width: on ? item.width : 0
+        height: on ? item.height : 0
+        intersection: Intersection.Subtract
+    }
+
     component R: Region {
         required property Item panel
 

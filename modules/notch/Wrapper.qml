@@ -263,27 +263,69 @@ Item {
     // NOTE(fork): the countdown and the downloads stand beside the pill as detached circles (see
     // Bubble.qml), downloads on the left and the timer on the right. They only exist while the
     // notch itself is down: Wrapper's own opacity and visibility carry them in and out.
+    //
+    // Their surfaces are drawn by the shared blob group with every other panel's (see
+    // modules/drawers/ContentWindow.qml), so they deform on the same springs the notch does; these
+    // only carry the content. The bar band has no room beside the notch for them, so they are only
+    // up while it hangs below the top edge - but that now includes a side bar, where the notch
+    // hangs there permanently and the timer used to have nowhere at all to show.
+    //
+    // Hovering one opens it out into a pill with the detail behind the ring, and the close button
+    // that uncovers puts it away for as long as the thing it was showing lasts - the pill then
+    // carries a small mark instead, which brings it back (see NotchIsland and Pill.qml).
+    readonly property alias downloadBubble: downloadBubble
+    readonly property alias timerBubble: timerBubble
+
+    // Whether the pill is carrying a mark for a bubble that has been put away. The pill only takes
+    // the pointer while it is (see modules/drawers/Regions.qml): with nothing to press on it there
+    // is no reason for it to be in the way of whatever is under the top of the screen.
+    readonly property bool hasMarks: (timerShown && NotchIsland.timerTucked) || (downloadsShown && NotchIsland.downloadsTucked)
+
     Bubble {
-        shown: root.downloadsShown && root.shouldBeActive && !root.onVerticalBar
-        width: root.height
-        height: root.height
+        id: downloadBubble
+
+        shown: root.downloadsShown && root.shouldBeActive && root.inBarProg < 0.001 && !NotchIsland.downloadsTucked
+        size: root.height
+        detailWidth: downloadSegment.detailWidth
+        // It stands to the notch's left, so it opens that way and its circle stays where it was
+        mirrored: true
         x: -width - Tokens.spacing.small
         y: 0
 
         DownloadSegment {
+            id: downloadSegment
+
             anchors.fill: parent
+
+            expandProg: downloadBubble.expandProg
+            mirrored: downloadBubble.mirrored
+            onDismissed: NotchIsland.downloadsTucked = true
         }
     }
 
     Bubble {
-        shown: root.timerShown && root.wanted && root.shouldBeActive && !root.onVerticalBar
-        width: root.height
-        height: root.height
+        id: timerBubble
+
+        shown: root.timerShown && root.wanted && root.shouldBeActive && root.inBarProg < 0.001 && !NotchIsland.timerTucked
+        size: root.height
+        detailWidth: timerSegment.detailWidth
         x: root.width + Tokens.spacing.small
         y: 0
 
         TimerSegment {
+            id: timerSegment
+
             anchors.fill: parent
+
+            expandProg: timerBubble.expandProg
+            mirrored: timerBubble.mirrored
+            onDismissed: NotchIsland.timerTucked = true
+            // Pressing the ring opens the panel the countdown is set in, the same place the
+            // utilities panel's timer button goes
+            onActivated: {
+                root.screenState.timerPane = true;
+                root.screenState.sidebar = true;
+            }
         }
     }
 
@@ -306,6 +348,8 @@ Item {
             showClock: (root.persistent || root.downloadsShown) && Config.notch.showClock
             activity: root.activityShown ? NotchIsland.activity : ""
             compact: root.inBarProg > 0.5
+            timerTucked: root.timerShown && NotchIsland.timerTucked
+            downloadsTucked: root.downloadsShown && NotchIsland.downloadsTucked
         }
     }
 }
