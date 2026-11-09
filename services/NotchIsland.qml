@@ -44,27 +44,6 @@ Singleton {
     property bool timerTucked
     property bool downloadsTucked
 
-    // Nothing left to tuck away: the next one starts out on show again
-    Connections {
-        function onActiveChanged(): void {
-            if (!CountdownTimer.active)
-                root.timerTucked = false;
-        }
-
-        target: CountdownTimer
-    }
-
-    // Downloads reports every change through the one signal, so this is activeChanged rather than
-    // a busyChanged that does not exist (see plugin/src/Caelestia/Services/downloads.hpp)
-    Connections {
-        function onActiveChanged(): void {
-            if (!Downloads.busy)
-                root.downloadsTucked = false;
-        }
-
-        target: Downloads
-    }
-
     // --- Lock keys ---
 
     // Which lock key changed and what it changed to
@@ -155,6 +134,27 @@ Singleton {
         root.notifShown = false;
         lockTimer.stop();
         notifTimer.stop();
+    }
+
+    // Nothing left to tuck away: the next one starts out on show again
+    Connections {
+        function onActiveChanged(): void {
+            if (!CountdownTimer.active)
+                root.timerTucked = false;
+        }
+
+        target: CountdownTimer
+    }
+
+    // Downloads reports every change through the one signal, so this is activeChanged rather than
+    // a busyChanged that does not exist (see plugin/src/Caelestia/Services/downloads.hpp)
+    Connections {
+        function onActiveChanged(): void {
+            if (!Downloads.busy)
+                root.downloadsTucked = false;
+        }
+
+        target: Downloads
     }
 
     // A device refresh can leave Hypr without a main keyboard for a moment, which reads as both

@@ -94,6 +94,16 @@ Item {
     // out is the point of it. Eased on its own so arriving mid-morph still reads as one move.
     property real activityPop: activityShown ? 1 : 0
 
+    // NOTE(fork): handles on the side bubbles declared further down, for the window that draws
+    // their surfaces and marks out where the pointer can reach them
+    readonly property alias downloadBubble: downloadBubble
+    readonly property alias timerBubble: timerBubble
+
+    // Whether the pill is carrying a mark for a bubble that has been put away. The pill only takes
+    // the pointer while it is (see modules/drawers/Regions.qml): with nothing to press on it there
+    // is no reason for it to be in the way of whatever is under the top of the screen.
+    readonly property bool hasMarks: (timerShown && NotchIsland.timerTucked) || (downloadsShown && NotchIsland.downloadsTucked)
+
     // Services are reference counted, so cava - and the PipeWire capture it reads - stops the
     // moment the pill's own ref (in Pill.qml) goes away. Started cold it has to settle its
     // autosensitivity first, which holds the bars at nothing for a good second before they climb
@@ -273,13 +283,6 @@ Item {
     // Hovering one opens it out into a pill with the detail behind the ring, and the close button
     // that uncovers puts it away for as long as the thing it was showing lasts - the pill then
     // carries a small mark instead, which brings it back (see NotchIsland and Pill.qml).
-    readonly property alias downloadBubble: downloadBubble
-    readonly property alias timerBubble: timerBubble
-
-    // Whether the pill is carrying a mark for a bubble that has been put away. The pill only takes
-    // the pointer while it is (see modules/drawers/Regions.qml): with nothing to press on it there
-    // is no reason for it to be in the way of whatever is under the top of the screen.
-    readonly property bool hasMarks: (timerShown && NotchIsland.timerTucked) || (downloadsShown && NotchIsland.downloadsTucked)
 
     Bubble {
         id: downloadBubble

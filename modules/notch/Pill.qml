@@ -404,6 +404,18 @@ Item {
         }
     }
 
+    Component {
+        id: lockPill
+
+        LockPill {}
+    }
+
+    Component {
+        id: notifPill
+
+        NotifPill {}
+    }
+
     // A mark for a side bubble that has been put away: an outline glyph rather than a filled one,
     // so it reads as a small note on the pill rather than another button competing with the clock.
     // isToggle leaves the glyph unfilled; optimistic keeps the press from lighting it up, since
@@ -416,17 +428,5 @@ Item {
         padding: Tokens.padding.extraSmall / 2
         font: root.tight ? Tokens.font.icon.small : Tokens.font.icon.medium
         inactiveOnColour: Colours.palette.m3primary
-    }
-
-    Component {
-        id: lockPill
-
-        LockPill {}
-    }
-
-    Component {
-        id: notifPill
-
-        NotifPill {}
     }
 }
