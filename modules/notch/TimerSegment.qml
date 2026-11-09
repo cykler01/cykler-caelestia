@@ -145,7 +145,11 @@ Item {
             }
 
             // Tucks the bubble away, leaving the countdown running with only a mark on the pill to
-            // say so (see Pill.qml)
+            // say so (see Pill.qml).
+            //
+            // Once it has rung there is nothing left to keep: tucking a finished countdown away
+            // would leave a mark on the pill standing for a timer that is over, waiting to be
+            // cleared from somewhere else, so there this clears it outright instead
             IconButton {
                 Layout.alignment: Qt.AlignVCenter
                 Layout.rightMargin: Tokens.spacing.extraSmall
@@ -154,7 +158,12 @@ Item {
                 type: IconButton.Text
                 padding: Tokens.padding.extraSmall / 2
                 font: Tokens.font.icon.small
-                onClicked: root.dismissed()
+                onClicked: {
+                    if (CountdownTimer.finished)
+                        CountdownTimer.dismiss();
+                    else
+                        root.dismissed();
+                }
             }
         }
     }
