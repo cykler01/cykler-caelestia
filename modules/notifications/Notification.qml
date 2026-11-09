@@ -17,7 +17,11 @@ StyledRect {
 
     required property NotifData modelData
     readonly property bool hasImage: modelData.image.length > 0
-    readonly property bool hasAppIcon: modelData.appIcon.length > 0
+    // NOTE(fork): an icon name no theme carries (notify-send callers name them freely) resolves to
+    // nothing and used to draw as Qt's missing-image chequer; treated as no icon at all, it falls
+    // back to the Material icon below like a notification that came without one. A path is taken
+    // as given - it is not a theme name to look up.
+    readonly property bool hasAppIcon: modelData.appIcon.length > 0 && (modelData.appIcon.includes("/") || Quickshell.hasThemeIcon(modelData.appIcon))
     readonly property int bodyTextFormat: /[<*_`#\[\]]/.test(modelData.body) ? Text.MarkdownText : Text.PlainText
     readonly property int nonAnimHeight: summary.implicitHeight + (root.expanded ? Tokens.spacing.extraSmall * 2 + appName.height + body.height + actions.height + actions.anchors.topMargin : bodyPreview.height) + inner.anchors.margins * 2
     property bool expanded: Config.notifs.openExpanded

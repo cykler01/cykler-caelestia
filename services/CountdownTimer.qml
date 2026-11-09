@@ -139,8 +139,11 @@ Singleton {
             SoundEffects.playAlert("timerEnd");
 
             // And a notification, for when the sound is off or nobody is at the machine: it goes through the shell's
-            // own notification server, so it waits in the sidebar after its popup has gone
-            Quickshell.execDetached(["notify-send", "-a", "caelestia-shell", "-i", "alarm", "-u", "normal", Tr.tr("Timer finished"), Tr.tr("%1 timer is up").arg(root.durationDisplay)]);
+            // own notification server, so it waits in the sidebar after its popup has gone.
+            // No icon is named: "alarm" is not an icon any of the usual themes carries, and one that
+            // cannot be found is drawn as a missing image - the shell picks its own icon off the
+            // summary (see utils/Icons.qml) when a notification arrives without one
+            Quickshell.execDetached(["notify-send", "-a", "caelestia-shell", "-u", "normal", Tr.tr("Timer finished"), Tr.tr("%1 timer is up").arg(root.durationDisplay)]);
         }
     }
 }
