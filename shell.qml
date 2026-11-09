@@ -34,6 +34,10 @@ ShellRoot {
         // Force certain singletons to load on shell init instead of lazily
         Notifs;
         NotchIsland;
+        // NOTE(fork): nothing else holds a reference to the alarms until the timer panel is opened,
+        // and a singleton nobody has asked for is never built - which would leave every alarm
+        // waiting on someone to go and look at it before it could ring
+        Alarms;
         Players;
         Brightness;
         Weather.reload();
