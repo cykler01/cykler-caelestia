@@ -6,7 +6,17 @@ ListView {
 
     property bool doneFakeFlick
 
+    // Whether the wheel/trackpad scroller is driving the content right now,
+    // the equivalent of `moving` for a drag or a flick
+    readonly property alias wheelScrolling: scroller.active
+
     maximumFlickVelocity: 3000
+
+    WheelScroller {
+        id: scroller
+
+        flickable: root
+    }
 
     rebound: Transition {
         onRunningChanged: {
