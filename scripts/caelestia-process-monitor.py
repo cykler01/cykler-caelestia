@@ -7,6 +7,8 @@ import re
 import subprocess
 import time
 
+PAGE_SIZE = os.sysconf("SC_PAGE_SIZE")
+
 
 def read_cpu_total():
     with open("/proc/stat", encoding="ascii") as proc_stat:
@@ -87,17 +89,22 @@ def read_process(pid):
         cpu_ticks = int(fields[11]) + int(fields[12])
         start_time = int(fields[19])
 
+        # /proc/<pid>/io is only readable for our own processes, so a process
+        # we can see but cannot account I/O for still belongs in the list
         io = {}
-        with open(f"/proc/{pid}/io", encoding="ascii") as io_file:
-            for line in io_file:
-                key, value = line.split(":", 1)
-                if key in ("read_bytes", "write_bytes"):
-                    io[key] = int(value)
+        try:
+            with open(f"/proc/{pid}/io", encoding="ascii") as io_file:
+                for line in io_file:
+                    key, value = line.split(":", 1)
+                    if key in ("read_bytes", "write_bytes"):
+                        io[key] = int(value)
+        except (OSError, ValueError):
+            pass
 
         with open(f"/proc/{pid}/cmdline", "rb") as cmdline_file:
             args = [part.decode(errors="replace") for part in cmdline_file.read().split(b"\0") if part]
         with open(f"/proc/{pid}/statm", encoding="ascii") as statm_file:
-            rss_bytes = int(statm_file.read().split()[1]) * os.sysconf("SC_PAGE_SIZE")
+            rss_bytes = int(statm_file.read().split()[1]) * PAGE_SIZE
         command = " ".join(args) if args else name
         return {
             "pid": pid,

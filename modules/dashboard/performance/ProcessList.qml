@@ -49,7 +49,7 @@ StyledRect {
     function killSelected(): void {
         if (selectedPid <= 1)
             return;
-        killProc.command = ["/usr/bin/kill", "-TERM", String(selectedPid)];
+        killProc.command = ["kill", "-TERM", String(selectedPid)];
         killProc.running = true;
         selectedPid = -1;
         Qt.callLater(refresh);
