@@ -68,6 +68,15 @@ PageBase {
             onToggled: GlobalConfig.bar.workspaces.showWindows = checked
         }
 
+        ToggleRow {
+            // Nothing to interact with when the icons themselves are off
+            visible: Config.bar.workspaces.showWindows
+            text: Tr.trCtx("Window icon actions", "bar workspaces")
+            subtext: Tr.tr("Hover for a preview, right-click to minimize or close, click to focus")
+            checked: Config.bar.workspaces.windowActions
+            onToggled: GlobalConfig.bar.workspaces.windowActions = checked
+        }
+
         // Off means the bar ignores Hyprland's special workspaces completely: no strip in place
         // of the workspaces, no dimming of them and no toggle on clicking the active one. The
         // shell also closes any special workspace the moment it opens and moves its windows to

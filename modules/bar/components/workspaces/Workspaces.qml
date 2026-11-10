@@ -127,6 +127,7 @@ ClipRect {
                 activeWsId: root.activeWsId
                 ws: Config.bar.workspaces.showUnoccupied ? root.groupOffset + index + 1 : modelData
                 monitor: root.monitor
+                screen: root.screen
 
                 displayType: Config.bar.workspaces.displayType
                 showWindows: Config.bar.workspaces.showWindows
@@ -174,8 +175,18 @@ ClipRect {
 
         MouseArea {
             anchors.fill: workspaces
+            // A press that lands on a window icon belongs to the icon, so the composed click is let
+            // through to it rather than switching to the workspace that icon sits in
+            propagateComposedEvents: true
+
             onClicked: event => {
-                const ws = (workspaces.itemAt(event.x, event.y) as Workspace)?.ws;
+                const item = workspaces.itemAt(event.x, event.y) as Workspace;
+                if (Config.bar.workspaces.windowActions && item?.windowIconHovered) {
+                    mouse.accepted = false;
+                    return;
+                }
+
+                const ws = item?.ws;
                 if (!ws)
                     return;
                 if (Hypr.activeWsId !== ws)
@@ -216,6 +227,7 @@ ClipRect {
                 anchors.fill: parent
                 anchors.margins: Tokens.padding.extraSmall
                 monitor: root.monitor
+                screen: root.screen
 
                 scale: 0.5
                 Component.onCompleted: scale = Qt.binding(() => root.onSpecial ? 1 : 0.5)

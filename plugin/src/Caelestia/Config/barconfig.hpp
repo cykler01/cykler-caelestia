@@ -39,6 +39,10 @@ class BarWorkspaces : public settings::ObjectNode {
     CONFIG_PROPERTY(bool, perMonitor, true)
     CONFIG_PROPERTY(bool, showWindows, true)
     CONFIG_PROPERTY(bool, showWindowsOnSpecialWorkspaces, true)
+    // Opt-in interactions on the window icons the workspaces show: hover for a live preview, right
+    // click for minimise/close, left click to focus the window. Off by default, so the icons stay
+    // decorative unless someone expects clicking one to do something
+    CONFIG_PROPERTY(bool, windowActions, false)
     // NOTE(fork): special workspaces can be switched off entirely, for anyone who doesn't use
     // Hyprland's. Off means the bar renders and behaves as if there were none: no strip in place
     // of the workspaces, no dimming of them, and no toggle on clicking the active one.

@@ -7,7 +7,9 @@ import Quickshell.Hyprland
 import M3Shapes
 import Caelestia.Components
 import Caelestia.Config
+import Caelestia.I18n
 import qs.components
+import qs.components.controls
 import qs.services
 import qs.utils
 
@@ -19,6 +21,7 @@ Item {
     required property int activeWsId
     required property int ws
     required property HyprlandMonitor monitor
+    required property ShellScreen screen
 
     required property int displayType
     required property bool showWindows
@@ -30,6 +33,11 @@ Item {
     readonly property list<HyprlandToplevel> toplevels: Hypr.toplevelsForWs(ws, GlobalConfig.bar.workspaces.ignoredTags)
     readonly property bool isOccupied: toplevels.length > 0
     readonly property bool hasWindows: isOccupied && showWindows && Config.bar.workspaces.maxWindowIcons > 0
+    // Off by default: the window icons stay decorative unless the actions are turned on
+    readonly property bool windowActions: Config.bar.workspaces.windowActions
+    // Set while the pointer is over one of this workspace's window icons. The bar's own click area
+    // checks it so a press there reaches the icon instead of switching to the workspace
+    property bool windowIconHovered
     readonly property bool focused: activeWsId === ws
     readonly property list<int> focusedShapeList: [MaterialShape.Slanted, MaterialShape.Oval, MaterialShape.Pill, MaterialShape.Triangle, MaterialShape.Arrow, MaterialShape.Diamond, MaterialShape.Pentagon, MaterialShape.Gem, MaterialShape.VerySunny, MaterialShape.Sunny, MaterialShape.Cookie4Sided, MaterialShape.Cookie6Sided, MaterialShape.Cookie7Sided, MaterialShape.Cookie9Sided, MaterialShape.Cookie12Sided, MaterialShape.Clover4Leaf, MaterialShape.SoftBurst, MaterialShape.Ghostish]
 
@@ -226,12 +234,84 @@ Item {
                     required property var modelData
                     required property int index // Needed, LazyListView will fail to set it if it doesn't exist
 
+                    readonly property bool hovered: iconMouse.containsMouse
+
+                    function focusWindow(): void {
+                        const address = String(modelData.address || "").replace(/^0x/, "");
+                        if (!address)
+                            return;
+
+                        // A minimised window sits on special:minimized, where it can be neither seen
+                        // nor focused, so bring it back to the active workspace first
+                        if (String(modelData.lastIpcObject.workspace?.name || "") === "special:minimized") {
+                            const activeWorkspaceId = Number(Hypr.focusedMonitor?.lastIpcObject.activeWorkspace?.id ?? 0);
+                            const workspace = Hypr.workspaces.values.find(w => w.id === activeWorkspaceId && w.id > 0)
+                                ?? Hypr.workspaces.values.find(w => w.id > 0 && w.monitor === Hypr.focusedMonitor?.name)
+                                ?? Hypr.workspaces.values.find(w => w.id > 0);
+                            const target = workspace?.id ?? 1;
+                            const window = `address:0x${address}`;
+                            Hypr.dispatch(Hypr.usingLua
+                                ? `hl.dsp.window.move({workspace=${target},follow=true,window="${window}"})`
+                                : `movetoworkspace ${target},${window}`);
+                            Qt.callLater(() => Hypr.focusWindow(address));
+                        } else {
+                            Hypr.focusWindow(address);
+                        }
+                    }
+
+                    function minimizeWindow(): void {
+                        const address = String(modelData.address || "").replace(/^0x/, "");
+                        if (!address)
+                            return;
+                        const target = `address:0x${address}`;
+                        Hypr.dispatch(Hypr.usingLua
+                            ? `hl.dsp.window.move({workspace="special:minimized",follow=false,window="${target}"})`
+                            : `movetoworkspacesilent special:minimized,${target}`);
+                    }
+
+                    function closeWindow(): void {
+                        const address = String(modelData.address || "").replace(/^0x/, "");
+                        if (!address)
+                            return;
+                        const target = `address:0x${address}`;
+                        Hypr.dispatch(Hypr.usingLua
+                            ? `hl.dsp.window.close({window="${target}"})`
+                            : `closewindow ${target}`);
+                    }
+
+                    function showWindowPreview(): void {
+                        const components = ShellState.componentsFor(root.screen);
+                        const popouts = components?.panels?.popouts;
+                        const bar = components?.bar;
+                        if (!popouts || !bar)
+                            return;
+
+                        const center = mapToItem(bar, width / 2, height / 2);
+                        popouts.windowPreviewClient = modelData;
+                        popouts.windowPreviewTrigger = win;
+                        popouts.currentName = "windowpreview";
+                        popouts.currentCenter = bar.vertical ? center.y : center.x;
+                        popouts.hasCurrent = true;
+                    }
+
+                    function hideWindowPreview(): void {
+                        const popouts = ShellState.componentsFor(root.screen)?.panels?.popouts;
+                        if (popouts?.currentName === "windowpreview")
+                            popouts.hasCurrent = false;
+                    }
+
                     grade: 0
                     horizontalAlignment: Text.AlignHCenter
                     text: Icons.getAppCategoryIcon(modelData.lastIpcObject.class, "terminal")
-                    color: root.onOtherMonitor ? root.offMonitorColour : Colours.palette.m3onSurfaceVariant
+                    color: win.hovered ? Colours.palette.m3primary : root.onOtherMonitor ? root.offMonitorColour : Colours.palette.m3onSurfaceVariant
 
                     opacity: LazyListView.adding || LazyListView.removing ? 0 : 1
+
+                    onHoveredChanged: root.windowIconHovered = hovered
+
+                    Behavior on color {
+                        CAnim {}
+                    }
 
                     Behavior on opacity {
                         Anim {
@@ -241,6 +321,55 @@ Item {
 
                     Behavior on y {
                         Anim {}
+                    }
+
+                    MouseArea {
+                        id: iconMouse
+
+                        anchors.fill: parent
+                        enabled: root.windowActions
+                        acceptedButtons: Qt.LeftButton | Qt.RightButton
+                        hoverEnabled: true
+                        cursorShape: Qt.PointingHandCursor
+
+                        onEntered: win.showWindowPreview()
+
+                        onClicked: event => {
+                            if (event.button === Qt.RightButton) {
+                                win.hideWindowPreview();
+                                contextMenu.expanded = true;
+                            } else {
+                                win.focusWindow();
+                            }
+                        }
+
+                        Menu {
+                            id: contextMenu
+
+                            attachTo: win
+                            compact: true
+                            attachSideX: ShellState.componentsFor(root.screen)?.bar?.onRight ? Menu.Left : Menu.Right
+                            thisSideX: ShellState.componentsFor(root.screen)?.bar?.onRight ? Menu.Right : Menu.Left
+                            attachSideY: Menu.Bottom
+                            thisSideY: Menu.Top
+                            items: [minimizeItem, closeItem]
+
+                            MenuItem {
+                                id: minimizeItem
+
+                                text: Tr.tr("Minimize")
+                                icon: "minimize"
+                                onClicked: win.minimizeWindow()
+                            }
+
+                            MenuItem {
+                                id: closeItem
+
+                                text: Tr.tr("Close")
+                                icon: "close"
+                                onClicked: win.closeWindow()
+                            }
+                        }
                     }
                 }
             }

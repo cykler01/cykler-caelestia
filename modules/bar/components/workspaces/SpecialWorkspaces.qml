@@ -14,6 +14,7 @@ Item {
     id: root
 
     required property HyprlandMonitor monitor
+    required property ShellScreen screen
 
     readonly property int activeSpecialId: monitor?.lastIpcObject.specialWorkspace?.id ?? 0
     readonly property var wsIds: {
@@ -165,6 +166,7 @@ Item {
             activeWsId: root.activeSpecialId
             ws: modelData
             monitor: root.monitor
+            screen: root.screen
             offMonitorColour: Colours.palette.m3outline
             displayType: Config.bar.workspaces.specialDisplayType
             showWindows: Config.bar.workspaces.showWindowsOnSpecialWorkspaces
@@ -202,6 +204,9 @@ Item {
         property bool dragging
 
         anchors.fill: parent
+        // A press that lands on a window icon belongs to the icon, so the composed click is let
+        // through to it rather than toggling the special workspace
+        propagateComposedEvents: true
 
         onPressed: event => {
             startY = event.y;
@@ -222,6 +227,11 @@ Item {
                 return;
 
             const ws = view.itemAt(event.x, event.y - view.y) as Workspace;
+            if (Config.bar.workspaces.windowActions && ws?.windowIconHovered) {
+                mouse.accepted = false;
+                return;
+            }
+
             if (ws) {
                 const match = Hypr.workspaces.values.find(w => w.id === ws.ws);
                 if (match)
