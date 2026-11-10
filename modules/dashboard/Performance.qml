@@ -18,6 +18,8 @@ Item {
     property bool processesExpanded
 
     readonly property real processListHeight: Math.max(96, Math.min(240, screen.height - content.implicitHeight - 260))
+    // Space the card keeps clear at its top for the control above it
+    readonly property real cardInset: processesButton.implicitHeight + Tokens.spacing.small
 
     implicitWidth: placeholder.active ? Tokens.sizes.dashboard.perfPlaceholderWidth : Math.max(content.implicitWidth, processesExpanded ? processList.implicitWidth : 0)
     implicitHeight: (placeholder.active ? placeholder.implicitHeight + Tokens.padding.extraLarge * 2 : content.implicitHeight) + (processesExpanded ? Tokens.spacing.small + processList.implicitHeight : 0)
@@ -104,7 +106,9 @@ Item {
                 id: graphCard
 
                 active: Config.dashboard.performance.showCpu || (Config.dashboard.performance.showGpu && Gpu.type !== GpuType.None) || Config.dashboard.performance.showMemory || Config.dashboard.performance.showNetwork || Config.dashboard.performance.showStorage
-                sourceComponent: ResourceGraph {}
+                sourceComponent: ResourceGraph {
+                    topInset: root.cardInset
+                }
             }
 
             WrappedLoader {
