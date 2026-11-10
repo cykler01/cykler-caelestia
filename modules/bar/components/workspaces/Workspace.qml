@@ -370,6 +370,14 @@ Item {
                                 onClicked: win.closeWindow()
                             }
                         }
+
+                        // Clicks on the bar land on the menu's own overlay, but the bar only takes input
+                        // over itself, so a click anywhere else would otherwise leave the menu open
+                        HyprlandFocusGrab {
+                            active: contextMenu.expanded
+                            windows: [QsWindow.window]
+                            onCleared: contextMenu.expanded = false
+                        }
                     }
                 }
             }
