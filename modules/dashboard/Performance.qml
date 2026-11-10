@@ -18,20 +18,18 @@ Item {
     property bool processesExpanded
 
     readonly property real processListHeight: Math.max(96, Math.min(240, screen.height - content.implicitHeight - 260))
-    // The control sits in the top corner, so it and the gap under it are counted in the height
-    readonly property real actionsHeight: processesButton.implicitHeight
-    readonly property real actionsGap: Tokens.spacing.small
 
     implicitWidth: placeholder.active ? Tokens.sizes.dashboard.perfPlaceholderWidth : Math.max(content.implicitWidth, processesExpanded ? processList.implicitWidth : 0)
-    implicitHeight: actionsHeight + actionsGap + (placeholder.active ? placeholder.implicitHeight + Tokens.padding.extraLarge * 2 : content.implicitHeight) + (processesExpanded ? actionsGap + processList.implicitHeight : 0)
+    implicitHeight: (placeholder.active ? placeholder.implicitHeight + Tokens.padding.extraLarge * 2 : content.implicitHeight) + (processesExpanded ? Tokens.spacing.small + processList.implicitHeight : 0)
 
-    // A small control in the corner, like the media tab's equalizer button, rather than a row taken
-    // out of the middle of the tab
+    // A small control inside the card's top left corner, like the media tab's equalizer button, so
+    // opening the list neither takes a row out of the tab nor moves the graphs down
     IconButton {
         id: processesButton
 
-        anchors.left: parent.left
-        anchors.top: parent.top
+        x: content.x + Tokens.padding.medium
+        y: content.y + Tokens.padding.medium
+        z: 10
         icon: "list_alt"
         type: root.processesExpanded ? IconButton.Filled : IconButton.Tonal
         isToggle: true
@@ -43,8 +41,6 @@ Item {
         id: placeholder
 
         anchors.centerIn: parent
-        // The button takes the top corner, so the placeholder is centred in what is left below it
-        anchors.verticalCenterOffset: (root.actionsHeight + root.actionsGap) / 2
         active: !Config.dashboard.performance.showCpu && !(Config.dashboard.performance.showGpu && Gpu.type !== GpuType.None) && !Config.dashboard.performance.showMemory && !Config.dashboard.performance.showStorage && !Config.dashboard.performance.showNetwork && !(UPower.displayDevice.isLaptopBattery && Config.dashboard.performance.showBattery)
         asynchronous: true
 
@@ -80,8 +76,6 @@ Item {
 
         anchors.left: parent.left
         anchors.right: parent.right
-        anchors.top: processesButton.bottom
-        anchors.topMargin: root.actionsGap
         visible: !placeholder.active
         // ResourceHistory is off when the graph view is disabled or paused by Power Saver
         sourceComponent: ResourceHistory.enabled ? graphLayout : classicLayout
@@ -90,9 +84,9 @@ Item {
     ProcessList {
         id: processList
 
-        // Under the graphs, or under the button while the placeholder is up
-        anchors.top: placeholder.active ? processesButton.bottom : content.bottom
-        anchors.topMargin: root.actionsGap
+        // Under the card, or under the placeholder while that is what is showing
+        anchors.top: placeholder.active ? placeholder.bottom : content.bottom
+        anchors.topMargin: Tokens.spacing.small
         width: root.implicitWidth
         height: root.processesExpanded ? implicitHeight : 0
         visible: root.processesExpanded
