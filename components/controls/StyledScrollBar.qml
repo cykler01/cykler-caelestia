@@ -14,11 +14,22 @@ ScrollBar {
     property bool _updatingFromFlickable: false
     property bool _updatingFromUser: false
 
+    // Wheel and trackpad scrolling is driven by the flickable's WheelScroller
+    // rather than by Flickable itself, so `moving` stays false for it
+    readonly property bool scrolling: flickable && (flickable.moving || flickable.wheelScrolling === true)
+
+    onScrollingChanged: {
+        if (scrolling)
+            shouldBeActive = true;
+        else
+            hideDelay.restart();
+    }
+
     onHoveredChanged: {
         if (hovered)
             shouldBeActive = true;
         else
-            shouldBeActive = flickable.moving;
+            shouldBeActive = scrolling;
     }
 
     // Sync nonAnimPosition with Qt's automatic position binding
@@ -99,22 +110,11 @@ ScrollBar {
         target: root.flickable
     }
 
-    Connections {
-        function onMovingChanged(): void {
-            if (root.flickable.moving)
-                root.shouldBeActive = true;
-            else
-                hideDelay.restart();
-        }
-
-        target: root.flickable
-    }
-
     Timer {
         id: hideDelay
 
         interval: 600
-        onTriggered: root.shouldBeActive = root.flickable.moving || root.hovered
+        onTriggered: root.shouldBeActive = root.scrolling || root.hovered
     }
 
     CustomMouseArea {
