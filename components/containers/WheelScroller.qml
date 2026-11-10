@@ -42,6 +42,20 @@ MouseArea {
     readonly property bool canScrollX: maxX > minX && flickable.flickableDirection !== Flickable.VerticalFlick
     readonly property bool canScrollY: maxY > minY && flickable.flickableDirection !== Flickable.HorizontalFlick
 
+    // Whether anything further out could still use a wheel event we can't act
+    // on. If nothing can, we swallow it rather than letting Flickable take it
+    // and bounce content that already fits.
+    function hasScrollableAncestor(): bool {
+        let item = flickable.parent;
+        while (item) {
+            const f = item as Flickable;
+            if (f && f.interactive && (f.contentHeight > f.height || f.contentWidth > f.width))
+                return true;
+            item = item.parent;
+        }
+        return false;
+    }
+
     // Every pixel past the end counts for less than the one before it, so the
     // content eases to a stop rather than running off
     function band(value: real, min: real, max: real): real {
@@ -83,9 +97,10 @@ MouseArea {
                 idle.stop();
                 event.accepted = root.active;
             } else {
-                // A direction we can't move in, so leave it for whatever is
-                // behind us to scroll
-                event.accepted = false;
+                // A direction we can't move in. Hand it on only if something
+                // further out can use it, otherwise swallow it so Flickable
+                // doesn't bounce content that already fits.
+                event.accepted = !root.hasScrollableAncestor();
             }
             return;
         }
