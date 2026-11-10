@@ -37,6 +37,13 @@ Item {
         }
 
         Popout {
+            name: "windowpreview"
+            sourceComponent: WindowPreview {
+                client: root.popouts.windowPreviewClient
+            }
+        }
+
+        Popout {
             id: networkPopout
 
             name: "network"

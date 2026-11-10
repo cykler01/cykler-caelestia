@@ -1,18 +1,43 @@
 import QtQuick
 import QtQuick.Layouts
+import Quickshell
 import Quickshell.Services.UPower
 import Caelestia.Config
 import Caelestia.I18n
 import Caelestia.Services
 import qs.components
+import qs.components.controls
 import qs.services
 import qs.modules.dashboard.performance
 
 Item {
     id: root
 
-    implicitWidth: placeholder.active ? Tokens.sizes.dashboard.perfPlaceholderWidth : content.implicitWidth
-    implicitHeight: placeholder.active ? placeholder.implicitHeight + Tokens.padding.extraLarge * 2 : content.implicitHeight
+    required property ShellScreen screen
+
+    property bool processesExpanded
+
+    readonly property real processListHeight: Math.max(96, Math.min(240, screen.height - content.implicitHeight - 260))
+    // Space the card keeps clear at its top for the control above it
+    readonly property real cardInset: processesButton.implicitHeight + Tokens.spacing.small
+
+    implicitWidth: placeholder.active ? Tokens.sizes.dashboard.perfPlaceholderWidth : Math.max(content.implicitWidth, processesExpanded ? processList.implicitWidth : 0)
+    implicitHeight: (placeholder.active ? placeholder.implicitHeight + Tokens.padding.extraLarge * 2 : content.implicitHeight) + (processesExpanded ? Tokens.spacing.small + processList.implicitHeight : 0)
+
+    // A small control inside the card's top left corner, like the media tab's equalizer button, so
+    // opening the list neither takes a row out of the tab nor moves the graphs down
+    IconButton {
+        id: processesButton
+
+        x: content.x + Tokens.padding.medium
+        y: content.y + Tokens.padding.medium
+        z: 10
+        icon: "list_alt"
+        type: root.processesExpanded ? IconButton.Filled : IconButton.Tonal
+        isToggle: true
+        checked: root.processesExpanded
+        onClicked: root.processesExpanded = !root.processesExpanded
+    }
 
     Loader {
         id: placeholder
@@ -58,6 +83,18 @@ Item {
         sourceComponent: ResourceHistory.enabled ? graphLayout : classicLayout
     }
 
+    ProcessList {
+        id: processList
+
+        // Under the card, or under the placeholder while that is what is showing
+        anchors.top: placeholder.active ? placeholder.bottom : content.bottom
+        anchors.topMargin: Tokens.spacing.small
+        width: root.implicitWidth
+        height: root.processesExpanded ? implicitHeight : 0
+        visible: root.processesExpanded
+        maxListHeight: root.processListHeight
+    }
+
     // CPU, GPU, memory, network and storage combined into one graph card
     Component {
         id: graphLayout
@@ -69,7 +106,9 @@ Item {
                 id: graphCard
 
                 active: Config.dashboard.performance.showCpu || (Config.dashboard.performance.showGpu && Gpu.type !== GpuType.None) || Config.dashboard.performance.showMemory || Config.dashboard.performance.showNetwork || Config.dashboard.performance.showStorage
-                sourceComponent: ResourceGraph {}
+                sourceComponent: ResourceGraph {
+                    topInset: root.cardInset
+                }
             }
 
             WrappedLoader {

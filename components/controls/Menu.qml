@@ -42,12 +42,16 @@ MouseArea {
     }
     readonly property real spaceAbove: itemTopY
     readonly property real spaceBelow: (parent?.height ?? 0) - itemBottomY
-    readonly property bool effectiveAbove: preferAbove ? (spaceAbove >= menu.implicitHeight || spaceBelow < menu.implicitHeight) : !(spaceBelow >= menu.implicitHeight || spaceAbove < menu.implicitHeight)
+    readonly property bool effectiveAbove: preferAbove ? (spaceAbove >= menu.height || spaceBelow < menu.height) : !(spaceBelow >= menu.height || spaceAbove < menu.height)
     readonly property real effectiveMarginY: effectiveAbove === preferAbove ? marginY : -marginY
 
     property list<MenuItem> items
     property MenuItem active: items[0] ?? null
     property bool expanded
+    // Tighter rows and no minimum width, for menus that hang off something small such as a bar icon
+    property bool compact
+    // Breathing room kept between the menu and the edge of the area it opens in
+    readonly property real screenMargin: Tokens.padding.small
 
     signal itemSelected(item: MenuItem)
 
@@ -88,7 +92,8 @@ MouseArea {
             let off = root.attachSideX === Menu.Left ? 0 : item.width;
             if (root.thisSideX === Menu.Right)
                 off -= width;
-            return item.mapToItem(root.parent, off, 0).x + root.marginX;
+            const preferred = item.mapToItem(root.parent, off, 0).x + root.marginX;
+            return Math.max(root.screenMargin, Math.min(root.parent.width - width - root.screenMargin, preferred));
         }
         y: {
             CUtils.dependency(watcher.transform); // mapToItem is not reactive so this forces updates
@@ -96,12 +101,13 @@ MouseArea {
             let off = root.effectiveAbove ? 0 : item.height;
             if (root.effectiveAbove)
                 off -= height;
-            return item.mapToItem(root.parent, 0, off).y + root.effectiveMarginY;
+            const preferred = item.mapToItem(root.parent, 0, off).y + root.effectiveMarginY;
+            return Math.max(root.screenMargin, Math.min(root.parent.height - height - root.screenMargin, preferred));
         }
 
-        width: implicitWidth
-        height: implicitHeight
-        implicitWidth: Math.max(200, column.implicitWidth + column.anchors.margins * 2)
+        width: Math.min(implicitWidth, root.parent.width - root.screenMargin * 2)
+        height: Math.min(implicitHeight, root.parent.height - root.screenMargin * 2)
+        implicitWidth: Math.max(root.compact ? 0 : 200, column.implicitWidth + column.anchors.margins * 2)
         implicitHeight: column.implicitHeight + column.anchors.margins * 2
 
         transform: Scale {
@@ -150,10 +156,11 @@ MouseArea {
                         required property int index
                         required property MenuItem modelData
                         readonly property bool active: modelData === root?.active
+                        readonly property int itemPadding: root.compact ? Tokens.padding.small : Tokens.padding.medium
 
                         Layout.fillWidth: true
-                        implicitWidth: menuOptionRow.implicitWidth + Tokens.padding.medium * 2
-                        implicitHeight: menuOptionRow.implicitHeight + Tokens.padding.medium * 2
+                        implicitWidth: menuOptionRow.implicitWidth + itemPadding * 2
+                        implicitHeight: menuOptionRow.implicitHeight + itemPadding * 2
 
                         radius: active ? Tokens.rounding.medium : Tokens.rounding.extraSmall
                         topLeftRadius: index === 0 ? Tokens.rounding.medium : radius
@@ -187,7 +194,7 @@ MouseArea {
                             id: menuOptionRow
 
                             anchors.fill: parent
-                            anchors.margins: Tokens.padding.medium
+                            anchors.margins: item.itemPadding
                             spacing: Tokens.spacing.small
 
                             MaterialIcon {

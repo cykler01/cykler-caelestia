@@ -30,6 +30,9 @@ StyledRect {
     readonly property int viewSamples: Math.max(2, Math.min(ResourceHistory.capacity, Math.round(zoomSteps[zoomIndex] * 1000 / ResourceHistory.interval)))
 
     property var hidden: ({})
+    // Room at the top of the card for whatever the dashboard puts in its corner, so the legend rows
+    // and the graph start below that control instead of under it
+    property real topInset: 0
 
     // Line and bar colours for each resource; every preset follows the current colour scheme
     readonly property var colours: {
@@ -111,7 +114,7 @@ StyledRect {
     radius: Tokens.rounding.extraLarge
 
     implicitWidth: Tokens.sizes.dashboard.perfHeroCardWidth * 2 + Tokens.spacing.medium
-    implicitHeight: Tokens.sizes.dashboard.perfNetworkCardHeight + Tokens.sizes.dashboard.perfBattHeight / 2
+    implicitHeight: Tokens.sizes.dashboard.perfNetworkCardHeight + Tokens.sizes.dashboard.perfBattHeight / 2 + root.topInset
 
     onViewSamplesChanged: {
         updateNetMax();
@@ -138,6 +141,7 @@ StyledRect {
     RowLayout {
         anchors.fill: parent
         anchors.margins: Tokens.padding.large
+        anchors.topMargin: Tokens.padding.large + root.topInset
         spacing: Tokens.spacing.large
 
         // Legend with live values

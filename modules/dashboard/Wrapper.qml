@@ -12,6 +12,7 @@ import qs.utils
 Item {
     id: root
 
+    required property ShellScreen screen
     required property ScreenState screenState
     readonly property FileDialog facePicker: FileDialog {
         title: Tr.tr("Select a profile picture")
@@ -56,6 +57,7 @@ Item {
         active: root.shouldBeActive || root.visible
 
         sourceComponent: Content {
+            screen: root.screen
             screenState: root.screenState
             facePicker: root.facePicker
         }
