@@ -1,6 +1,7 @@
 #pragma once
 
 #include <qstring.h>
+#include <qstringlist.h>
 #include <qvariantlist.h>
 #include <qvariantmap.h>
 
@@ -34,11 +35,29 @@ class UtilitiesToasts : public settings::ObjectNode {
     CONFIG_GLOBAL_PROPERTY(bool, repoUpdateAvailable, false)
 };
 
+// NOTE(fork): one configured VPN. A list node rather than a bare QVariantList, since the add,
+// edit and delete paths in services/VPN.qml reach for insert(), at(), remove() and resetOption()
+// on the list and its entries, none of which a plain variant list has
+class UtilitiesVpnProvider : public settings::ObjectNode {
+    CONFIG_NODE(UtilitiesVpnProvider, settings::ObjectNode)
+
+    // Stable internal id, so a selection survives the provider being renamed
+    CONFIG_PROPERTY(QString, id, {})
+    CONFIG_PROPERTY(QString, name, {})
+    CONFIG_PROPERTY(QString, displayName, {})
+    // Watched to tell whether the tunnel is actually up
+    CONFIG_PROPERTY(QString, interface, {})
+    // Left empty for the built-in names, which fill in their own
+    CONFIG_PROPERTY(QStringList, connectCmd, {})
+    CONFIG_PROPERTY(QStringList, disconnectCmd, {})
+};
+CONFIG_LIST_TYPE(UtilitiesVpnProvider, UtilitiesVpnProviderList)
+
 class UtilitiesVpn : public settings::ObjectNode {
     CONFIG_NODE(UtilitiesVpn, settings::ObjectNode)
 
     CONFIG_GLOBAL_PROPERTY(bool, enabled, false)
-    CONFIG_GLOBAL_PROPERTY(QVariantList, provider, {})
+    CONFIG_LIST(UtilitiesVpnProviderList, provider, DEFAULT_ARG({}))
     CONFIG_GLOBAL_PROPERTY(QString, selectedProvider, QString())
 };
 
