@@ -18,14 +18,33 @@ Item {
     property bool processesExpanded
 
     readonly property real processListHeight: Math.max(96, Math.min(240, screen.height - content.implicitHeight - 260))
+    // The control sits in the top corner, so it and the gap under it are counted in the height
+    readonly property real actionsHeight: processesButton.implicitHeight
+    readonly property real actionsGap: Tokens.spacing.small
 
     implicitWidth: placeholder.active ? Tokens.sizes.dashboard.perfPlaceholderWidth : Math.max(content.implicitWidth, processesExpanded ? processList.implicitWidth : 0)
-    implicitHeight: placeholder.active ? placeholder.implicitHeight + Tokens.padding.extraLarge * 2 : content.implicitHeight + processToggle.implicitHeight + (processesExpanded ? Tokens.spacing.small + processList.implicitHeight : 0)
+    implicitHeight: actionsHeight + actionsGap + (placeholder.active ? placeholder.implicitHeight + Tokens.padding.extraLarge * 2 : content.implicitHeight) + (processesExpanded ? actionsGap + processList.implicitHeight : 0)
+
+    // A small control in the corner, like the media tab's equalizer button, rather than a row taken
+    // out of the middle of the tab
+    IconButton {
+        id: processesButton
+
+        anchors.left: parent.left
+        anchors.top: parent.top
+        icon: "list_alt"
+        type: root.processesExpanded ? IconButton.Filled : IconButton.Tonal
+        isToggle: true
+        checked: root.processesExpanded
+        onClicked: root.processesExpanded = !root.processesExpanded
+    }
 
     Loader {
         id: placeholder
 
         anchors.centerIn: parent
+        // The button takes the top corner, so the placeholder is centred in what is left below it
+        anchors.verticalCenterOffset: (root.actionsHeight + root.actionsGap) / 2
         active: !Config.dashboard.performance.showCpu && !(Config.dashboard.performance.showGpu && Gpu.type !== GpuType.None) && !Config.dashboard.performance.showMemory && !Config.dashboard.performance.showStorage && !Config.dashboard.performance.showNetwork && !(UPower.displayDevice.isLaptopBattery && Config.dashboard.performance.showBattery)
         asynchronous: true
 
@@ -61,60 +80,19 @@ Item {
 
         anchors.left: parent.left
         anchors.right: parent.right
+        anchors.top: processesButton.bottom
+        anchors.topMargin: root.actionsGap
         visible: !placeholder.active
         // ResourceHistory is off when the graph view is disabled or paused by Power Saver
         sourceComponent: ResourceHistory.enabled ? graphLayout : classicLayout
     }
 
-    ButtonBase {
-        id: processToggle
-
-        anchors.top: content.bottom
-        anchors.topMargin: Tokens.spacing.small
-        implicitWidth: root.implicitWidth
-        width: root.implicitWidth
-        implicitHeight: 42
-        type: ButtonBase.Text
-        inactiveColour: "transparent"
-        activeColour: "transparent"
-        inactiveOnColour: Colours.palette.m3onSurfaceVariant
-        activeOnColour: Colours.palette.m3onSurfaceVariant
-        onClicked: root.processesExpanded = !root.processesExpanded
-
-        RowLayout {
-            anchors.fill: parent
-            anchors.leftMargin: Tokens.padding.large
-            anchors.rightMargin: Tokens.padding.large
-            spacing: Tokens.spacing.small
-
-            StyledText {
-                Layout.fillWidth: true
-                text: Tr.tr("Processes")
-                font: Tokens.font.title.small
-                color: Colours.palette.m3onSurface
-            }
-
-            MaterialIcon {
-                text: root.processesExpanded ? "keyboard_arrow_up" : "keyboard_arrow_down"
-                fontStyle: Tokens.font.icon.small
-                color: Colours.palette.m3onSurfaceVariant
-            }
-        }
-
-        StyledRect {
-            anchors.left: parent.left
-            anchors.right: parent.right
-            anchors.bottom: parent.bottom
-            implicitHeight: 1
-            color: Colours.palette.m3outlineVariant
-        }
-    }
-
     ProcessList {
         id: processList
 
-        anchors.top: processToggle.bottom
-        anchors.topMargin: Tokens.spacing.small
+        // Under the graphs, or under the button while the placeholder is up
+        anchors.top: placeholder.active ? processesButton.bottom : content.bottom
+        anchors.topMargin: root.actionsGap
         width: root.implicitWidth
         height: root.processesExpanded ? implicitHeight : 0
         visible: root.processesExpanded
