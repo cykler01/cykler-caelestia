@@ -26,11 +26,6 @@ MouseArea {
     property real smoothing: 0.07
     // How long after the last event the rubber band is let go
     property int settleDelay: 120
-    // Spring that carries the content home off either end. Stiffness sets how
-    // quickly it snaps, damping how much it bounces: below 2*sqrt(stiffness)
-    // (40 here) it overshoots, and the further below, the more times it does.
-    property real stiffness: 400
-    property real damping: 12
 
     // True while the driver is running, for anything that wants to show itself
     // during a scroll (scrollbars) the way Flickable.moving would
@@ -38,11 +33,6 @@ MouseArea {
 
     property real targetX
     property real targetY
-
-    // Spring state, live only while the content is on its way back from an end
-    property bool bouncing
-    property real velocityX
-    property real velocityY
 
     readonly property real minX: flickable.originX - flickable.leftMargin
     readonly property real maxX: Math.max(minX, flickable.originX + flickable.contentWidth + flickable.rightMargin - flickable.width)
@@ -118,11 +108,8 @@ MouseArea {
         event.accepted = true;
         root.flickable.cancelFlick();
 
-        if (!root.active || root.bouncing) {
+        if (!root.active) {
             root.active = true;
-            root.bouncing = false;
-            root.velocityX = 0;
-            root.velocityY = 0;
             root.targetX = root.flickable.contentX;
             root.targetY = root.flickable.contentY;
         }
@@ -140,9 +127,6 @@ MouseArea {
         function onDraggingChanged(): void {
             if (root.flickable.dragging) {
                 root.active = false;
-                root.bouncing = false;
-                root.velocityX = 0;
-                root.velocityY = 0;
                 idle.stop();
             }
         }
@@ -161,64 +145,33 @@ MouseArea {
 
         onTriggered: {
             const flickable = root.flickable;
-            // A dropped frame shouldn't be integrated in one go, or the spring
-            // gains energy instead of losing it
-            const dt = Math.min(frameTime, 1 / 30);
 
-            // Nothing more coming, so let the rubber band go. If it was holding
-            // the content past an end, the spring takes it from here.
+            // Nothing more coming, so pull the rubber band back in
             if (!idle.running) {
-                const boundedX = Math.max(root.minX, Math.min(root.maxX, root.targetX));
-                const boundedY = Math.max(root.minY, Math.min(root.maxY, root.targetY));
-                if (boundedX !== root.targetX || boundedY !== root.targetY)
-                    root.bouncing = true;
-                root.targetX = boundedX;
-                root.targetY = boundedY;
+                root.targetX = Math.max(root.minX, Math.min(root.maxX, root.targetX));
+                root.targetY = Math.max(root.minY, Math.min(root.maxY, root.targetY));
             }
 
             const dx = root.canScrollX ? root.targetX - flickable.contentX : 0;
             const dy = root.canScrollY ? root.targetY - flickable.contentY : 0;
 
-            const settled = Math.abs(dx) < 0.5 && Math.abs(dy) < 0.5 && (!root.bouncing || (Math.abs(root.velocityX) < 8 && Math.abs(root.velocityY) < 8));
-            if (settled) {
+            if (Math.abs(dx) < 0.5 && Math.abs(dy) < 0.5) {
                 if (root.canScrollX)
                     flickable.contentX = root.targetX;
                 if (root.canScrollY)
                     flickable.contentY = root.targetY;
-                root.velocityX = 0;
-                root.velocityY = 0;
-                if (!idle.running) {
-                    root.bouncing = false;
+                if (!idle.running)
                     root.active = false;
-                }
-                return;
-            }
-
-            if (root.bouncing) {
-                // Underdamped spring, so coming off an end carries past the
-                // stop and swings back rather than just gliding to a halt
-                root.velocityX += (root.stiffness * dx - root.damping * root.velocityX) * dt;
-                root.velocityY += (root.stiffness * dy - root.damping * root.velocityY) * dt;
-                if (root.canScrollX)
-                    flickable.contentX += root.velocityX * dt;
-                if (root.canScrollY)
-                    flickable.contentY += root.velocityY * dt;
                 return;
             }
 
             // Exponential easing off the frame time rather than a fixed step, so
             // the same gesture covers the same ground at 60Hz and at 240Hz
-            const t = 1 - Math.exp(-dt / root.smoothing);
-            const stepX = dx * t;
-            const stepY = dy * t;
-            // Kept so a bounce starting next frame inherits the motion already
-            // under way instead of setting off from a standstill
-            root.velocityX = stepX / dt;
-            root.velocityY = stepY / dt;
+            const t = 1 - Math.exp(-frameTime / root.smoothing);
             if (root.canScrollX)
-                flickable.contentX += stepX;
+                flickable.contentX += dx * t;
             if (root.canScrollY)
-                flickable.contentY += stepY;
+                flickable.contentY += dy * t;
         }
     }
 }
