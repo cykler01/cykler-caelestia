@@ -16,12 +16,18 @@ PageBase {
 
     readonly property var widgetsConfig: GlobalConfig.background.desktopWidgets
 
-    // 0 day, 1 week, 2 date, 3 interval, matching Milestones.modes
-    property int milestoneMode: 2
+    // 0 day, 1 week, 2 daily, 3 weekly, 4 date, 5 yearly, 6 interval, matching Milestones.modes
+    property int milestoneMode: 4
     property string milestoneLabel: ""
     property string milestoneStart: ""
     property string milestoneEnd: ""
     property string milestoneError: ""
+
+    readonly property bool dailyMode: root.milestoneMode === 2
+    readonly property bool weeklyMode: root.milestoneMode === 3
+    readonly property bool dateMode: root.milestoneMode === 4
+    readonly property bool yearlyMode: root.milestoneMode === 5
+    readonly property bool intervalMode: root.milestoneMode === 6
 
     readonly property list<MenuItem> milestoneModes: [
         MenuItem {
@@ -31,7 +37,16 @@ PageBase {
             text: Tr.tr("End of week")
         },
         MenuItem {
+            text: Tr.tr("Daily time")
+        },
+        MenuItem {
+            text: Tr.tr("Weekly time")
+        },
+        MenuItem {
             text: Tr.tr("Specific date")
+        },
+        MenuItem {
+            text: Tr.tr("Yearly date")
         },
         MenuItem {
             text: Tr.tr("Custom interval")
@@ -40,14 +55,32 @@ PageBase {
 
     function addMilestone(): void {
         root.milestoneError = "";
-        const mode = ["day", "week", "date", "interval"][root.milestoneMode] ?? "date";
+        const mode = Milestones.modes[root.milestoneMode] ?? "date";
 
         if (root.widgetsConfig.progressEntries.values.length >= Milestones.maxItems) {
             root.milestoneError = Tr.tr("You can show up to %1 milestones").arg(Milestones.maxItems);
             return;
         }
 
-        if (mode === "date") {
+        if (mode === "daily") {
+            if (root.milestoneEnd.trim() === "") {
+                root.milestoneError = Tr.tr("Give the daily time");
+                return;
+            }
+            if (!Milestones.validDaily(root.milestoneEnd)) {
+                root.milestoneError = Tr.tr("Use HH:mm");
+                return;
+            }
+        } else if (mode === "weekly") {
+            if (root.milestoneEnd.trim() === "") {
+                root.milestoneError = Tr.tr("Give the weekday");
+                return;
+            }
+            if (!Milestones.validWeekly(root.milestoneEnd)) {
+                root.milestoneError = Tr.tr("Use a weekday such as Fri, optionally with HH:mm");
+                return;
+            }
+        } else if (mode === "date") {
             if (root.milestoneEnd.trim() === "") {
                 root.milestoneError = Tr.tr("Give this milestone a date");
                 return;
@@ -58,6 +91,15 @@ PageBase {
             }
             if (root.milestoneStart.trim() !== "" && (!Milestones.validDate(root.milestoneStart, false) || Milestones.parseTime(root.milestoneStart, false) >= Milestones.parseTime(root.milestoneEnd, true))) {
                 root.milestoneError = Tr.tr("The end must be after the start");
+                return;
+            }
+        } else if (mode === "yearly") {
+            if (root.milestoneEnd.trim() === "") {
+                root.milestoneError = Tr.tr("Give this milestone a date");
+                return;
+            }
+            if (!Milestones.validAnnual(root.milestoneEnd)) {
+                root.milestoneError = Tr.tr("Use MM-DD or MM-DD HH:mm");
                 return;
             }
         } else if (mode === "interval") {
@@ -74,7 +116,7 @@ PageBase {
         GlobalConfig.background.desktopWidgets.progressEntries.insert({
             label: root.milestoneLabel.trim(),
             mode: mode,
-            start: mode === "day" || mode === "week" ? "" : root.milestoneStart.trim(),
+            start: mode === "date" || mode === "interval" ? root.milestoneStart.trim() : "",
             end: mode === "day" || mode === "week" ? "" : root.milestoneEnd.trim(),
             enabled: true
         });
@@ -104,7 +146,7 @@ PageBase {
             Layout.rightMargin: Tokens.padding.largeIncreased
             Layout.bottomMargin: Tokens.spacing.small
             wrapMode: Text.Wrap
-            text: Tr.tr("The progress widget shows end of day and end of week automatically. Add a specific date or an interval below; each card can show up to %1.").arg(Milestones.maxItems)
+            text: Tr.tr("The progress widget shows end of day and end of week automatically. Add a specific date, a yearly date, a daily or weekly time, or an interval below; each card can show up to %1.").arg(Milestones.maxItems)
             color: Colours.palette.m3outline
             font: Tokens.font.label.small
         }
@@ -152,9 +194,9 @@ PageBase {
         }
 
         TextFieldRow {
-            visible: root.milestoneMode >= 2
-            label: root.milestoneMode === 2 ? Tr.tr("Starts (optional)") : Tr.tr("Starts")
-            subtext: root.milestoneMode === 2 ? Tr.tr("Defaults to 1 January of the target year") : Tr.tr("YYYY-MM-DD or YYYY-MM-DD HH:mm")
+            visible: root.dateMode || root.intervalMode
+            label: root.dateMode ? Tr.tr("Starts (optional)") : Tr.tr("Starts")
+            subtext: root.dateMode ? Tr.tr("Defaults to 1 January of the target year") : Tr.tr("YYYY-MM-DD or YYYY-MM-DD HH:mm")
             placeholderText: Tr.tr("2026-01-01")
             value: root.milestoneStart
             maximumLength: 32
@@ -166,9 +208,9 @@ PageBase {
 
         TextFieldRow {
             visible: root.milestoneMode >= 2
-            label: root.milestoneMode === 2 ? Tr.tr("Date") : Tr.tr("Ends")
-            subtext: Tr.tr("YYYY-MM-DD or YYYY-MM-DD HH:mm")
-            placeholderText: Tr.tr("2026-12-25")
+            label: root.dailyMode ? Tr.tr("Ends at") : root.weeklyMode ? Tr.tr("Day and time") : root.dateMode || root.yearlyMode ? Tr.tr("Date") : Tr.tr("Ends")
+            subtext: root.dailyMode ? Tr.tr("HH:mm; repeats every day") : root.weeklyMode ? Tr.tr("Mon-Sun, optionally with HH:mm; repeats every week") : root.yearlyMode ? Tr.tr("MM-DD or MM-DD HH:mm; repeats every year") : Tr.tr("YYYY-MM-DD or YYYY-MM-DD HH:mm")
+            placeholderText: root.dailyMode ? Tr.tr("23:00") : root.weeklyMode ? Tr.tr("Fri 17:00") : root.yearlyMode ? Tr.tr("12-25") : Tr.tr("2026-12-25")
             value: root.milestoneEnd
             maximumLength: 32
             onValueEdited: value => {

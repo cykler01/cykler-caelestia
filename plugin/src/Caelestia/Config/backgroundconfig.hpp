@@ -87,8 +87,10 @@ class ProgressEntry : public settings::ObjectNode {
 
     // A name to show; empty falls back to the mode's own name
     CONFIG_PROPERTY(QString, label, {})
-    // "day" and "week" run from the current calendar; "date" and "interval" use the fields
-    // below (YYYY-MM-DD or YYYY-MM-DD HH:mm, local time)
+    // "day" and "week" run from the current calendar; "daily" uses end as HH:mm and repeats
+    // every day; "weekly" uses end as a weekday with optional HH:mm and repeats every week;
+    // "date" and "interval" use the fields below (YYYY-MM-DD or YYYY-MM-DD HH:mm, local time);
+    // "yearly" uses end as MM-DD or MM-DD HH:mm and repeats every year
     CONFIG_PROPERTY(QString, mode, u"date"_s)
     CONFIG_PROPERTY(QString, start, {})
     CONFIG_PROPERTY(QString, end, {})
