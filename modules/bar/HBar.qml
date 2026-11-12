@@ -214,7 +214,11 @@ RowLayout {
             DelegateChoice {
                 roleValue: "tray"
                 delegate: EntryWrapper {
+                    shown: tray.items.count > 0
+
                     HTray {
+                        id: tray
+
                         objectName: "taskbarTray"
                     }
                 }
