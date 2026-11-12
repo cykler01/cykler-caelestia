@@ -139,6 +139,8 @@ This fork is only worth anything because of the people below.
   [@devalentineomonya](https://github.com/devalentineomonya).
 - **KDE-Connect card** - based on [PR #4](https://github.com/cykler01/cykler-caelestia/pull/4) by
   [@Mestane](https://github.com/Mestane).
+- **workspace preview** and **proccess list** - based on [caelestia](https://github.com/luca-saggese/caelestia) by [@luca-saggese](https://github.com/luca-saggese)
+- **Widgets Inspiration** - based on [lucid](https://github.com/Sn3akyy1/lucid) by [@Sn3akyy1](https://github.com/Sn3akyy1)
 
 ## License
 
