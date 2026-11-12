@@ -57,6 +57,77 @@ Singleton {
                     combos: [b.combo]
                 }))])
 
+    // Every bind that lands on a key of the keyboard view, grouped by the key it sits on. One
+    // entry per shortcut rather than per bind, since a bind with three shortcuts sits on three
+    // keys: { id, label, combo, mods, mask, key, kind, index, detail }, where kind is
+    //   "bind"    a kb* id from variables.lua, index being which of its shortcuts this is
+    //   "prefix"  a kb* id bound under modifiers alone, so it covers the digits 1-0
+    //   "custom"  a { combo, command } pair from customBinds, index being its place in them
+    readonly property var binds: {
+        const byKey = {};
+        const add = (key, bind) => {
+            const k = Lua.normaliseKey(key);
+            if (!byKey[k])
+                byKey[k] = [];
+            byKey[k].push(bind);
+        };
+
+        for (const e of root.entries) {
+            e.combos.forEach((combo, index) => {
+                const parts = Lua.split(combo);
+                const mask = Lua.maskOf(parts.mods);
+                if (parts.key === "") {
+                    for (const digit of Lua.prefixDigits())
+                        add(digit, {
+                            id: e.id,
+                            label: e.label,
+                            combo,
+                            mods: parts.mods,
+                            mask,
+                            key: digit,
+                            kind: "prefix",
+                            index,
+                            detail: ""
+                        });
+                } else {
+                    add(parts.key, {
+                        id: e.id,
+                        label: e.label,
+                        combo,
+                        mods: parts.mods,
+                        mask,
+                        key: parts.key,
+                        kind: "bind",
+                        index,
+                        detail: ""
+                    });
+                }
+            });
+        }
+
+        root.customBinds.forEach((b, index) => {
+            const parts = Lua.split(b.combo);
+            if (parts.key === "")
+                return;
+            add(parts.key, {
+                id: `custom:${index}`,
+                label: b.command,
+                combo: b.combo,
+                mods: parts.mods,
+                mask: Lua.maskOf(parts.mods),
+                key: parts.key,
+                kind: "custom",
+                index,
+                detail: b.command
+            });
+        });
+
+        return byKey;
+    }
+
+    // How many keys carry two binds under the same modifiers, for the keyboard's summary line
+    readonly property int conflictCount: Object.keys(root.binds).filter(k => root.keyState(k, -1) === "conflict").length
+
     // Which other binds already use this shortcut, as display labels
     function usedBy(id: string, combo: string): list<string> {
         const ids = root.clashes[Lua.normalise(combo)] ?? [];
@@ -172,6 +243,84 @@ Singleton {
         root.write(Lua.edit(root.overridesText, id, null));
     }
 
+    // These modifiers as a bitmask, so the keyboard can compare shortcuts without caring which
+    // order they were written in
+    function maskOf(mods: var): int {
+        return Lua.maskOf(mods);
+    }
+
+    // Every shortcut on one key of the keyboard view, whatever spelling the config used for it
+    function forKey(key: string): var {
+        return root.binds[Lua.normaliseKey(key)] ?? [];
+    }
+
+    // Only the shortcuts under exactly these modifiers; mask -1 means every combination
+    function forKeyMasked(key: string, mask: int): var {
+        return mask < 0 ? root.forKey(key) : root.forKey(key).filter(b => b.mask === mask);
+    }
+
+    // "free" (nothing on it), "bound", or "conflict": two binds under the same modifiers, which
+    // Hyprland fires both of and is almost never what was meant
+    function keyState(key: string, mask: int): string {
+        const found = root.forKeyMasked(key, mask);
+        if (found.length === 0)
+            return "free";
+        const masks = found.map(b => b.mask);
+        return new Set(masks).size < masks.length ? "conflict" : "bound";
+    }
+
+    // How many different modifier combinations this key is bound under
+    function comboCount(key: string, mask: int): int {
+        return new Set(root.forKeyMasked(key, mask).map(b => b.mask)).size;
+    }
+
+    // What is already on this exact shortcut, so the keyboard can warn before adding to it
+    function bindsOn(mods: var, key: string): var {
+        const mask = Lua.maskOf(mods);
+        return root.forKey(key).filter(b => b.mask === mask);
+    }
+
+    // Drops one of the shortcuts the keyboard shows, whichever kind it turned out to be
+    function removeBind(bind: var): void {
+        if (bind.kind === "custom") {
+            root.removeCustomBind(bind.index);
+            return;
+        }
+
+        const entry = root.entries.find(e => e.id === bind.id);
+        if (!entry)
+            return;
+
+        root.set(bind.id, entry.combos.filter((_, i) => i !== bind.index));
+    }
+
+    // Gives a keybind that already exists another shortcut, ignoring one it already has
+    function addToEntry(id: string, combo: string): void {
+        const entry = root.entries.find(e => e.id === id);
+        if (!entry || entry.combos.some(c => Lua.normalise(c) === Lua.normalise(combo)))
+            return;
+
+        root.set(id, [...entry.combos, combo]);
+    }
+
+    // Every kb* id back to its default, in one write so Hyprland reloads once rather than once
+    // per bind. Custom binds and gestures are left alone: they have no default to go back to,
+    // and throwing them away is not what resetting the shortcuts asks for.
+    function resetAll(): void {
+        let text = root.overridesText;
+        for (const e of root.entries)
+            if (e.overridden)
+                text = Lua.edit(text, e.id, null);
+        root.write(text);
+    }
+
+    // Re-reads both files and has Hyprland pick the binds up again
+    function reload(): void {
+        defaultsFile.reload();
+        overridesFile.reload();
+        reloadTimer.restart();
+    }
+
     function write(text: string): void {
         if (text === root.overridesText)
             return;
@@ -191,6 +340,8 @@ Singleton {
     }
 
     FileView {
+        id: defaultsFile
+
         path: root.defaultsPath
         watchChanges: true
         printErrors: false

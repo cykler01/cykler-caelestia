@@ -69,10 +69,6 @@
   "modules/nexus/pages/KeybindRow.qml": {
     "section-order": 2
   },
-  "modules/nexus/pages/KeybindsPage.qml": {
-    "missing-section-separator": 3,
-    "section-order": 5
-  },
   "modules/nexus/pages/LayoutPage.qml": {
     "section-order": 10
   },
