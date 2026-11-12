@@ -34,6 +34,21 @@ PageBase {
         Stocks.setShares(symbol, Number.isFinite(value) && value > 0 ? value : 0);
     }
 
+    function bestMatch(query: string, allowFirst: bool): var {
+        const value = String(query ?? "").trim();
+        const upper = value.toUpperCase();
+        // "BTC" on its own is also a Bitcoin ETF ticker. Yahoo lists the cryptocurrency as BTC-USD,
+        // so prefer that pair before falling back to the exact ticker.
+        const crypto = Stocks.searchResults.find(result => result.type === "CRYPTOCURRENCY" && (result.symbol === upper || result.symbol === `${upper}-USD`));
+        const exact = Stocks.searchResults.find(result => result.symbol === upper);
+        const match = crypto ?? exact ?? null;
+        if (match || !allowFirst)
+            return match;
+        // Company names do not have an exact ticker. The top Yahoo result is the listing the user
+        // meant after filtering search to stocks, ETFs, funds, indices and cryptocurrencies.
+        return Stocks.searchResults[0] ?? null;
+    }
+
     function addStock(symbol: string): void {
         const clean = Stocks.normaliseSymbols([symbol])[0] ?? "";
         if (clean === "") {
@@ -62,22 +77,19 @@ PageBase {
         Stocks.setShares(symbol, 0);
     }
 
-    // The Add button accepts a ticker only when the search has an exact match. A company name still
-    // autocompletes by clicking one of the results below, so "apple" cannot accidentally add a futures
-    // contract or the wrong exchange's listing.
+    // A ticker is added straight away; Yahoo is only used to turn a company name into one. A bad
+    // ticker stays on the watchlist and gets the missing-data warning below, rather than blocking the
+    // Add button. Results already on screen are used first so "BTC" and "Apple" can resolve to their
+    // listings before falling back to the typed text.
     function requestAdd(): void {
         root.addError = "";
-        const raw = root.query.trim();
+        const raw = String(searchInput.text || root.query).trim();
         if (raw === "")
             return;
 
-        const symbol = raw.toUpperCase();
-        if (!/^[A-Z0-9.^=\-]{1,12}$/.test(symbol)) {
-            root.addError = Tr.tr("Pick a company from the results, or enter a ticker");
-            return;
-        }
-        if (Stocks.symbols.includes(symbol)) {
-            root.addError = Tr.tr("%1 is already in the list").arg(symbol);
+        const ticker = /^[A-Z0-9.^=\-]{1,12}$/.test(raw);
+        if (ticker && Stocks.symbols.includes(raw)) {
+            root.addError = Tr.tr("%1 is already in the list").arg(raw);
             return;
         }
         if (Stocks.symbols.length >= Stocks.maxSymbols) {
@@ -85,30 +97,39 @@ PageBase {
             return;
         }
 
-        const match = Stocks.searchResults.find(result => result.symbol === symbol);
+        const sameSearch = String(Stocks.searchQuery ?? "").trim().toUpperCase() === raw.toUpperCase();
+        const match = sameSearch ? root.bestMatch(raw, true) : null;
         if (match) {
             root.addStock(match.symbol);
             return;
         }
 
-        root.pendingSymbol = symbol;
-        if (!Stocks.searching)
-            Stocks.search(symbol);
+        // Tickers do not need a search result before they can be watched. Keeping an invalid one is
+        // useful: the card can then say which symbol has no market data.
+        if (ticker) {
+            root.addStock(raw);
+            return;
+        }
+
+        root.pendingSymbol = raw;
+        if (!Stocks.searching || !sameSearch)
+            Stocks.search(raw);
     }
 
     function resolvePending(): void {
         if (root.pendingSymbol === "" || Stocks.searching)
             return;
 
-        const symbol = root.pendingSymbol;
+        const query = root.pendingSymbol;
         root.pendingSymbol = "";
-        const match = Stocks.searchResults.find(result => result.symbol === symbol);
+        const sameSearch = String(Stocks.searchQuery ?? "").trim().toUpperCase() === query.toUpperCase();
+        const match = sameSearch ? root.bestMatch(query, true) : null;
         if (match)
             root.addStock(match.symbol);
         else if (Stocks.searchError !== "")
             root.addError = Stocks.searchError;
         else
-            root.addError = Tr.tr("No stock found for %1").arg(symbol);
+            root.addError = Tr.tr("No stock found for %1").arg(query);
     }
 
     title: Tr.tr("Stocks")
@@ -159,6 +180,18 @@ PageBase {
             wrapMode: Text.Wrap
             text: Tr.tr("Add a company to the watchlist, then enter how many shares you own if you want the stocks card and portfolio to track their value.")
             color: Colours.palette.m3outline
+            font: Tokens.font.label.small
+        }
+
+        StyledText {
+            Layout.fillWidth: true
+            Layout.leftMargin: Tokens.padding.largeIncreased
+            Layout.rightMargin: Tokens.padding.largeIncreased
+            Layout.bottomMargin: Tokens.spacing.small
+            visible: Stocks.missingSymbols.length > 0
+            wrapMode: Text.Wrap
+            text: Tr.tr("Could not load market data for %1. Check the ticker or try again later.").arg(Stocks.missingSymbols.join(", "))
+            color: Colours.palette.m3error
             font: Tokens.font.label.small
         }
 
@@ -291,11 +324,13 @@ PageBase {
                     verticalPadding: Tokens.padding.small
                     text: root.query
 
-                    onTextEdited: value => {
-                        root.query = value;
+                    // textChanged also covers programmatic edits, so the Add button never stays
+                    // disabled with text in the field while `query` is still empty.
+                    onTextChanged: {
+                        root.query = text;
                         root.addError = "";
                         root.pendingSymbol = "";
-                        if (value.trim() === "") {
+                        if (text.trim() === "") {
                             searchTimer.stop();
                             Stocks.clearSearch();
                         } else {
@@ -308,7 +343,7 @@ PageBase {
                 IconButton {
                     icon: "add"
                     type: IconButton.Filled
-                    disabled: !root.query.trim() || Stocks.symbols.length >= Stocks.maxSymbols
+                    disabled: !searchInput.text.trim() || Stocks.symbols.length >= Stocks.maxSymbols
                     onClicked: root.requestAdd()
                 }
             }

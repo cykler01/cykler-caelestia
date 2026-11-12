@@ -35,6 +35,16 @@ Singleton {
     property string inFlightKey: ""
     property int generation: 0
     property var requestedSymbols: []
+    // Symbols the last quote request could not return. The cards and the settings page use this to warn
+    // about a typo without refusing to add the ticker in the first place.
+    readonly property var missingSymbols: {
+        void root.quotes;
+        if (root.loading || root.requestedSymbols.length === 0)
+            return [];
+
+        const current = root.quotes;
+        return root.requestedSymbols.filter(symbol => current[symbol] === undefined || current[symbol] === null);
+    }
 
     // Symbol search for the settings page. Results are Company Name + exchange + ticker, so a user can
     // type "apple" and pick AAPL rather than having to know the ticker before adding it.
@@ -226,8 +236,7 @@ Singleton {
         });
     }
 
-    // Search is separate from quotes: it resolves what the user typed before anything is added to the
-    // watchlist, which is also how an unknown ticker gets caught.
+    // Search is separate from quotes: it resolves a company name to a ticker before it is added.
     function search(query: var): void {
         const text = String(query ?? "").trim();
         root.searchQuery = text;

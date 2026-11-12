@@ -33,6 +33,7 @@ WidgetCard {
             return Stocks.error;
         return Stocks.loading ? Tr.tr("Loading...") : Tr.tr("No quotes");
     }
+    readonly property string dataWarning: Stocks.missingSymbols.length > 0 ? Tr.tr("Could not load data for %1. Check the ticker or try again.").arg(Stocks.missingSymbols.join(", ")) : ""
 
     function displayPrice(quote: var): real {
         const price = Number(quote?.price ?? NaN);
@@ -67,6 +68,15 @@ WidgetCard {
         text: stock.message
         color: Stocks.error !== "" ? Colours.palette.m3error : Colours.palette.m3outline
         font: Tokens.font.label.medium
+    }
+
+    StyledText {
+        Layout.fillWidth: true
+        visible: stock.message === "" && stock.dataWarning !== ""
+        wrapMode: Text.Wrap
+        text: stock.dataWarning
+        color: Colours.palette.m3error
+        font: Tokens.font.label.small
     }
 
     ListView {
