@@ -262,6 +262,12 @@ Item {
                 }
             }
             DelegateChoice {
+                roleValue: "stocks"
+                delegate: StockCard {
+                    gridHost: root
+                }
+            }
+            DelegateChoice {
                 roleValue: "todo"
                 delegate: TodoCard {
                     gridHost: root

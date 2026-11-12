@@ -85,6 +85,8 @@ Item {
                 return photoCard;
             case "github":
                 return contributionsCard;
+            case "stocks":
+                return stockCard;
             case "todo":
                 return todoCard;
             default:
@@ -248,6 +250,16 @@ Item {
         id: contributionsCard
 
         ContributionsCard {
+            variant: root.variant
+            widgetId: root.kind
+            entryIndex: -1
+        }
+    }
+
+    Component {
+        id: stockCard
+
+        StockCard {
             variant: root.variant
             widgetId: root.kind
             entryIndex: -1

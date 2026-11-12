@@ -28,6 +28,7 @@ const heights = {
     sticky: 6,
     photo: 7,
     github: 4,
+    stocks: 7,
     todo: 5
 };
 

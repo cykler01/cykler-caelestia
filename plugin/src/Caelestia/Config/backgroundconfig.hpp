@@ -93,6 +93,8 @@ class DesktopWidgets : public settings::ObjectNode {
     CONFIG_PROPERTY(bool, hideWithWindows, true)
     // GitHub user whose contributions the contributions card shows
     CONFIG_PROPERTY(QString, githubUser, {})
+    // Yahoo Finance tickers shown by the stocks card, in display order
+    CONFIG_PROPERTY(QStringList, stockSymbols, DEFAULT_ARG({ u"AAPL"_s, u"MSFT"_s, u"NVDA"_s }))
     // The folder the photo card picks from; the user's pictures unless told otherwise
     CONFIG_PROPERTY(QString, photoDir, QStandardPaths::writableLocation(QStandardPaths::PicturesLocation))
     CONFIG_PROPERTY(qreal, opacity, 0.7)

@@ -164,11 +164,21 @@ PageBase {
         }
 
         TextFieldRow {
-            last: true
+            last: false
             label: Tr.tr("GitHub name")
             subtext: Tr.tr("Shown on the contributions widget")
             value: root.widgetsConfig.githubUser
             onEditingFinished: value => GlobalConfig.background.desktopWidgets.githubUser = value
+        }
+
+        TextFieldRow {
+            last: true
+            label: Tr.tr("Stock symbols")
+            subtext: Tr.tr("Yahoo Finance tickers for the stocks widget, separated by commas (up to six)")
+            placeholderText: Tr.tr("AAPL, MSFT, NVDA")
+            value: Stocks.symbols.join(", ")
+            maximumLength: 96
+            onEditingFinished: value => GlobalConfig.background.desktopWidgets.stockSymbols = Stocks.normaliseSymbols(value)
         }
     }
 }

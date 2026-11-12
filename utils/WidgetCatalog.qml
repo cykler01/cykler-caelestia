@@ -282,6 +282,28 @@ Singleton {
             ]
         },
         {
+            id: "stocks",
+            name: Tr.tr("Stocks"),
+            icon: "trending_up",
+            types: [
+                {
+                    id: "watchlist",
+                    name: Tr.tr("Watchlist · price and daily change"),
+                    height: 7
+                },
+                {
+                    id: "spotlight",
+                    name: Tr.tr("Spotlight · chart and quotes"),
+                    height: 7
+                },
+                {
+                    id: "compact",
+                    name: Tr.tr("Compact · 2 × 2 quotes"),
+                    height: 4
+                }
+            ]
+        },
+        {
             id: "todo",
             name: Tr.tr("To-do list"),
             icon: "checklist",
