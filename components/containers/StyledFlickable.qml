@@ -12,12 +12,6 @@ Flickable {
 
     maximumFlickVelocity: 3000
 
-    WheelScroller {
-        id: scroller
-
-        flickable: root
-    }
-
     rebound: Transition {
         onRunningChanged: {
             if (!running && !root.doneFakeFlick) {
@@ -31,6 +25,12 @@ Flickable {
         Anim {
             properties: "x,y"
         }
+    }
+
+    WheelScroller {
+        id: scroller
+
+        flickable: root
     }
 
     Timer {
