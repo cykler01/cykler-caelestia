@@ -455,7 +455,7 @@ ClipRect {
 
             // The same entries as tiles of cover art. A folder with no picture of its own shows
             // the first few tracks in it as a collage.
-            GridView {
+            StyledGridView {
                 id: grid
 
                 readonly property int columns: Math.max(2, Math.floor(width / 128))
