@@ -86,7 +86,9 @@ Item {
             case "github":
                 return contributionsCard;
             case "stocks":
-                return stockCard;
+                return root.variant === "portfolio" ? portfolioCard : stockCard;
+            case "portfolio":
+                return portfolioCard;
             case "progress":
                 return progressCard;
             case "todo":
@@ -262,6 +264,16 @@ Item {
         id: stockCard
 
         StockCard {
+            variant: root.variant
+            widgetId: root.kind
+            entryIndex: -1
+        }
+    }
+
+    Component {
+        id: portfolioCard
+
+        PortfolioCard {
             variant: root.variant
             widgetId: root.kind
             entryIndex: -1

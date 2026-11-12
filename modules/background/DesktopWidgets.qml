@@ -57,7 +57,8 @@ Item {
     // a widget off is one config write, and this simply reads the result. Every card looks its own cell up in
     // `placements`, so rebuilding the list never hands a card the wrong widget
     readonly property var shownEntries: placements.filter(p => p.enabled).map(p => ({
-            widgetId: p.id,
+            // Portfolio is a stocks style, but has its own delegate and config is still keyed by the style
+            widgetId: p.id === "stocks" && p.type === "portfolio" ? "portfolio" : p.id,
             entryIndex: p.index
         }))
 
@@ -264,6 +265,12 @@ Item {
             DelegateChoice {
                 roleValue: "stocks"
                 delegate: StockCard {
+                    gridHost: root
+                }
+            }
+            DelegateChoice {
+                roleValue: "portfolio"
+                delegate: PortfolioCard {
                     gridHost: root
                 }
             }

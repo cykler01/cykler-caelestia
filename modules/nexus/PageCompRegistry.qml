@@ -138,6 +138,16 @@ QtObject {
                 Component {
                     DashWidgetsPanel {}
                 }
+
+                // Stock tickers, holdings and card value settings sub-page
+                Component {
+                    StocksPanel {}
+                }
+
+                // Progress milestone settings sub-page
+                Component {
+                    ProgressPanel {}
+                }
             }
         },
         Component {

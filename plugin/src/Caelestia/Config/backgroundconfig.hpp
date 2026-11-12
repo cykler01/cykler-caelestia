@@ -96,6 +96,15 @@ class ProgressEntry : public settings::ObjectNode {
 };
 CONFIG_LIST_TYPE(ProgressEntry, ProgressEntryList)
 
+class StockShare : public settings::ObjectNode {
+    CONFIG_NODE(StockShare, settings::ObjectNode)
+
+    // Ticker the amount belongs to; a zero amount simply watches the stock
+    CONFIG_PROPERTY(QString, symbol, {})
+    CONFIG_PROPERTY(qreal, shares, 0.0)
+};
+CONFIG_LIST_TYPE(StockShare, StockShareList)
+
 class DesktopWidgets : public settings::ObjectNode {
     CONFIG_NODE(DesktopWidgets, settings::ObjectNode)
 
@@ -111,6 +120,12 @@ class DesktopWidgets : public settings::ObjectNode {
     CONFIG_PROPERTY(QString, githubUser, {})
     // Yahoo Finance tickers shown by the stocks card, in display order
     CONFIG_PROPERTY(QStringList, stockSymbols, DEFAULT_ARG({ u"AAPL"_s, u"MSFT"_s, u"NVDA"_s }))
+    // How many shares of each ticker are held. Symbols with no entry here are watchlist-only
+    CONFIG_LIST(StockShareList, stockShares, DEFAULT_ARG({}))
+    // "relative" shows the quote price in the stocks card; "holdings" shows the value of the shares
+    CONFIG_PROPERTY(QString, stockValueMode, u"relative"_s)
+    // How long the spotlight card keeps one stock on its chart before moving to the next (ms)
+    CONFIG_PROPERTY(int, stockSpotlightInterval, 60000)
     // Progress card targets. Day and week are always available out of the box; the settings page
     // adds custom dates and intervals to this list
     CONFIG_LIST(ProgressEntryList, progressEntries,

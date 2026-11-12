@@ -15,12 +15,14 @@ WidgetCard {
     readonly property string style: stock.variant === "spotlight" || stock.variant === "compact" ? stock.variant : "watchlist"
     readonly property bool spotlight: stock.style === "spotlight"
     readonly property bool compact: stock.style === "compact"
+    readonly property bool holdings: Stocks.holdingsMode
+    property int spotlightIndex: 0
     readonly property var rows: {
         // Read through quotes so a refreshed result redraws the card
         void Stocks.quotes;
         return Stocks.symbols.map(symbol => Stocks.quotes[symbol]).filter(quote => quote !== undefined && quote !== null);
     }
-    readonly property var feature: stock.rows[0] ?? null
+    readonly property var feature: stock.rows.length > 0 ? stock.rows[stock.spotlightIndex % stock.rows.length] : null
     readonly property color accent: stock.tone(stock.feature?.change ?? 0)
     readonly property string message: {
         if (Stocks.symbols.length === 0)
@@ -32,19 +34,18 @@ WidgetCard {
         return Stocks.loading ? Tr.tr("Loading...") : Tr.tr("No quotes");
     }
 
-    function formatPrice(value: var): string {
-        if (value === undefined || value === null || !Number.isFinite(Number(value)))
-            return "—";
+    function displayPrice(quote: var): real {
+        const price = Number(quote?.price ?? NaN);
+        const shares = Stocks.sharesFor(quote?.symbol ?? "");
+        return stock.holdings && shares > 0 ? price * shares : price;
+    }
 
-        const fixed = Number(value).toFixed(Number(value) < 1 ? 4 : 2);
-        const parts = fixed.split(".");
-        return parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ",") + "." + parts[1];
+    function formatPrice(value: var): string {
+        return Stocks.formatPrice(value);
     }
 
     function formatPercent(value: var): string {
-        if (value === undefined || value === null || !Number.isFinite(Number(value)))
-            return "—";
-        return `${value >= 0 ? "+" : ""}${Number(value).toFixed(2)}%`;
+        return Stocks.formatPercent(value);
     }
 
     function tone(value: var): color {
@@ -57,6 +58,7 @@ WidgetCard {
     icon: "trending_up"
 
     Component.onCompleted: Stocks.refresh(false)
+    onRowsChanged: if (stock.spotlightIndex >= stock.rows.length) stock.spotlightIndex = 0
 
     StyledText {
         Layout.fillWidth: true
@@ -84,17 +86,31 @@ WidgetCard {
             width: ListView.view.width
             spacing: Tokens.spacing.small
 
-            StyledText {
+            ColumnLayout {
                 Layout.fillWidth: true
                 Layout.minimumWidth: 0
-                elide: Text.ElideRight
-                text: quoteRow.modelData.symbol
-                color: Colours.palette.m3onSurface
-                font: Tokens.font.label.medium
+                spacing: 0
+
+                StyledText {
+                    Layout.fillWidth: true
+                    elide: Text.ElideRight
+                    text: quoteRow.modelData.symbol
+                    color: Colours.palette.m3onSurface
+                    font: Tokens.font.label.medium
+                }
+
+                StyledText {
+                    Layout.fillWidth: true
+                    visible: stock.holdings && Stocks.sharesFor(quoteRow.modelData.symbol) > 0
+                    elide: Text.ElideRight
+                    text: Tr.tr("%1 shares").arg(Stocks.formatShares(Stocks.sharesFor(quoteRow.modelData.symbol)))
+                    color: Colours.palette.m3outline
+                    font: Tokens.font.label.small
+                }
             }
 
             StyledText {
-                text: stock.formatPrice(quoteRow.modelData.price)
+                text: stock.formatPrice(stock.displayPrice(quoteRow.modelData))
                 color: Colours.palette.m3onSurface
                 font: Tokens.font.label.medium
             }
@@ -128,7 +144,11 @@ WidgetCard {
                 StyledText {
                     Layout.fillWidth: true
                     elide: Text.ElideRight
-                    text: stock.feature?.symbol ?? ""
+                    text: {
+                        const shares = Stocks.sharesFor(stock.feature?.symbol ?? "");
+                        const symbol = stock.feature?.symbol ?? "";
+                        return stock.holdings && shares > 0 ? `${symbol} · ${Stocks.formatShares(shares)} shares` : symbol;
+                    }
                     color: Colours.palette.m3onSurfaceVariant
                     font: Tokens.font.label.small
                 }
@@ -136,7 +156,7 @@ WidgetCard {
                 StyledText {
                     Layout.fillWidth: true
                     elide: Text.ElideRight
-                    text: stock.formatPrice(stock.feature?.price)
+                    text: stock.formatPrice(stock.displayPrice(stock.feature))
                     color: Colours.palette.m3onSurface
                     font: Tokens.font.headline.builders.medium.weight(Font.DemiBold).build()
                 }
@@ -162,73 +182,10 @@ WidgetCard {
             }
         }
 
-        Canvas {
-            id: chart
-
-            property var values: stock.feature?.spark ?? []
-
-            Layout.fillWidth: true
-            Layout.fillHeight: true
-            Layout.minimumHeight: 34
-            Layout.preferredHeight: 46
+        StockChart {
+            values: stock.feature?.spark ?? []
+            accent: stock.accent
             visible: stock.feature !== null
-
-            onValuesChanged: requestPaint()
-            onWidthChanged: requestPaint()
-            onHeightChanged: requestPaint()
-            onVisibleChanged: {
-                if (visible)
-                    requestPaint();
-            }
-
-            onPaint: {
-                const ctx = getContext("2d");
-                ctx.clearRect(0, 0, width, height);
-                const values = chart.values;
-                if (values.length < 2)
-                    return;
-
-                let min = Number.POSITIVE_INFINITY;
-                let max = Number.NEGATIVE_INFINITY;
-                for (const value of values) {
-                    min = Math.min(min, value);
-                    max = Math.max(max, value);
-                }
-                if (max - min < 0.000001) {
-                    min -= 1;
-                    max += 1;
-                }
-
-                const pad = 3;
-                const step = (width - pad * 2) / (values.length - 1);
-                const y = value => height - pad - (value - min) / (max - min) * (height - pad * 2);
-
-                ctx.beginPath();
-                values.forEach((value, index) => {
-                    if (index === 0)
-                        ctx.moveTo(pad, y(value));
-                    else
-                        ctx.lineTo(pad + index * step, y(value));
-                });
-                ctx.lineTo(width - pad, height);
-                ctx.lineTo(pad, height);
-                ctx.closePath();
-                ctx.fillStyle = Qt.alpha(stock.accent, 0.12);
-                ctx.fill();
-
-                ctx.beginPath();
-                values.forEach((value, index) => {
-                    if (index === 0)
-                        ctx.moveTo(pad, y(value));
-                    else
-                        ctx.lineTo(pad + index * step, y(value));
-                });
-                ctx.strokeStyle = stock.accent;
-                ctx.lineWidth = 2;
-                ctx.lineJoin = "round";
-                ctx.lineCap = "round";
-                ctx.stroke();
-            }
         }
 
         RowLayout {
@@ -257,6 +214,15 @@ WidgetCard {
                         elide: Text.ElideRight
                         text: other.modelData.symbol
                         color: Colours.palette.m3onSurfaceVariant
+                        font: Tokens.font.label.small
+                    }
+
+                    StyledText {
+                        Layout.fillWidth: true
+                        horizontalAlignment: Text.AlignHCenter
+                        elide: Text.ElideRight
+                        text: stock.formatPrice(other.modelData.price)
+                        color: Colours.palette.m3onSurface
                         font: Tokens.font.label.small
                     }
 
@@ -313,7 +279,7 @@ WidgetCard {
                         Layout.fillWidth: true
                         Layout.minimumWidth: 0
                         elide: Text.ElideRight
-                        text: stock.formatPrice(cell.modelData.price)
+                        text: stock.formatPrice(stock.displayPrice(cell.modelData))
                         color: Colours.palette.m3onSurface
                         font: Tokens.font.label.medium
                     }
@@ -326,6 +292,13 @@ WidgetCard {
                 }
             }
         }
+    }
+
+    Timer {
+        interval: Math.max(5000, Number(GlobalConfig.background.desktopWidgets.stockSpotlightInterval ?? 60000))
+        repeat: true
+        running: stock.spotlight && stock.rows.length > 1
+        onTriggered: stock.spotlightIndex = (stock.spotlightIndex + 1) % stock.rows.length
     }
 
     Timer {

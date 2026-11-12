@@ -300,6 +300,11 @@ Singleton {
                     id: "compact",
                     name: Tr.tr("Compact · 2 × 2 quotes"),
                     height: 4
+                },
+                {
+                    id: "portfolio",
+                    name: Tr.tr("Portfolio · total value and combined chart"),
+                    height: 8
                 }
             ]
         },
