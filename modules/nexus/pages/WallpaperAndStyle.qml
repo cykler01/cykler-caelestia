@@ -14,6 +14,11 @@ import qs.modules.nexus.common
 PageBase {
     id: root
 
+    // TRANSLATORS: %1 = an opacity from 0 to 100
+    function percent(value: real): string {
+        return Tr.tr("%1%").arg(Math.round(value * 100));
+    }
+
     title: Tr.tr("Wallpaper & style")
 
     ColumnLayout {
@@ -141,6 +146,29 @@ PageBase {
             to: 2
             stepSize: 0.05
             onMoved: v => GlobalConfig.appearance.anim.durations.scale = v
+        }
+
+        // NOTE(fork): window transparency is Hyprland's, not the shell's - the Transparency
+        // switch above only reaches the shell's own panels and popups, while this reaches every
+        // window on screen. It is one value rather than a focused/unfocused pair because the
+        // dots pin all non-fullscreen windows to a single opacity; see services/WindowSettings.
+        SectionHeader {
+            text: Tr.tr("Windows")
+        }
+
+        SliderRow {
+            first: true
+            last: true
+            icon: "web_asset"
+            label: Tr.tr("Window opacity")
+            valueLabel: root.percent(WindowSettings.value)
+            value: WindowSettings.value
+            // A window you are working in has to stay readable, so it can go a little
+            // see-through but not far
+            from: 0.5
+            to: 1
+            stepSize: 0.01
+            onMoved: v => WindowSettings.set(v)
         }
     }
 }

@@ -11,6 +11,7 @@ Scope {
         DiscordPresence;
         GameMode;
         InputSettings;
+        WindowSettings;
         Notifs;
         Players;
         Brightness;
