@@ -3,6 +3,7 @@
 #include <qstandardpaths.h>
 #include <qstring.h>
 #include <qstringlist.h>
+#include <qvariantlist.h>
 
 #include "settings/objectnode.hpp"
 #include "common.hpp"
@@ -11,6 +12,7 @@
 namespace caelestia::shell::config {
 
 using Qt::StringLiterals::operator""_s;
+using settings::vmap;
 
 class DesktopClockBackground : public settings::ObjectNode {
     CONFIG_NODE(DesktopClockBackground, settings::ObjectNode)
@@ -80,6 +82,20 @@ class DesktopWidgetEntry : public settings::ObjectNode {
 };
 CONFIG_LIST_TYPE(DesktopWidgetEntry, DesktopWidgetList)
 
+class ProgressEntry : public settings::ObjectNode {
+    CONFIG_NODE(ProgressEntry, settings::ObjectNode)
+
+    // A name to show; empty falls back to the mode's own name
+    CONFIG_PROPERTY(QString, label, {})
+    // "day" and "week" run from the current calendar; "date" and "interval" use the fields
+    // below (YYYY-MM-DD or YYYY-MM-DD HH:mm, local time)
+    CONFIG_PROPERTY(QString, mode, u"date"_s)
+    CONFIG_PROPERTY(QString, start, {})
+    CONFIG_PROPERTY(QString, end, {})
+    CONFIG_PROPERTY(bool, enabled, true)
+};
+CONFIG_LIST_TYPE(ProgressEntry, ProgressEntryList)
+
 class DesktopWidgets : public settings::ObjectNode {
     CONFIG_NODE(DesktopWidgets, settings::ObjectNode)
 
@@ -95,6 +111,13 @@ class DesktopWidgets : public settings::ObjectNode {
     CONFIG_PROPERTY(QString, githubUser, {})
     // Yahoo Finance tickers shown by the stocks card, in display order
     CONFIG_PROPERTY(QStringList, stockSymbols, DEFAULT_ARG({ u"AAPL"_s, u"MSFT"_s, u"NVDA"_s }))
+    // Progress card targets. Day and week are always available out of the box; the settings page
+    // adds custom dates and intervals to this list
+    CONFIG_LIST(ProgressEntryList, progressEntries,
+        DEFAULT_ARG({
+            vmap({ { u"mode"_s, u"day"_s } }),
+            vmap({ { u"mode"_s, u"week"_s } }),
+        }))
     // The folder the photo card picks from; the user's pictures unless told otherwise
     CONFIG_PROPERTY(QString, photoDir, QStandardPaths::writableLocation(QStandardPaths::PicturesLocation))
     CONFIG_PROPERTY(qreal, opacity, 0.7)

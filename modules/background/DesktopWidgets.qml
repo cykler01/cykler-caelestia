@@ -268,6 +268,12 @@ Item {
                 }
             }
             DelegateChoice {
+                roleValue: "progress"
+                delegate: ProgressCard {
+                    gridHost: root
+                }
+            }
+            DelegateChoice {
                 roleValue: "todo"
                 delegate: TodoCard {
                     gridHost: root

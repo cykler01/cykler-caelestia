@@ -304,6 +304,28 @@ Singleton {
             ]
         },
         {
+            id: "progress",
+            name: Tr.tr("Progress"),
+            icon: "hourglass_top",
+            types: [
+                {
+                    id: "bars",
+                    name: Tr.tr("Bars · milestones and time left"),
+                    height: 7
+                },
+                {
+                    id: "rings",
+                    name: Tr.tr("Rings · milestones and time left"),
+                    height: 7
+                },
+                {
+                    id: "compact",
+                    name: Tr.tr("Compact · mini rings"),
+                    height: 5
+                }
+            ]
+        },
+        {
             id: "todo",
             name: Tr.tr("To-do list"),
             icon: "checklist",

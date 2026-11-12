@@ -29,6 +29,7 @@ const heights = {
     photo: 7,
     github: 4,
     stocks: 7,
+    progress: 7,
     todo: 5
 };
 

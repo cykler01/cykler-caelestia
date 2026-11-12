@@ -87,6 +87,8 @@ Item {
                 return contributionsCard;
             case "stocks":
                 return stockCard;
+            case "progress":
+                return progressCard;
             case "todo":
                 return todoCard;
             default:
@@ -260,6 +262,16 @@ Item {
         id: stockCard
 
         StockCard {
+            variant: root.variant
+            widgetId: root.kind
+            entryIndex: -1
+        }
+    }
+
+    Component {
+        id: progressCard
+
+        ProgressCard {
             variant: root.variant
             widgetId: root.kind
             entryIndex: -1
