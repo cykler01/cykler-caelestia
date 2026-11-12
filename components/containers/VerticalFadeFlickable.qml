@@ -8,18 +8,26 @@ StyledFlickable {
     id: root
 
     property real fadeAmount: 0.2
+    // NOTE(fork): how much content has to be hidden past an edge, in pixels, before that edge's
+    // fade is at full strength. Under it the fade follows the scroll, so it eases in and out as
+    // an end is approached. It used to be all or nothing, which read as the fade hanging on
+    // through the whole scroll and then blinking away once the content had already stopped.
+    property real fadeRamp: 64
 
-    property real topFadeOpacity: fadeShouldBeActive(true) ? 0 : 1
-    property real bottomFadeOpacity: fadeShouldBeActive(false) ? 0 : 1
+    property real topFadeOpacity: root.fadeOpacity(true)
+    property real bottomFadeOpacity: root.fadeOpacity(false)
 
-    function fadeShouldBeActive(isStart: bool): bool {
+    // 1 leaves that edge fully opaque (no fade), 0 is the fade at full strength
+    function fadeOpacity(isStart: bool): real {
         // When content is smaller than flickable size, hide fade when rebound starts
         if (contentHeight + topMargin + bottomMargin < height && rebound.running && ((isStart ? verticalOvershoot > 0 : verticalOvershoot < 0)))
-            return false;
+            return 1;
 
-        if (isStart)
-            return visibleArea.yPosition > 0;
-        return visibleArea.yPosition + visibleArea.heightRatio < 1;
+        const span = contentHeight + topMargin + bottomMargin;
+        const hidden = isStart ? visibleArea.yPosition * span : (1 - visibleArea.yPosition - visibleArea.heightRatio) * span;
+        if (hidden <= 0)
+            return 1;
+        return Math.max(0, 1 - hidden / root.fadeRamp);
     }
 
     flickableDirection: Flickable.VerticalFlick
@@ -55,18 +63,6 @@ StyledFlickable {
                     color: Qt.rgba(0, 0, 0, root.bottomFadeOpacity)
                 }
             }
-        }
-    }
-
-    Behavior on topFadeOpacity {
-        Anim {
-            type: Anim.SlowEffects
-        }
-    }
-
-    Behavior on bottomFadeOpacity {
-        Anim {
-            type: Anim.SlowEffects
         }
     }
 }

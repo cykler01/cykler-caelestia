@@ -125,11 +125,16 @@ Item {
             }
         }
 
-        StyledFlickable {
+        // NOTE(fork): faded at both ends, the same as the settings pages, so notifications run
+        // out at the edges of the dock rather than being cut off mid-card. The band is narrower
+        // than the 0.2 the settings use: a notification carries buttons, and fading a fifth of
+        // the dock would wash out the ones at the ends.
+        VerticalFadeFlickable {
             id: view
 
             anchors.fill: parent
 
+            fadeAmount: 0.08
             flickableDirection: Flickable.VerticalFlick
             contentWidth: width
             contentHeight: notifList.implicitHeight

@@ -463,3 +463,62 @@ function keyName(qtName, typed) {
         return typed.toUpperCase();
     return "";
 }
+
+// The keyboard view (modules/nexus/pages/KeyboardMap.qml) needs to match a key drawn on its
+// keyboard against the key half of a combo, and those two are not spelt the same way: the
+// drawing uses one fixed name per key while a config may use any of the names X11 and Hyprland
+// accept for it ("Return" or "Enter", "Page_Up" or "Prior"). Both sides go through this.
+const keyAliases = {
+    enter: "return",
+    esc: "escape",
+    prior: "page_up",
+    pgup: "page_up",
+    pageup: "page_up",
+    next: "page_down",
+    pgdn: "page_down",
+    pagedown: "page_down",
+    del: "delete",
+    ins: "insert",
+    backtick: "grave",
+    quoteleft: "grave",
+    super: "super_l",
+    meta: "super_l",
+    mod4: "super_l",
+    win: "super_l",
+    control: "control_l",
+    ctrl: "control_l",
+    alt: "alt_l",
+    shift: "shift_l",
+    caps: "caps_lock",
+    capslock: "caps_lock",
+    sysrq: "print",
+    scrolllock: "scroll_lock",
+    numlock: "num_lock"
+};
+
+// The one name a key answers to, whichever of its spellings was written
+function normaliseKey(key) {
+    const k = String(key ?? "").trim().toLowerCase();
+    return keyAliases[k] ?? k;
+}
+
+// The modifiers as a bitmask, so two combos on the same key can be compared without
+// worrying about the order they were written in
+const modBits = {
+    SUPER: 1,
+    CTRL: 2,
+    ALT: 4,
+    SHIFT: 8
+};
+
+function maskOf(mods) {
+    let mask = 0;
+    for (const m of mods)
+        mask |= modBits[String(m).toUpperCase()] ?? 0;
+    return mask;
+}
+
+// The digits a modifier-only prefix ("SUPER", with the real binds being SUPER + 0-9) covers
+function prefixDigits() {
+    return ["1", "2", "3", "4", "5", "6", "7", "8", "9", "0"];
+}

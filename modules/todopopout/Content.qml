@@ -149,7 +149,7 @@ Item {
                 spacing: Tokens.spacing.medium
 
                 // List tabs
-                Flickable {
+                StyledFlickable {
                     Layout.fillWidth: true
                     implicitHeight: tabRow.implicitHeight
                     contentWidth: tabRow.implicitWidth

@@ -8,6 +8,7 @@ import Caelestia.Config
 import Caelestia.I18n
 import Caelestia.Models
 import qs.components
+import qs.components.containers
 import qs.components.controls
 import qs.services
 import qs.utils
@@ -282,7 +283,7 @@ Item {
                 color: Colours.palette.m3outline
             }
 
-            ListView {
+            StyledListView {
                 id: list
 
                 anchors.fill: parent
@@ -366,7 +367,7 @@ Item {
                 color: Colours.palette.m3outline
             }
 
-            Flickable {
+            StyledFlickable {
                 id: flick
 
                 anchors.fill: parent
