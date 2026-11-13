@@ -1398,6 +1398,22 @@ QtObject {
             label: Tr.tr("GitHub name"),
             subtext: Tr.tr("Shown on the contributions widget")
         },
+        {
+            page: "panels",
+            path: [18],
+            title: Tr.tr("Widgets"),
+            section: Tr.tr("Card content"),
+            label: Tr.tr("Stocks"),
+            subtext: Tr.tr("Tickers, holdings and card values")
+        },
+        {
+            page: "panels",
+            path: [18],
+            title: Tr.tr("Widgets"),
+            section: Tr.tr("Card content"),
+            label: Tr.tr("Progress"),
+            subtext: Tr.tr("Milestone dates and intervals")
+        },
 
         {
             page: "panels",
@@ -1414,6 +1430,48 @@ QtObject {
             label: Tr.tr("Dashboard widgets"),
             subtext: Tr.tr("Reorder, resize and show or hide the dashboard cards"),
             keywords: "cards tiles home"
+        },
+
+        {
+            page: "panels",
+            path: [18, 21],
+            title: Tr.tr("Stocks"),
+            section: Tr.tr("Card values"),
+            label: Tr.tr("Stock card shows"),
+            subtext: Tr.tr("Use the price alone, or multiply it by the shares you own")
+        },
+        {
+            page: "panels",
+            path: [18, 21],
+            title: Tr.tr("Stocks"),
+            section: Tr.tr("Card values"),
+            label: Tr.tr("Spotlight rotation"),
+            subtext: Tr.tr("How long each stock stays on the spotlight chart (seconds)")
+        },
+
+        {
+            page: "panels",
+            path: [18, 22],
+            title: Tr.tr("Progress"),
+            section: Tr.tr("Milestones"),
+            label: Tr.tr("Milestone name"),
+            subtext: Tr.tr("Optional; the type is used when this is empty")
+        },
+        {
+            page: "panels",
+            path: [18, 22],
+            title: Tr.tr("Progress"),
+            section: Tr.tr("Milestones"),
+            label: Tr.tr("Milestone type"),
+            subtext: Tr.tr("What the progress bar counts towards")
+        },
+        {
+            page: "panels",
+            path: [18, 22],
+            title: Tr.tr("Progress"),
+            section: Tr.tr("Milestones"),
+            label: Tr.tr("Add milestone"),
+            subtext: Tr.tr("Adds it to every progress card")
         },
 
         {

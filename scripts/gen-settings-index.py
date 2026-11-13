@@ -44,6 +44,7 @@ PAGES: dict[str, list[str]] = {
         "UtilitiesPanel", "BarWorkspaces", "BarActiveWindow", "BarTray", "BarStatusIcons",
         "BarClock", "NotchPanel", "OverviewPanel", "DesktopPanel", "LockPanel", "BarLayout",
         "SessionPanel", "LockWidgetsPanel", "WidgetsPanel", "AddWidgetPanel", "DashWidgetsPanel",
+        "StocksPanel", "ProgressPanel",
     ],
     "layout": ["LayoutPage"],
     "apps": ["AppsPage", "AllApps", "AppInfo"],
