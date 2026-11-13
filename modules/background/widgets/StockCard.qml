@@ -55,11 +55,15 @@ WidgetCard {
         return value > 0 ? Colours.palette.m3tertiary : Colours.palette.m3error;
     }
 
-    title: Tr.tr("Stocks")
+    // The watchlist and the compact board have no chart to hang the span off, so their header names it; the
+    // spotlight shows it under the change, beside the chart
+    title: stock.spotlight ? Tr.tr("Stocks") : `${Tr.tr("Stocks")} · ${Stocks.timeFrameLabel}`
     icon: "trending_up"
 
     Component.onCompleted: Stocks.refresh(false)
     onRowsChanged: if (stock.spotlightIndex >= stock.rows.length) stock.spotlightIndex = 0
+    // The card reads the selected span, so a click on it is what steps to the next one
+    onClicked: Stocks.cycleTimeFrame()
 
     StyledText {
         Layout.fillWidth: true
@@ -185,7 +189,7 @@ WidgetCard {
 
                 StyledText {
                     Layout.alignment: Qt.AlignRight
-                    text: Tr.tr("Today")
+                    text: Stocks.timeFrameLabel
                     color: Colours.palette.m3outline
                     font: Tokens.font.label.small
                 }

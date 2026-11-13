@@ -47,6 +47,8 @@ WidgetCard {
     icon: "account_balance_wallet"
 
     Component.onCompleted: Stocks.refresh(false)
+    // The totals are for the span the stocks card is showing, so a click here steps that span too
+    onClicked: Stocks.cycleTimeFrame()
 
     StyledText {
         Layout.fillWidth: true
@@ -91,7 +93,7 @@ WidgetCard {
             StyledText {
                 Layout.fillWidth: true
                 horizontalAlignment: Text.AlignRight
-                text: Tr.tr("Today")
+                text: Stocks.timeFrameLabel
                 color: Colours.palette.m3outline
                 font: Tokens.font.label.small
             }

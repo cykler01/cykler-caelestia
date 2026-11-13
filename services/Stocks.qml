@@ -27,6 +27,25 @@ Singleton {
     // Whether the stocks card shows the quote itself or what the held shares are worth
     readonly property bool holdingsMode: String(root.config.stockValueMode ?? "relative") === "holdings"
 
+    // The spans a click on the stocks or portfolio card steps through. These are Yahoo's own range and
+    // interval pairs, so the feed does the resampling; `label` is what the cards show where they used to
+    // say "Today". The longer spans ask for a coarser interval, since a minute-by-minute year is neither
+    // offered nor drawable in a chart a few dozen pixels tall.
+    readonly property var timeFrames: [
+        { range: "1d", interval: "5m", label: "1D" },
+        { range: "5d", interval: "15m", label: "5D" },
+        { range: "1mo", interval: "1h", label: "1M" },
+        { range: "3mo", interval: "1d", label: "3M" },
+        { range: "6mo", interval: "1d", label: "6M" },
+        { range: "1y", interval: "1d", label: "1Y" }
+    ]
+    property int timeFrameIndex: 0
+    // The span every quote and chart is drawn for. Kept here rather than in a card so the stocks and the
+    // portfolio always agree on it, and so it outlives the widget stack being unloaded while the desktop
+    // is covered.
+    readonly property var timeFrame: root.timeFrames[root.timeFrameIndex]
+    readonly property string timeFrameLabel: root.timeFrame.label
+
     property var quotes: ({})
     property string error
     property bool loading: false
@@ -197,7 +216,24 @@ Singleton {
 
     function requestUrl(symbols: var): string {
         const tickers = symbols.map(symbol => encodeURIComponent(symbol)).join(",");
-        return `https://query1.finance.yahoo.com/v8/finance/spark?symbols=${tickers}&range=1d&interval=5m`;
+        const frame = root.timeFrame;
+        return `https://query1.finance.yahoo.com/v8/finance/spark?symbols=${tickers}&range=${frame.range}&interval=${frame.interval}`;
+    }
+
+    // The span is part of the key: quotes for one range say nothing about another, and a request still in
+    // flight for the range just left must not be mistaken for the one being asked for now.
+    function cacheKey(symbols: var): string {
+        return `${root.timeFrame.range}|${symbols.join(",")}`;
+    }
+
+    // A click on a stocks or portfolio card steps to the next span, wrapping back round to the intraday
+    // chart. The cards are otherwise for reading, so this is the whole of their interaction.
+    function cycleTimeFrame(): void {
+        root.timeFrameIndex = (root.timeFrameIndex + 1) % root.timeFrames.length;
+        // The quotes in hand are a chart of the span just left, so they cannot stand in for this one
+        root.fetchedAt = 0;
+        root.cachedKey = "";
+        root.refresh(true);
     }
 
     // `force` skips the cache for the card's own refresh timer. The in-flight check keeps several cards
@@ -216,7 +252,7 @@ Singleton {
             return;
         }
 
-        const key = symbols.join(",");
+        const key = root.cacheKey(symbols);
         if (!force && root.fetchedAt > 0 && root.cachedKey === key && Date.now() - root.fetchedAt < root.ttl)
             return;
         if (root.inFlightKey === key)
@@ -375,7 +411,7 @@ Singleton {
         }
 
         root.quotes = Object.assign({}, root.quotes, next);
-        root.cachedKey = root.requestedSymbols.join(",");
+        root.cachedKey = root.cacheKey(root.requestedSymbols);
         root.fetchedAt = Date.now();
         root.loading = false;
         root.inFlightKey = "";

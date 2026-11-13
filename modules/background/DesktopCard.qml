@@ -32,6 +32,10 @@ Item {
     // Not `held`, which the desktop cards already use for "this is the card being dragged"
     signal longPressed
 
+    // Emitted for a plain click on the card's empty space. A card that acts on a click connects to this;
+    // one that doesn't ignores it. A hold is not a click, so rearranging never also activates a card
+    signal clicked
+
     function updateOrigin(): void {
         if (wallpaper)
             origin = mapToItem(wallpaper, 0, 0);
@@ -99,6 +103,7 @@ Item {
         anchors.fill: parent
         enabled: root.holdEnabled
         onPressAndHold: root.longPressed()
+        onClicked: root.clicked()
     }
 
     ColumnLayout {
