@@ -2,11 +2,13 @@ pragma ComponentBehavior: Bound
 
 import QtQuick
 import Quickshell
+import Caelestia
 import Caelestia.Config
 import qs.components
 import qs.components.containers
 import qs.components.controls
 import qs.services
+import qs.modules.nexus
 import qs.modules.launcher.items
 import qs.modules.launcher.services
 
@@ -47,11 +49,20 @@ StyledListView {
             return "actions";
         }
 
+        // Nothing typed is still the plain app list: a bare launcher should open on apps, not on an
+        // empty unified list
+        if (GlobalConfig.launcher.unifiedSearch && text.trim())
+            return "spotlight";
+
         return "apps";
     }
 
     function resultsForText(text: string): var {
         switch (stateForText(text)) {
+        case "spotlight":
+            // Each source still runs its own search; Spotlight only ranks and groups what they
+            // return (see services/Spotlight.qml)
+            return Spotlight.query(text, Apps.search(text), SettingsSearch.querySettingsScored(text), Actions.query(`${GlobalConfig.launcher.actionPrefix}${text}`));
         case "actions":
             return Actions.query(text);
         case "calc":
@@ -74,6 +85,9 @@ StyledListView {
             SSH.hostRevision;
             Supergfxctl.modeRevision;
             Supergfxctl.modeData;
+            // The calculator answers off the main thread, so the unified list has to be rebuilt
+            // when its answer arrives rather than only when the text changes
+            Qalculator.rawResult;
             return root.resultsForText(root.displayText);
         }
         onValuesChanged: root.currentIndex = 0
@@ -81,10 +95,11 @@ StyledListView {
 
     spacing: Tokens.spacing.small
     orientation: Qt.Vertical
-    // The AI answer is one tall wrapping row, so its real content height is
-    // used there; every other delegate is a fixed-height row, still capped by
-    // maxShown. ContentList clamps the whole thing to maxHeight either way.
-    implicitHeight: state === "ai" ? contentHeight : (Tokens.sizes.launcher.itemHeight + spacing) * Math.min(Config.launcher.maxShown, count) - spacing
+    // The AI answer is one tall wrapping row, and the unified results are rows of two heights
+    // (the first of each group carries its heading), so both are measured rather than counted.
+    // Every other delegate is a fixed-height row, still capped by maxShown. ContentList clamps
+    // the whole thing to maxHeight either way.
+    implicitHeight: state === "ai" || state === "spotlight" ? contentHeight : (Tokens.sizes.launcher.itemHeight + spacing) * Math.min(Config.launcher.maxShown, count) - spacing
 
     preferredHighlightBegin: 0
     preferredHighlightEnd: height
@@ -122,6 +137,13 @@ StyledListView {
 
             PropertyChanges {
                 root.delegate: appItem
+            }
+        },
+        State {
+            name: "spotlight"
+
+            PropertyChanges {
+                root.delegate: resultItem
             }
         },
         State {
@@ -295,6 +317,14 @@ StyledListView {
     }
 
     Component {
+        id: resultItem
+
+        ResultItem {
+            list: root
+        }
+    }
+
+    Component {
         id: actionItem
 
         ActionItem {
@@ -336,6 +366,7 @@ StyledListView {
 
     Connections {
         function onTextChanged() {
+            Spotlight.prime(root.search.text);
             root.syncDisplayText();
         }
 

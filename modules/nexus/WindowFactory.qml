@@ -27,6 +27,9 @@ Singleton {
 
             // Key of the settings page to open on (see PageRegistry), e.g. "updates"; empty for the default page
             property string startPage
+            // A SettingsIndex entry to open on instead, which lands on the row itself rather than
+            // the page holding it - what the launcher's search results do
+            property var startSetting
 
             color: Colours.tPalette.m3surface
             surfaceFormat.opaque: false
@@ -48,7 +51,9 @@ Singleton {
             title: Tr.tr("Nexus — %1").arg(PageRegistry.pages[nexus.nState.currentPageIdx].label)
 
             Component.onCompleted: {
-                if (startPage)
+                if (startSetting)
+                    nexus.nState.openSetting(startSetting);
+                else if (startPage)
                     nexus.nState.currentPageIdx = Math.max(0, PageRegistry.indexOfKey(startPage));
             }
 

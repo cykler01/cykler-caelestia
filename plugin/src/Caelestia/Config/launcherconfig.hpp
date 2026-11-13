@@ -35,6 +35,9 @@ class LauncherConfig : public settings::ObjectNode {
     CONFIG_PROPERTY(int, maxWallpapers, 9)
     CONFIG_GLOBAL_PROPERTY(QString, specialPrefix, u"@"_s)
     CONFIG_GLOBAL_PROPERTY(QString, actionPrefix, u">"_s)
+    // One search over apps, settings, actions and the calculator at once, instead of
+    // each behind its own prefix (see modules/launcher/services/Spotlight.qml)
+    CONFIG_GLOBAL_PROPERTY(bool, unifiedSearch, true)
     CONFIG_GLOBAL_PROPERTY(bool, enableDangerousActions, false)
     CONFIG_GLOBAL_PROPERTY(bool, enableSupergfxctl, false)
     // AI search (">ai "): the service to ask, its key and model, and an endpoint

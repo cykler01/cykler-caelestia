@@ -1,10 +1,13 @@
 .pragma library
 
-// Matching for the settings search field. The old search only filtered page
-// names, so finding one toggle meant knowing which page it was filed under;
-// this scores every individual setting in SettingsIndex instead, forgivingly
-// enough that a near miss still lands: a typo, the other spelling of a word, a
-// word left out, or the setting called by a name the UI does not use.
+// Forgiving text matching, shared by the settings search and the launcher. It
+// scores an entry against a query from 0 to 1, forgivingly enough that a near
+// miss still lands: a typo, the other spelling of a word, a word left out, or
+// the thing called by a name its own label does not use.
+//
+// The 0-1 range is the point of it being shared: it is what lets the launcher
+// rank a setting against an app against a calculator result, which their own
+// searches (fzf scores, list positions) cannot be compared across.
 //
 // A query is split into words and every word has to match something, so
 // "hover launcher" finds the launcher's hover toggle and nothing else, while
@@ -31,7 +34,8 @@ const SPELLINGS = [
 
 // Fields matched against, and how much a hit in each is worth. The label is
 // what the row actually says, so it wins; the subtext is a sentence and matches
-// loosely, so it is worth least.
+// loosely, so it is worth least. `prepare` ignores the ones an entry does not
+// have, so a caller is free to use only some of them.
 const FIELDS = [
     ["label", 1],
     ["keywords", 0.85],
@@ -134,6 +138,13 @@ function scoreToken(token, field) {
         if (words[i] === token)
             return 0.96 - Math.min(i, 8) * 0.01;
     }
+
+    // A single character is only a match when it is a word of its own. Anything looser and it
+    // matches nearly everything: searching "2+2" would turn up every setting whose text happens to
+    // contain a 2, which is how the calculator's answer ended up buried under "12-hour clock"
+    if (token.length < 2)
+        return 0;
+
     for (let i = 0; i < words.length; i++) {
         if (words[i].startsWith(token))
             return 0.88 - Math.min(i, 8) * 0.01;

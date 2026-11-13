@@ -1,6 +1,6 @@
 pragma Singleton
 
-import "settingssearch.js" as Search
+import "../../utils/scripts/fuzzymatch.js" as Search
 import QtQuick
 import qs.modules.nexus
 
@@ -62,6 +62,14 @@ QtObject {
     }
 
     function querySettings(query: string): var {
-        return Search.search(query, root.preparedSettings, root.maxSettings).map(result => result.entry);
+        return root.querySettingsScored(query).map(result => result.entry);
+    }
+
+    // The same results with their scores kept, for callers that want to be stricter than the
+    // sidebar is. The sidebar can afford to show a near miss - it is the only list on screen, and
+    // scrolling past one costs nothing - while the launcher is mixing settings in with apps and
+    // actions, where a loose match reads as a wrong answer rather than a further one
+    function querySettingsScored(query: string): var {
+        return Search.search(query, root.preparedSettings, root.maxSettings);
     }
 }
