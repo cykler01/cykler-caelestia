@@ -59,7 +59,7 @@ PAGES: dict[str, list[str]] = {
     "input": ["InputPage"],
     "keybinds": ["KeybindsPage"],
     "power": ["BatteryPage"],
-    "language": ["LanguageAndRegion"],
+    "language": ["LanguageAndRegion", "WeatherLocation"],
     "updates": ["UpdatesPage"],
     "about": ["AboutPage"],
 }

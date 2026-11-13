@@ -2508,6 +2508,14 @@ QtObject {
             page: "language",
             path: [],
             title: Tr.tr("Language & region"),
+            section: Tr.tr("Weather"),
+            label: Tr.tr("Weather location"),
+            keywords: "weather location city coordinates map where"
+        },
+        {
+            page: "language",
+            path: [],
+            title: Tr.tr("Language & region"),
             section: Tr.tr("Units"),
             label: Tr.tr("Temperature"),
             subtext: Tr.tr("Units for weather temperatures")

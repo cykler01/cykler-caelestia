@@ -287,6 +287,9 @@ QtObject {
                 Component {
                     LanguageAndRegion {}
                 }
+                Component {
+                    WeatherLocation {}
+                }
             }
         },
         Component {
