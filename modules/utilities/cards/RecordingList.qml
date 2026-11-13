@@ -118,7 +118,9 @@ ColumnLayout {
                 onClicked: {
                     root.screenState.utilities = false;
                     root.screenState.sidebar = false;
-                    Quickshell.execDetached([...GlobalConfig.general.apps.explorer, recording.modelData.path]);
+                    // The folder the recording is in, not the recording: a file manager
+                    // given the .mp4 itself just complains it is not a folder
+                    Quickshell.execDetached([...GlobalConfig.general.apps.explorer, Paths.parentDir(recording.modelData.path)]);
                 }
             }
 

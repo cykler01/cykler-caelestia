@@ -43,4 +43,14 @@ Singleton {
     function shortenHome(path: string): string {
         return path.replace(home, "~");
     }
+
+    // The folder a file sits in. For handing to a file manager, which wants a directory
+    // and errors out ("trying to open a file as a folder") when given the file itself.
+    function parentDir(path: string): string {
+        const cut = path.lastIndexOf("/");
+        if (cut < 0)
+            return path;
+        // Keep the slash for a file at the root, or this returns an empty string
+        return cut === 0 ? "/" : path.slice(0, cut);
+    }
 }
