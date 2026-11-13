@@ -352,7 +352,16 @@ Item {
                             thisSideX: ShellState.componentsFor(root.screen)?.bar?.onRight ? Menu.Right : Menu.Left
                             attachSideY: Menu.Bottom
                             thisSideY: Menu.Top
+                            // These are actions, not a choice, so no row is highlighted as the current one;
+                            // without this the first entry would sit in the selection colour until it was
+                            // clicked, reading as a chosen value that the menu does not have
+                            active: null
                             items: [minimizeItem, closeItem]
+
+                            onExpandedChanged: {
+                                if (!expanded)
+                                    active = null;
+                            }
 
                             MenuItem {
                                 id: minimizeItem
