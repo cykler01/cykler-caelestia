@@ -87,6 +87,14 @@ MouseArea {
             dy = 0;
         }
 
+        // And a sideways swipe over something that only scrolls up and down
+        // should move that instead: on a trackpad the horizontal gesture is the
+        // same two fingers, and a vertical-only list has nothing else to do with it
+        if (dy === 0 && dx !== 0 && root.canScrollY && !root.canScrollX) {
+            dy = dx;
+            dx = 0;
+        }
+
         const movesX = root.canScrollX && dx !== 0;
         const movesY = root.canScrollY && dy !== 0;
 

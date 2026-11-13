@@ -97,9 +97,18 @@ PathView {
 
     CustomMouseArea {
         function onWheel(event: WheelEvent): void {
-            if (event.angleDelta.y > 0)
+            // The list only runs sideways, so either axis steps it: vertical for a mouse wheel,
+            // sideways for a two finger trackpad swipe, and pixelDelta for devices that send a
+            // gesture without any angle at all
+            let delta = event.angleDelta.y;
+            if (delta === 0)
+                delta = event.angleDelta.x;
+            if (delta === 0)
+                delta = event.pixelDelta.y + event.pixelDelta.x;
+
+            if (delta > 0)
                 root.decrementCurrentIndex();
-            else if (event.angleDelta.y < 0)
+            else if (delta < 0)
                 root.incrementCurrentIndex();
         }
 
