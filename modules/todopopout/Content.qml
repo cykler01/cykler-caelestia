@@ -284,8 +284,12 @@ Item {
             }
 
             TodoRing {
-                Layout.preferredWidth: Math.round(Math.max(64, header.implicitHeight))
-                Layout.preferredHeight: Math.round(Math.max(64, header.implicitHeight))
+                // Matches the height of the rows beside it so the two balance, but capped. The
+                // header gains a row once a list has completed tasks or can be deleted, and
+                // uncapped the ring grew with it - taking width from the very rows that made it
+                // taller, until the buttons were squeezed together and it ran past the panel edge
+                Layout.preferredWidth: Math.round(Math.min(Math.max(64, header.implicitHeight), 80))
+                Layout.preferredHeight: Layout.preferredWidth
                 doneCount: root.doneTasks
                 overdueCount: root.overdueTasks
                 todoCount: root.todoTasks
