@@ -12,8 +12,20 @@ Singleton {
     id: root
 
     readonly property list<MprisPlayer> list: Mpris.players.values
-    // A player that is actually playing beats the default/first one when nothing was picked by hand
-    readonly property MprisPlayer active: props.manualActive ?? list.find(p => p.isPlaying) ?? list.find(p => getIdentity(p) === GlobalConfig.services.defaultPlayer) ?? list[0] ?? null
+
+    // Some players stay registered with nothing loaded at all, or with the placeholders below where
+    // a field should be. Neither is a track, so they are not counted as media anywhere (the notch,
+    // the media tab and the widgets otherwise showed them as "Unknown title"/"Unknown artist" with
+    // a 0:00 out of 0:00 bar).
+    readonly property list<string> metaPlaceholders: ["unknown", "unknown title", "unknown artist", "unknown album", "unknown track", "untitled", "no title"]
+
+    // Only the players with something to show, both for picking what is displayed and for the
+    // selector that offers what can be picked
+    readonly property list<MprisPlayer> mediaPlayers: list.filter(p => root.hasMedia(p))
+
+    // A player that is actually playing beats the default/first one when nothing was picked by hand.
+    // The pick is filtered too: a player that starts playing with nothing loaded is still not media
+    readonly property MprisPlayer active: (root.hasMedia(props.manualActive) ? props.manualActive : null) ?? mediaPlayers.find(p => p.isPlaying) ?? mediaPlayers.find(p => getIdentity(p) === GlobalConfig.services.defaultPlayer) ?? mediaPlayers[0] ?? null
     property alias manualActive: props.manualActive
 
     // Dedup key for progressive metadata (e.g. mpv-mpris/yt-dlp player fills title then artist later).
@@ -37,10 +49,25 @@ Singleton {
     // the notch and widgets do not lose what they were showing the moment playback stops - only
     // while the app behind it is still open. A real playing player always wins over this.
     property MprisPlayer rememberedPlayer: null
-    readonly property MprisPlayer recentPlayer: list.find(p => p.isPlaying) ?? root.rememberedPlayer ?? root.active
+    readonly property MprisPlayer recentPlayer: mediaPlayers.find(p => p.isPlaying) ?? (root.hasMedia(root.rememberedPlayer) ? root.rememberedPlayer : null) ?? root.active
     // When the remembered player last started playing, so the notch can tell whether this or
     // the local player (Music.lastPlayedAt) was more recently the one actually making sound
     property real rememberedAt: 0
+
+    // Whether a metadata field says anything, rather than being empty or one of the placeholders
+    // some players report in its place
+    function hasMeta(value: string): bool {
+        const text = (value ?? "").trim().toLowerCase();
+        return text !== "" && !root.metaPlaceholders.includes(text);
+    }
+
+    // A player with neither a title nor an artist has no track to show, however it is playing -
+    // without this it turned up as "Unknown title"/"Unknown artist" and a 0:00 out of 0:00 bar
+    function hasMedia(player: MprisPlayer): bool {
+        if (!player)
+            return false;
+        return root.hasMeta(player.trackTitle) || root.hasMeta(player.trackArtist);
+    }
 
     function markPlaying(player: MprisPlayer): void {
         root.rememberedPlayer = player;

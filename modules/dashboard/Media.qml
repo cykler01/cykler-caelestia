@@ -49,10 +49,12 @@ Item {
     readonly property real playerRoom: Tokens.sizes.dashboard.mediaTabHeight - Tokens.padding.large * 2 - header.height - Tokens.spacing.small * 2
     readonly property real playerHeight: Math.max(root.playerRoom, content.implicitHeight, noMedia.implicitHeight)
 
-    // External players plus the in-shell player, for the source picker
+    // External players plus the in-shell player, for the source picker. Only players that actually
+    // have a track are offered (see Players.hasMedia), so one sitting there with nothing loaded
+    // cannot be picked only to show an empty player
     readonly property var sourceOptions: {
         const options = [];
-        for (const player of Players.list)
+        for (const player of Players.mediaPlayers)
             options.push({
                 kind: "mpris",
                 player: player,

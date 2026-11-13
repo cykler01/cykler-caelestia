@@ -6,6 +6,7 @@
 #include <qstandardpaths.h>
 
 #include <algorithm>
+#include <cmath>
 
 #include "imagecacheworker.hpp"
 
@@ -48,7 +49,18 @@ ImageCache::~ImageCache() {
 }
 
 QSize ImageCache::bucketFor(const QSize& devicePixels) {
-    return { roundUp(devicePixels.width()), roundUp(devicePixels.height()) };
+    if (devicePixels.isEmpty())
+        return {};
+
+    // Only the width is snapped to the bucket grid; the height is derived from the requested aspect ratio. Snapping
+    // both edges rounds them up by different amounts, so the bucket ends up with a different shape to the source
+    // size, and an image cropped to fit the bucket then has to be cropped again to fit the screen - a needless zoom
+    // on top of the one the bucket already applied. Deriving the height from the aspect ratio keeps the two crops
+    // aligned, so a wallpaper whose shape matches the screen is shown in full.
+    const auto width = roundUp(devicePixels.width());
+    const auto height = std::max(1,
+        static_cast<int>(std::lround(static_cast<qreal>(width) * devicePixels.height() / devicePixels.width())));
+    return { width, height };
 }
 
 QString ImageCache::keyFor(const QString& path, const QSize& bucket, Qt::AspectRatioMode mode) {
