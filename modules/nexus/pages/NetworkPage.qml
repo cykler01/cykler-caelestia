@@ -60,6 +60,7 @@ PageBase {
         ToggleRow {
             Layout.topMargin: Nmcli.hasAvailableEthernet ? Tokens.spacing.large : 0
             first: true
+            // SEARCH: wifi wireless wlan internet
             text: Tr.tr("Wi-Fi")
             font: Tokens.font.body.medium
             horizontalPadding: Tokens.padding.largeIncreased
@@ -118,6 +119,7 @@ PageBase {
             Layout.topMargin: Tokens.spacing.large
             Layout.fillWidth: true
             first: true
+            // SEARCH: tunnel wireguard openvpn
             text: Tr.tr("VPN")
             font: Tokens.font.body.medium
             horizontalPadding: Tokens.padding.largeIncreased

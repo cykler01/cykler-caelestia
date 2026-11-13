@@ -17,6 +17,7 @@ ConnectedRect {
     property color iconColour: Colours.palette.m3onSurfaceVariant
     property Component leadingComponent: icon ? iconComp : null
 
+    searchLabel: root.label
     Layout.fillWidth: true
     implicitHeight: rowLayout.implicitHeight + rowLayout.anchors.margins * 2
 

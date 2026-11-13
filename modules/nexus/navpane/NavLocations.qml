@@ -14,37 +14,41 @@ VerticalFadeFlickable {
 
     required property NexusState nState
 
-    // Every page, tagged with its real index into PageRegistry.pages (which currentPageIdx
-    // uses), filtered down to the ones matching the search text
+    readonly property string query: root.nState.searchOpen ? root.nState.searchQuery : ""
+
+    // The pages themselves. With nothing typed this is the whole sidebar, in its usual
+    // order; with a query it is the pages whose own name or description matches, ranked.
     readonly property var pages: {
-        const tagged = PageRegistry.pages.map((p, i) => Object.assign({}, p, {
-                    pageIdx: i
-                }));
-
-        // Alphanumeric only, so "wifi" still finds "Wi-Fi" and punctuation never gets in the way
-        const normalise = t => t.toLowerCase().replace(/[^a-z0-9]+/g, "");
-        const query = normalise(root.nState.searchOpen ? root.nState.searchQuery : "");
-        if (query === "")
-            return tagged;
-
-        return tagged.filter(p => normalise(`${p.label} ${p.description} ${p.keywords ?? ""}`).includes(query));
+        if (root.query === "")
+            return PageRegistry.pages.map((page, idx) => Object.assign({}, page, {
+                        pageIdx: idx
+                    }));
+        return SettingsSearch.queryPages(root.query);
     }
+
+    // The individual toggles, sliders and pickers inside those pages. Searching only
+    // page names meant knowing which page a setting was filed under before it could be
+    // found, which for something like "drag threshold" - on four different panels - is
+    // most of the work.
+    readonly property var settings: root.query === "" ? [] : SettingsSearch.querySettings(root.query)
+
+    readonly property bool empty: root.pages.length === 0 && root.settings.length === 0
 
     topMargin: Tokens.padding.large
     bottomMargin: Tokens.padding.large
-    contentHeight: root.pages.length > 0 ? content.implicitHeight : empty.implicitHeight
+    contentHeight: root.empty ? emptyText.implicitHeight : content.implicitHeight
 
     TapHandler {
         onTapped: root.focus = true
     }
 
     StyledText {
-        id: empty
+        id: emptyText
 
         anchors.horizontalCenter: parent.horizontalCenter
         anchors.top: parent.top
         anchors.topMargin: Tokens.padding.extraLarge
-        visible: root.pages.length === 0
+        visible: root.empty
         text: Tr.tr("No settings match your search")
         color: Colours.palette.m3onSurfaceVariant
     }
@@ -55,6 +59,11 @@ VerticalFadeFlickable {
         anchors.left: parent.left
         anchors.right: parent.right
         spacing: Tokens.spacing.extraSmall
+
+        GroupHeader {
+            visible: root.settings.length > 0 && root.pages.length > 0
+            text: Tr.tr("Pages")
+        }
 
         Repeater {
             id: list
@@ -73,8 +82,8 @@ VerticalFadeFlickable {
                 // The neighbour directly above/below the selected item (within the same
                 // group) curves inward on the side touching it, so the selection looks
                 // like it's nestled into the list rather than just overlaid on top
-                readonly property bool touchesSelectedAbove: !isCategoryStart && index - 1 === root.nState.currentPageIdx
-                readonly property bool touchesSelectedBelow: !isCategoryEnd && index + 1 === root.nState.currentPageIdx
+                readonly property bool touchesSelectedAbove: !isCategoryStart && root.pages[index - 1]?.pageIdx === root.nState.currentPageIdx
+                readonly property bool touchesSelectedBelow: !isCategoryEnd && root.pages[index + 1]?.pageIdx === root.nState.currentPageIdx
 
                 Layout.fillWidth: true
                 // The selected item pushes its neighbours away a little, so it reads as
@@ -175,6 +184,25 @@ VerticalFadeFlickable {
                 }
             }
         }
+
+        GroupHeader {
+            visible: root.settings.length > 0
+            text: Tr.tr("Settings")
+        }
+
+        Repeater {
+            id: settingsList
+
+            model: root.settings
+
+            SettingResult {
+                required property int index
+
+                first: index === 0
+                last: index === settingsList.model.length - 1
+                nState: root.nState
+            }
+        }
     }
 
     component RadiusBehavior: Behavior {
@@ -183,5 +211,16 @@ VerticalFadeFlickable {
         }
     }
 
+    // Splits the two kinds of result apart once both are on screen, so a page and a
+    // setting with the same name are not mistaken for each other
+    component GroupHeader: StyledText {
+        Layout.fillWidth: true
+        Layout.topMargin: visible ? Tokens.spacing.medium : 0
+        Layout.bottomMargin: visible ? Tokens.spacing.extraSmall : 0
+        Layout.leftMargin: Tokens.padding.large
 
+        color: Colours.palette.m3onSurfaceVariant
+        font: Tokens.font.label.medium
+        elide: Text.ElideRight
+    }
 }

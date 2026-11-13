@@ -213,6 +213,7 @@ PageBase {
         }
 
         TextFieldRow {
+            // SEARCH: token secret openai anthropic
             label: Tr.tr("API key")
             subtext: Ai.provider.key ? Tr.tr("Key for %1").arg(Ai.provider.name) : Tr.tr("%1 needs no key").arg(Ai.provider.name)
             value: GlobalConfig.launcher.aiApiKey

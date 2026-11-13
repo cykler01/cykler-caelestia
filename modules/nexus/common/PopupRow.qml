@@ -18,6 +18,7 @@ ConnectedRect {
     readonly property alias popup: popup
     default required property Item content
 
+    searchLabel: root.label
     Layout.fillWidth: true
     implicitHeight: navLayout.implicitHeight + navLayout.anchors.margins * 2
 

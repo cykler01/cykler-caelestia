@@ -85,6 +85,7 @@ PageBase {
         }
 
         StepperRow {
+            // SEARCH: how long dismiss expire duration
             label: Tr.tr("Default timeout")
             // TRANSLATORS: ms is the millisecond unit, leave it untranslated
             subtext: Tr.tr("Time before a notification dismisses (ms)")

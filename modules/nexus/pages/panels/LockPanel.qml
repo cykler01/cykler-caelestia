@@ -66,6 +66,7 @@ PageBase {
 
         ToggleRow {
             first: true
+            // SEARCH: timeout dim away afk
             text: Tr.tr("Hide when idle")
             subtext: Tr.tr("Fade everything but the background away until the screen is touched again")
             checked: Config.lock.hideIdle

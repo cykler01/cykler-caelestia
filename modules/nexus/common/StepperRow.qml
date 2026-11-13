@@ -20,6 +20,7 @@ ConnectedRect {
 
     signal moved(value: real)
 
+    searchLabel: root.label
     Layout.fillWidth: true
     implicitHeight: rowLayout.implicitHeight + rowLayout.anchors.margins * 2
 

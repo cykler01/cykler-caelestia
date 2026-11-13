@@ -371,6 +371,7 @@ PageBase {
 
         ComboBoxRow {
             last: true
+            // SEARCH: git channel version update
             label: Tr.tr("Branch")
             subtext: ShellUpdater.branchesLoading ? Tr.tr("Loading branches...") : Tr.tr("The origin branch to check and pull; pick one or type your own")
             value: GlobalConfig.services.updateBranch

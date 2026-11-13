@@ -152,6 +152,7 @@ PageBase {
 
         StepperRow {
             first: true
+            // SEARCH: scroll increment audio
             label: Tr.tr("Volume step")
             subtext: Tr.tr("Amount the volume changes per scroll (%)")
             value: Math.round(GlobalConfig.services.audioIncrement * 100)
@@ -173,6 +174,7 @@ PageBase {
 
         StepperRow {
             last: true
+            // SEARCH: loudness limit overamplify
             label: Tr.tr("Max volume")
             subtext: Tr.tr("Upper limit for output volume (%)")
             value: Math.round(GlobalConfig.services.maxVolume * 100)
@@ -190,6 +192,7 @@ PageBase {
         StepperRow {
             first: true
             // TRANSLATORS: bars of a spectrum analyser, not the taskbar
+            // SEARCH: visualizer spectrum analyser cava
             label: Tr.tr("Visualiser bars")
             subtext: Tr.tr("Number of bars in the audio visualisers")
             value: GlobalConfig.services.visualiserBars
@@ -200,6 +203,7 @@ PageBase {
         }
 
         ToggleRow {
+            // SEARCH: automatic theme wallpaper
             text: Tr.tr("Smart colour scheme")
             subtext: Tr.tr("Derive theme mode and variant from the wallpaper")
             checked: GlobalConfig.services.smartScheme

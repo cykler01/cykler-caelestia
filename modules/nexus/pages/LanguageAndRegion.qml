@@ -76,6 +76,7 @@ PageBase {
         SelectRow {
             first: true
             last: true
+            // SEARCH: locale translation localisation
             label: Tr.tr("UI language")
             subtext: Tr.tr("The language used in the shell UI")
             active: menuItems.find(i => i.modelData === Tr.language) ?? autoLang
@@ -175,6 +176,7 @@ PageBase {
 
         SelectRow {
             last: true
+            // SEARCH: bytes gigabytes gib binary decimal
             label: Tr.tr("Data sizes")
             subtext: Tr.tr("Units for data sizes and network speeds")
             menuItems: root.dataItems
@@ -190,6 +192,7 @@ PageBase {
         SelectRow {
             first: true
             last: true
+            // SEARCH: 12 hour 24 hour time am pm
             label: Tr.tr("Clock format")
             subtext: Tr.tr("How times are shown across the shell")
             menuOnTop: true

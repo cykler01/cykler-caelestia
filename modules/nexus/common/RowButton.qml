@@ -21,6 +21,7 @@ ConnectedRect {
 
     signal clicked(event: MouseEvent)
 
+    searchLabel: root.text
     Layout.fillWidth: true
     implicitHeight: row.implicitHeight + Tokens.padding.medium * 2
 

@@ -59,6 +59,7 @@ PageBase {
         }
 
         ToggleRow {
+            // SEARCH: accel pointer speed flat
             text: Tr.tr("Acceleration")
             subtext: Tr.tr("Flat pointer movement when off, adaptive when on")
             checked: InputSettings.accelProfile !== "flat"
@@ -96,6 +97,7 @@ PageBase {
 
         SelectRow {
             last: true
+            // SEARCH: natural reverse inverted direction
             label: Tr.tr("Scrolling type")
             subtext: Tr.tr("Natural follows your fingers, reversed is the traditional direction")
             menuItems: root.scrollTypeItems

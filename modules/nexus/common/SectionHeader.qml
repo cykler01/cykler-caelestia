@@ -5,6 +5,10 @@ import qs.components
 import qs.services
 
 StyledText {
+    // Lets the settings search tell the headers apart from the rows under them when
+    // it walks a page looking for the row a result points at
+    readonly property bool isSectionHeader: true
+
     property bool first
 
     Layout.fillWidth: true

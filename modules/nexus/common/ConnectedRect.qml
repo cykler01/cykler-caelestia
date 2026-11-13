@@ -4,6 +4,10 @@ import qs.components
 import qs.services
 
 StyledRect {
+    // The name the settings search knows this row by, so a result can scroll to it
+    // and flash it. Blank on the rects used purely as backgrounds.
+    property string searchLabel
+
     property bool first
     property bool last
 

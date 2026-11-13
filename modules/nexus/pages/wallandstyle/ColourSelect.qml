@@ -26,6 +26,7 @@ PageBase {
         ToggleRow {
             first: true
             last: true
+            // SEARCH: night mode light appearance
             text: Tr.tr("Dark theme")
             checked: !Colours.light
             onToggled: Colours.setMode(checked ? "dark" : "light")
@@ -39,6 +40,7 @@ PageBase {
         ToggleRow {
             first: true
             last: true
+            // SEARCH: material you dynamic accent colour scheme
             text: Tr.tr("Use colours from wallpaper")
             subtext: Tr.tr("Derive the colour scheme from the current wallpaper")
             checked: Colours.scheme === "dynamic"

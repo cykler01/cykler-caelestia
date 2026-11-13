@@ -32,6 +32,8 @@ StyledSwitch {
     background: ConnectedRect {
         id: bg
 
+        searchLabel: root.text
+
         StateLayer {
             id: stateLayer
 

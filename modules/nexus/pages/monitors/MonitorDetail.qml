@@ -337,6 +337,7 @@ PageBase {
         SelectRow {
             Layout.fillWidth: true
             visible: !root.isDisabled
+            // SEARCH: orient portrait landscape flip
             label: qsTr("Rotation")
             subtext: qsTr("Screen orientation")
             menuItems: root.rotationItems
@@ -354,6 +355,7 @@ PageBase {
         SelectRow {
             Layout.fillWidth: true
             visible: !root.isDisabled
+            // SEARCH: dpi hidpi zoom size scaling
             label: qsTr("Scale")
             subtext: qsTr("UI scaling factor")
             menuItems: root.scaleItems
@@ -370,6 +372,7 @@ PageBase {
         SelectRow {
             Layout.fillWidth: true
             visible: !root.isDisabled
+            // SEARCH: hz hertz frequency vrr
             label: qsTr("Refresh rate")
             subtext: qsTr("Rates available at %0").arg(root.currentResolution)
             menuItems: refreshItemsInstantiator.items
@@ -382,6 +385,7 @@ PageBase {
             Layout.fillWidth: true
             visible: !root.isDisabled
             last: true
+            // SEARCH: pixels mode 1080p 1440p 4k
             label: qsTr("Resolution")
             subtext: qsTr("Display resolution")
             menuItems: resolutionItemsInstantiator.items

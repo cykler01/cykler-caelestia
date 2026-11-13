@@ -21,6 +21,7 @@ ConnectedRect {
 
     signal triStateValueChanged(string newValue)
 
+    searchLabel: root.label
     Layout.fillWidth: true
     implicitHeight: row.implicitHeight + Tokens.padding.medium * 2
 

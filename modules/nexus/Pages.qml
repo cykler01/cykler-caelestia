@@ -52,6 +52,16 @@ Item {
             root.lastPageIdx = root.nState.currentPageIdx;
         }
 
+        // A search result landing on another sub-page of the page already open: the
+        // page index never changes, so rebuild it to replay the new sub-page stack.
+        // Straight across rather than up or down, since it is not a move through the
+        // sidebar.
+        function onReloadPage(): void {
+            switchAnim.complete();
+            root.animOff = 0;
+            switchAnim.start();
+        }
+
         target: root.nState
     }
 

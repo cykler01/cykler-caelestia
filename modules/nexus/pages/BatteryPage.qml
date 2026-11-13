@@ -104,6 +104,7 @@ PageBase {
 
             ToggleRow {
                 last: true
+                // SEARCH: profile performance balanced saver
                 text: Tr.tr("Automatic power management")
                 subtext: Tr.tr("Switch profile when plugging in, unplugging or running low")
                 checked: root.pm.enabled
@@ -124,6 +125,7 @@ PageBase {
             }
 
             StepperRow {
+                // SEARCH: low battery percentage shutdown
                 label: Tr.tr("Critical level")
                 // TRANSLATORS: % is the percent unit, leave it untranslated
                 subtext: Tr.tr("Battery percentage at or below which the countdown starts (%)")

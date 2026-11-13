@@ -36,6 +36,7 @@ PageBase {
         NavRow {
             first: true
             icon: "dashboard_customize"
+            // SEARCH: position side left right top bottom move
             text: Tr.tr("Screen edge")
             subtext: Tr.tr("Currently %1 — change it, and everything else's position, in Layout").arg(root.positionNames[Config.bar.position] ?? root.positionNames[0])
             onClicked: root.nState.currentPageIdx = PageRegistry.indexOfKey("layout")

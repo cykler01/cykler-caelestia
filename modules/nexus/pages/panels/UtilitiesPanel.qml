@@ -134,6 +134,7 @@ PageBase {
         }
 
         ToggleRow {
+            // SEARCH: gaming performance
             text: Tr.tr("Game mode")
             subtext: Tr.tr("Toggle game mode")
             disabled: !Config.utilities.cards.quickToggles
@@ -142,6 +143,7 @@ PageBase {
         }
 
         ToggleRow {
+            // SEARCH: dnd silence quiet
             text: Tr.tr("Do not disturb")
             subtext: Tr.tr("Silence notifications")
             disabled: !Config.utilities.cards.quickToggles

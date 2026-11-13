@@ -29,6 +29,7 @@ ConnectedRect {
         return root.from + clamped * (root.to - root.from);
     }
 
+    searchLabel: root.label
     Layout.fillWidth: true
     implicitHeight: rowLayout.implicitHeight + rowLayout.anchors.margins + rowLayout.anchors.topMargin
 

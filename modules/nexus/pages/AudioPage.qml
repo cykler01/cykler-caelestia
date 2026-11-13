@@ -24,6 +24,7 @@ PageBase {
         SliderRow {
             first: true
             icon: Icons.getVolumeIcon(Audio.volume, Audio.muted)
+            // SEARCH: speaker headphones sink playback device
             label: Tr.trCtx("Output", "audio output")
             valueLabel: Strings.percentOne(value)
             value: Audio.volume
@@ -51,6 +52,7 @@ PageBase {
             Layout.topMargin: Tokens.spacing.large - parent.spacing
             first: true
             icon: Icons.getMicVolumeIcon(Audio.sourceVolume, Audio.sourceMuted)
+            // SEARCH: microphone mic source recording device
             label: Tr.trCtx("Input", "audio input")
             valueLabel: Strings.percentOne(value)
             value: Audio.sourceVolume
@@ -176,6 +178,7 @@ PageBase {
         ToggleRow {
             first: true
             last: true
+            // SEARCH: eq equaliser bass treble
             text: Tr.tr("System-wide equalizer")
             subtext: Tr.tr("Filter everything playing through a ten band equalizer, tuned in the media tab")
             checked: GlobalConfig.services.equalizer

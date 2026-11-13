@@ -28,6 +28,7 @@ PageBase {
 
         ToggleRow {
             first: true
+            // SEARCH: bt pair headphones earbuds
             text: Tr.tr("Bluetooth")
             font: Tokens.font.body.medium
             horizontalPadding: Tokens.padding.largeIncreased

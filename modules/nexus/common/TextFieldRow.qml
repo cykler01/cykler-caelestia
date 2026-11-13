@@ -29,6 +29,7 @@ ConnectedRect {
         input.clear();
     }
 
+    searchLabel: root.label
     Component.onDestruction: {
         if (value !== input.text)
             editingFinished(input.text);

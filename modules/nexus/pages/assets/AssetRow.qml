@@ -128,6 +128,7 @@ ConnectedRect {
         Toaster.toast(Tr.tr("Asset reset"), Tr.tr("Using the shell's default image again"), "settings_backup_restore", Toast.Info);
     }
 
+    searchLabel: root.label
     Layout.fillWidth: true
     implicitHeight: rowLayout.implicitHeight + rowLayout.anchors.margins * 2
 
