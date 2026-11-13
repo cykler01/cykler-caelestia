@@ -8,19 +8,16 @@ import Caelestia.Config
 import Caelestia.I18n
 import qs.modules.nexus
 
-// One search over what the launcher is for, so it answers what you typed rather than making you
-// know which of its modes the answer lives in: "firefox" is Firefox, "2+2" works out to 4, and an
-// action is found by name without the prefix in front of it.
+// What the launcher shows for plain text: the apps, plus an answer when the text is a sum.
 //
-// Settings are deliberately not in here. There are 338 of them against a few hundred apps, and
-// words like "settings", "display" or "network" name both - so mixed in they crowded out the thing
-// actually being looked for. They have their own mode instead, behind ">settings ".
+// Everything with a mode of its own stays in it. Settings (">settings"), files (">find") and the
+// actions (">") are all searched over far more rows than the app list, and all of them use words -
+// "settings", "display", "network" - that name an app too, so mixed in they crowded out the thing
+// actually being looked for. This builds the rows and ranks the groups; each mode runs its own
+// search and its results come through here only to be drawn the same way.
 //
-// Each source keeps its own search. Apps still go through Apps (fzf or fuzzysort, weighted by how
-// often you launch them) and actions through Actions - neither is replaced, because the app list is
-// the launcher's main job and its ranking is tuned. What is new is a way to compare them: each
-// source's best hit is re-scored with the shared matcher (utils/scripts/fuzzymatch.js), and that
-// one number decides which group leads.
+// Apps still go through Apps (fzf or fuzzysort, weighted by how often you launch them) - that is
+// not replaced, because the app list is the launcher's main job and its ranking is tuned.
 Singleton {
     id: root
 
@@ -29,11 +26,11 @@ Singleton {
     readonly property string catApps: "apps"
     readonly property string catSettings: "settings"
     readonly property string catActions: "actions"
+    readonly property string catFiles: "files"
 
     // How many of each source's results are worth showing next to the others. A unified list that is
     // all apps is just the app list with extra steps
-    readonly property int maxApps: 5
-    readonly property int maxActions: 3
+    readonly property int maxApps: Config.launcher.maxShown
     // ...and how many rows in total, however they divide up. The launcher is a list you glance at;
     // past a certain length you are reading rather than picking
     readonly property int maxResults: Config.launcher.maxShown
@@ -72,6 +69,8 @@ Singleton {
             return Tr.trCtx("Calculator", "search result group");
         case root.catSettings:
             return Tr.trCtx("Settings", "search result group");
+        case root.catFiles:
+            return Tr.trCtx("Files", "search result group");
         case root.catActions:
             return Tr.trCtx("Actions", "search result group");
         default:
@@ -113,7 +112,7 @@ Singleton {
     // The whole result list, already ordered: the best group first, its own best hit at the top.
     // Each entry carries `firstOfGroup`, since the list draws its own headings rather than relying
     // on a model role the script model behind it does not have
-    function query(search: string, apps: var, actions: var): var {
+    function query(search: string, apps: var): var {
         const text = search.trim();
         if (!text)
             return [];
@@ -156,24 +155,6 @@ Singleton {
             });
         }
 
-        if (actions.length > 0) {
-            const items = actions.slice(0, root.maxActions).map(action => ({
-                        category: root.catActions,
-                        title: action.name,
-                        subtitle: action.desc ?? "",
-                        icon: action.icon ?? "bolt",
-                        kind: "action",
-                        payload: action
-                    }));
-            groups.push({
-                score: root.confidence(text, {
-                    label: items[0].title,
-                    subtext: items[0].subtitle
-                }),
-                items
-            });
-        }
-
         const bar = hasCalc ? root.besideCalcThreshold : root.groupThreshold;
         const strong = groups.filter(g => g.score >= bar);
         const keep = strong.length > 0 ? strong : groups;
@@ -190,11 +171,14 @@ Singleton {
         return root.markGroups(out.slice(0, root.maxResults));
     }
 
-    // Re-marks which rows start a group, after a slice may have cut the first row of one off
+    // Re-marks which rows start a group, after a slice may have cut the first row of one off.
+    // A single group needs no heading: typing an app's name should look like the app list it
+    // replaced, not like the app list with "Applications" written over it
     function markGroups(items: var): var {
+        const groups = new Set(items.map(item => item.category));
         let last = "";
         return items.map(item => {
-            const first = item.category !== last;
+            const first = groups.size > 1 && item.category !== last;
             last = item.category;
             return Object.assign({}, item, {
                 firstOfGroup: first
@@ -245,6 +229,12 @@ Singleton {
                 startSetting: result.payload
             });
             list.screenState.launcher = false;
+            break;
+        case "file":
+            Quickshell.execDetached(["xdg-open", result.payload]);
+            list.screenState.launcher = false;
+            break;
+        case "none":
             break;
         case "settingsWindow":
             WindowFactory.create();

@@ -53,6 +53,9 @@ class LauncherConfig : public settings::ObjectNode {
     CONFIG_GLOBAL_PROPERTY(bool, vimKeybinds, false)
     CONFIG_GLOBAL_PROPERTY(QStringList, favouriteApps, {})
     CONFIG_GLOBAL_PROPERTY(QStringList, hiddenApps, {})
+    // Where ">find" looks. Empty searches the home directory, which is nearly always what is
+    // wanted; set it to look somewhere else, or at several places
+    CONFIG_GLOBAL_PROPERTY(QStringList, fileSearchPaths, {})
     CONFIG_SUBOBJECT(LauncherUseFuzzy, useFuzzy)
     CONFIG_GLOBAL_PROPERTY(QVariantList, actions,
         DEFAULT_ARG({
@@ -154,6 +157,12 @@ class LauncherConfig : public settings::ObjectNode {
                 { u"icon"_s, u"bedtime"_s },
                 { u"description"_s, mark(u"Suspend then hibernate"_s) },
                 { u"command"_s, QStringList{ u"suspendThenHibernate"_s } },
+            }),
+            vmap({
+                { u"name"_s, markCtx(u"Find files"_s, u"launcher action"_s) },
+                { u"icon"_s, u"search"_s },
+                { u"description"_s, mark(u"Search your files, most recently changed first"_s) },
+                { u"command"_s, QStringList{ u"autocomplete"_s, u"find"_s } },
             }),
             vmap({
                 { u"name"_s, markCtx(u"Settings"_s, u"launcher action"_s) },

@@ -141,6 +141,38 @@ Singleton {
         return "";
     }
 
+    // A glyph for a file, from its extension. Only the broad kinds: the launcher's file results are
+    // scanned down a list, where "is that a picture or a document" is the whole job an icon has
+    function getFileIcon(name: string): string {
+        const dot = name.lastIndexOf(".");
+        const ext = dot > 0 ? name.slice(dot + 1).toLowerCase() : "";
+
+        if (["png", "jpg", "jpeg", "gif", "webp", "svg", "bmp", "avif", "tiff", "ico"].includes(ext))
+            return "image";
+        if (["mp4", "mkv", "webm", "mov", "avi", "m4v", "wmv", "flv"].includes(ext))
+            return "movie";
+        if (["mp3", "flac", "ogg", "opus", "wav", "m4a", "aac"].includes(ext))
+            return "music_note";
+        if (["pdf"].includes(ext))
+            return "picture_as_pdf";
+        if (["zip", "tar", "gz", "xz", "zst", "7z", "rar", "bz2"].includes(ext))
+            return "folder_zip";
+        if (["doc", "docx", "odt", "rtf", "md", "txt", "org"].includes(ext))
+            return "description";
+        if (["xls", "xlsx", "ods", "csv", "tsv"].includes(ext))
+            return "table";
+        if (["ppt", "pptx", "odp"].includes(ext))
+            return "slideshow";
+        if (["js", "ts", "py", "rs", "go", "c", "h", "cpp", "hpp", "qml", "sh", "fish", "lua", "rb", "java", "kt", "swift", "vim"].includes(ext))
+            return "code";
+        if (["json", "yaml", "yml", "toml", "xml", "ini", "conf", "cfg"].includes(ext))
+            return "data_object";
+        if (["ttf", "otf", "woff", "woff2"].includes(ext))
+            return "font_download";
+
+        return "draft";
+    }
+
     function getAppIcon(name: string, fallback: string): string {
         const icon = DesktopEntries.heuristicLookup(name)?.icon;
         if (fallback !== "undefined")

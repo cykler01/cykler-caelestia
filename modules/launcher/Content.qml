@@ -82,7 +82,7 @@ Item {
         onAccepted: {
             const currentItem = list.currentList?.currentItem;
             if (currentItem) {
-                if (["spotlight", "settings"].includes(list.currentList?.state)) {
+                if (["spotlight", "settings", "files"].includes(list.currentList?.state)) {
                     // Every kind of unified result knows how to open itself
                     Spotlight.activate(currentItem.modelData, list.currentList);
                 } else if (list.showWallpapers) {
