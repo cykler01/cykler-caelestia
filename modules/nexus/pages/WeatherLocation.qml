@@ -342,6 +342,11 @@ PageBase {
 
                     anchors.fill: parent
 
+                    // The page scrolls, and a Flickable takes a drag from whatever is inside it
+                    // after a few pixels. Over the map the page stops scrolling, so a drag pans and
+                    // the wheel zooms, which is what every map does
+                    onHoveredChanged: root.flickable.interactive = !map.hovered
+
                     onPicked: (pickedLat, pickedLon) => {
                         root.lat = pickedLat;
                         root.lon = pickedLon;

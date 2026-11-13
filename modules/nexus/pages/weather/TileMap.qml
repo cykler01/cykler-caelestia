@@ -78,6 +78,10 @@ Item {
         return out;
     }
 
+    // True while the pointer is over the map, so whatever the map sits inside can stop scrolling
+    // itself out from under a drag (see WeatherLocation.qml)
+    readonly property alias hovered: hover.hovered
+
     // Emitted when a point on the map is chosen, as opposed to the view merely being moved
     signal picked(real lat, real lon)
 
@@ -201,6 +205,10 @@ Item {
         }
     }
 
+    HoverHandler {
+        id: hover
+    }
+
     MouseArea {
         id: dragger
 
@@ -210,9 +218,16 @@ Item {
         property real lastY
         property real travelled
 
+        // A touchpad sends a stream of small scrolls rather than notches, so they are added up and
+        // a zoom step taken per notch's worth - without this one flick runs through every level
+        property real wheelAccum
+
         anchors.fill: parent
         cursorShape: pressed ? Qt.ClosedHandCursor : Qt.OpenHandCursor
         acceptedButtons: Qt.LeftButton
+        // The map lives inside a scrolling settings page, which would otherwise take the drag away
+        // mid-pan and scroll the page instead
+        preventStealing: true
 
         onPressed: mouse => {
             lastX = mouse.x;
@@ -235,7 +250,53 @@ Item {
             root.picked(root.latAt(mouse.y), root.lonAt(mouse.x));
         }
 
-        onWheel: wheel => root.zoomAt(wheel.angleDelta.y > 0 ? 1 : -1, wheel.x, wheel.y)
+        onWheel: wheel => {
+            // Mice report angleDelta in eighths of a degree, 120 to a notch; touchpads may report
+            // pixelDelta instead, and under Wayland often only one of the two is filled in
+            const delta = wheel.angleDelta.y !== 0 ? wheel.angleDelta.y : wheel.pixelDelta.y * 8;
+            wheel.accepted = true;
+            if (delta === 0)
+                return;
+
+            // A change of direction starts again, so reversing is immediate rather than having to
+            // first undo the travel banked the other way
+            if (delta > 0 !== dragger.wheelAccum > 0)
+                dragger.wheelAccum = 0;
+
+            dragger.wheelAccum += delta;
+            while (Math.abs(dragger.wheelAccum) >= 120) {
+                const step = dragger.wheelAccum > 0 ? 1 : -1;
+                dragger.wheelAccum -= step * 120;
+                root.zoomAt(step, wheel.x, wheel.y);
+            }
+        }
+    }
+
+    // Pinch to zoom, for touchpads and touchscreens. Steps whole zoom levels rather than scaling
+    // the tiles, since there is nothing to scale between them
+    PinchHandler {
+        id: pinch
+
+        property int startZoom
+
+        target: null
+        minimumScale: 0.2
+        maximumScale: 5
+
+        onActiveChanged: {
+            if (active)
+                pinch.startZoom = root.zoom;
+        }
+
+        onActiveScaleChanged: {
+            if (!pinch.active)
+                return;
+
+            const wanted = pinch.startZoom + Math.round(Math.log2(pinch.activeScale));
+            const centre = root.mapFromItem(null, pinch.centroid.scenePosition);
+            if (wanted !== root.zoom)
+                root.zoomAt(wanted - root.zoom, centre.x, centre.y);
+        }
     }
 
     // The chosen place. Drawn as a teardrop sitting on the point rather than centred over it, so
