@@ -49,6 +49,9 @@ StyledListView {
             if (text === `${prefix}settings` || text.startsWith(`${prefix}settings `))
                 return "settings";
 
+            if (FileSearch.queryFor(text) !== null)
+                return "files";
+
             return "actions";
         }
 
@@ -65,7 +68,11 @@ StyledListView {
         case "spotlight":
             // Each source still runs its own search; Spotlight only ranks and groups what they
             // return (see services/Spotlight.qml)
-            return Spotlight.query(text, Apps.search(text), Actions.query(`${GlobalConfig.launcher.actionPrefix}${text}`));
+            return Spotlight.query(text, Apps.search(text));
+        case "files":
+            // Searched off the main thread; this reads whatever came back last, and the model is
+            // rebuilt when the next lot arrives
+            return FileSearch.rows();
         case "settings": {
             const query = text.slice(`${GlobalConfig.launcher.actionPrefix}settings`.length).trim();
             return Spotlight.querySettings(query, query ? SettingsSearch.querySettingsScored(query) : []);
@@ -95,6 +102,10 @@ StyledListView {
             // The calculator answers off the main thread, so the unified list has to be rebuilt
             // when its answer arrives rather than only when the text changes
             Qalculator.rawResult;
+            // Both of these answer off the main thread, so the list has to be rebuilt when their
+            // results land rather than only when the text changes
+            FileSearch.results;
+            FileSearch.unavailable;
             return root.resultsForText(root.displayText);
         }
         onValuesChanged: root.currentIndex = 0
@@ -102,11 +113,16 @@ StyledListView {
 
     spacing: Tokens.spacing.small
     orientation: Qt.Vertical
-    // The AI answer is one tall wrapping row, and the unified results are rows of two heights
-    // (the first of each group carries its heading), so both are measured rather than counted.
-    // Every other delegate is a fixed-height row, still capped by maxShown. ContentList clamps
-    // the whole thing to maxHeight either way.
-    implicitHeight: state === "ai" || state === "spotlight" || state === "settings" ? contentHeight : (Tokens.sizes.launcher.itemHeight + spacing) * Math.min(Config.launcher.maxShown, count) - spacing
+    // The AI answer is one tall wrapping row, and the result rows come in two heights (the first
+    // of each group carries its heading), so both are measured rather than counted. Every other
+    // delegate is a fixed-height row, still capped by maxShown. ContentList clamps the whole thing
+    // to maxHeight either way.
+    //
+    // Keyed off displayState, not state: `state` flips the moment you type, while the model keeps
+    // showing the old results until the switch animation swaps them. Measuring the old uncapped
+    // app list with the new state's rule is what made the panel shoot to full height for a moment
+    // and then collapse back on the first keystroke.
+    implicitHeight: displayState === "ai" || displayState === "spotlight" || displayState === "settings" || displayState === "files" ? contentHeight : (Tokens.sizes.launcher.itemHeight + spacing) * Math.min(Config.launcher.maxShown, count) - spacing
 
     preferredHighlightBegin: 0
     preferredHighlightEnd: height
@@ -155,6 +171,13 @@ StyledListView {
         },
         State {
             name: "settings"
+
+            PropertyChanges {
+                root.delegate: resultItem
+            }
+        },
+        State {
+            name: "files"
 
             PropertyChanges {
                 root.delegate: resultItem
@@ -381,6 +404,7 @@ StyledListView {
     Connections {
         function onTextChanged() {
             Spotlight.prime(root.search.text);
+            FileSearch.prime(root.search.text);
             root.syncDisplayText();
         }
 
