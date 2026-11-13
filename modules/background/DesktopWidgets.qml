@@ -21,8 +21,14 @@ Item {
     // How far the bar band's centre sits from the screen's own, so anything that should line up with the notch
     // (which centres on the band, not the screen) can be shifted by it
     property real notchOffset: 0
+    // Whether the desktop is actually uncovered. Holding a card to rearrange is only offered then:
+    // with windows over it there is no desktop to press on, and the cards are faded out anyway
+    property bool deskClear: true
 
     readonly property bool editMode: (screenState?.widgetEdit ?? false)
+    // The cards take the hold themselves while the layout is settled; once rearranging, the drag
+    // handles are over them and holding one means dragging it
+    readonly property bool holdToRearrange: !root.editMode && root.deskClear
 
     // Which card is being dragged in move mode (the entry it shows), where the pointer is within it, and where it
     // would land. Keyed by entry rather than by kind, since the same widget can be on the desktop twice
@@ -37,6 +43,8 @@ Item {
     // background surface asks for keyboard focus only for as long as that is so (see
     // modules/background/Background.qml), since there is nothing else out on the desktop to type into
     property bool wantsKeyboard
+    // The widget picker is open over the desktop, from the button in the rearrange bar
+    property bool addingWidget
 
     readonly property var widgetConfig: GlobalConfig.background.desktopWidgets
     readonly property int gridCols: Math.floor(width / WidgetGrid.unit)
@@ -149,9 +157,15 @@ Item {
     }
 
     // The surface only gets the keyboard while rearranging, so the focus has to be taken then
-    onEditModeChanged: if (editMode) forceActiveFocus()
+    onEditModeChanged: {
+        if (editMode)
+            forceActiveFocus();
+        else
+            root.addingWidget = false;
+    }
 
-    focus: editMode
+    // The picker takes the keyboard for itself while it is up, for its own Escape
+    focus: editMode && !root.addingWidget
 
     Keys.onEscapePressed: {
         if (screenState)
@@ -370,8 +384,9 @@ Item {
         }
     }
 
-    // Leaves the mode; the layout is already saved on each drop
-    StyledRect {
+    // Adding a widget and arranging them are the same job, so the picker is here rather than only in
+    // the settings. Leaving the mode needs no saving: the layout is written on each drop
+    RowLayout {
         z: 5
         visible: root.editMode
         anchors.horizontalCenter: parent.horizontalCenter
@@ -379,34 +394,75 @@ Item {
         anchors.horizontalCenterOffset: root.notchOffset
         anchors.top: parent.top
         anchors.topMargin: WidgetGrid.margin * WidgetGrid.unit
-        implicitWidth: doneRow.implicitWidth + Tokens.padding.large * 2
-        implicitHeight: doneRow.implicitHeight + Tokens.padding.small * 2
+        spacing: Tokens.spacing.small
+
+        Pill {
+            icon: "add"
+            text: Tr.tr("Add widget")
+            fill: Colours.palette.m3secondaryContainer
+            onFill: Colours.palette.m3onSecondaryContainer
+            onActivated: root.addingWidget = true
+        }
+
+        Pill {
+            icon: "check"
+            text: Tr.tr("Done")
+            fill: Colours.palette.m3primary
+            onFill: Colours.palette.m3onPrimary
+            onActivated: root.screenState.widgetEdit = false
+        }
+    }
+
+    // Only built while it is open: the tiles are live widgets, and an idle picker should not be
+    // running a forecast and a CPU reading behind the desktop
+    Loader {
+        anchors.fill: parent
+        z: 6
+        active: root.editMode && root.addingWidget
+
+        sourceComponent: AddWidgetSheet {
+            onClosed: root.addingWidget = false
+        }
+    }
+
+    component Pill: StyledRect {
+        id: pill
+
+        required property string icon
+        required property string text
+        required property color fill
+        required property color onFill
+
+        signal activated
+
+        implicitWidth: pillRow.implicitWidth + Tokens.padding.large * 2
+        implicitHeight: pillRow.implicitHeight + Tokens.padding.small * 2
         radius: Tokens.rounding.full
-        color: Colours.palette.m3primary
+        color: pill.fill
 
         RowLayout {
-            id: doneRow
+            id: pillRow
 
             anchors.centerIn: parent
             spacing: Tokens.spacing.small
 
             MaterialIcon {
-                text: "check"
-                color: Colours.palette.m3onPrimary
+                text: pill.icon
+                color: pill.onFill
                 fontStyle: Tokens.font.icon.small
             }
 
             StyledText {
-                text: Tr.tr("Done")
-                color: Colours.palette.m3onPrimary
+                text: pill.text
+                color: pill.onFill
                 font: Tokens.font.label.medium
             }
         }
 
         StateLayer {
             radius: parent.radius
-            color: Colours.palette.m3onPrimary
-            onClicked: root.screenState.widgetEdit = false
+            color: pill.onFill
+            onClicked: pill.activated()
         }
     }
 }

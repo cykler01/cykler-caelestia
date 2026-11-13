@@ -48,6 +48,15 @@ DesktopCard {
     // preview, which is what turns the blur off there (see DesktopCard.qml)
     wallpaper: gridHost?.wallpaper ?? null
 
+    // Holding a card is how rearranging is reached without going through the settings. Only on a
+    // desktop with nothing over it, and never while already rearranging - the drag handles own the
+    // press then (see DesktopWidgets.qml)
+    holdEnabled: gridHost?.holdToRearrange ?? false
+    onLongPressed: {
+        if (gridHost?.screenState)
+            gridHost.screenState.widgetEdit = true;
+    }
+
     z: held ? 4 : 0
 
     // Geometry is applied through Bindings rather than plain bindings so that a preview, which has no

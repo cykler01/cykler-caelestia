@@ -24,6 +24,13 @@ Item {
     default property alias content: col.data
 
     property point origin: Qt.point(0, 0)
+    // Press and hold anywhere on the card that isn't something interactive. Sits under the card's
+    // own content, so a hold on a button or a note still belongs to that, and off in the previews
+    property bool holdEnabled
+
+    // Emitted once the card has been held down; the desktop drops into rearrange mode on it.
+    // Not `held`, which the desktop cards already use for "this is the card being dragged"
+    signal longPressed
 
     function updateOrigin(): void {
         if (wallpaper)
@@ -84,6 +91,14 @@ Item {
         color: Qt.alpha(Colours.palette.m3primary, 0.04)
         border.width: 1
         border.color: Qt.alpha(Colours.palette.m3outlineVariant, 0.5)
+    }
+
+    // Declared before the content, so anything the card puts on top of it - a button, a note, a
+    // checkbox - takes the press first and only the card's bare areas reach this
+    MouseArea {
+        anchors.fill: parent
+        enabled: root.holdEnabled
+        onPressAndHold: root.longPressed()
     }
 
     ColumnLayout {
