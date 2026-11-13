@@ -76,6 +76,23 @@ Variants {
 
             anchors.fill: parent
 
+            // Press and hold the bare wallpaper to change it, so the switcher is reachable from the
+            // desktop itself rather than only through the launcher's command. Lowest of the window's
+            // children, so a hold on the clock, an icon or a widget belongs to that instead, and only
+            // while the desktop is uncovered: with windows over it there is no wallpaper to press on
+            MouseArea {
+                anchors.fill: parent
+                enabled: !insets.occupied
+                onPressAndHold: {
+                    const state = ShellState.forScreen(win.modelData);
+                    if (!state)
+                        return;
+
+                    state.launcherSearchRequest = `${GlobalConfig.launcher.actionPrefix}wallpaper `;
+                    state.launcher = true;
+                }
+            }
+
             Loader {
                 id: wallpaper
 
@@ -265,6 +282,7 @@ Variants {
             sourceComponent: DesktopWidgets {
                 wallpaper: behindClock
                 screenState: widgetsLoader.screenState
+                deskClear: !insets.occupied
                 // The notch centres on the screen minus the bar insets (see modules/drawers/Panels.qml), while the
                 // widget grid covers the whole screen, so the editor's button needs the same shift to sit under it
                 notchOffset: (insets.barLeft - insets.barRight) / 2

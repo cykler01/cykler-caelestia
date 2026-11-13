@@ -31,6 +31,12 @@ PersistentProperties {
     // The desktop's widget layout is being rearranged: the cards are draggable and snap to the grid
     property bool widgetEdit
 
+    // Text to put in the launcher's search field as it opens, for the things that want the launcher
+    // in one of its modes rather than on apps - press and hold on the wallpaper, which opens it on
+    // the wallpaper switcher. The launcher clears this as it takes it (see modules/launcher/Content.qml),
+    // so it is a request, not a setting
+    property string launcherSearchRequest
+
     // Which tab the sidebar's top card is showing, as one of the enabled tab keys (see
     // services/SidebarTabs.qml). Kept as a key rather than an index so turning a tab off doesn't
     // make the remembered position point at whichever tab took its place. Kept here so it

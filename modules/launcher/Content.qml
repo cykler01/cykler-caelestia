@@ -52,6 +52,20 @@ Item {
     SearchBar {
         id: search
 
+        // Opens straight into whichever mode asked for the launcher, rather than on the app list.
+        // Taken here as well as on the signal because the launcher is only built once it opens, so
+        // a request made to open it lands before there is anything to receive it
+        function takeSearchRequest(): void {
+            const request = root.screenState.launcherSearchRequest;
+            if (!request)
+                return;
+
+            root.screenState.launcherSearchRequest = "";
+            search.text = request;
+            search.cursorPosition = search.text.length;
+            search.forceActiveFocus();
+        }
+
         objectName: "launcherSearch"
 
         anchors.left: parent.left
@@ -129,9 +143,16 @@ Item {
             }
         }
 
-        Component.onCompleted: forceActiveFocus()
+        Component.onCompleted: {
+            forceActiveFocus();
+            search.takeSearchRequest();
+        }
 
         Connections {
+            function onLauncherSearchRequestChanged(): void {
+                search.takeSearchRequest();
+            }
+
             function onLauncherChanged(): void {
                 if (!root.screenState.launcher)
                     search.text = "";
