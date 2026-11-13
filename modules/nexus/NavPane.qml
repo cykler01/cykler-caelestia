@@ -30,13 +30,26 @@ ColumnLayout {
         clearIcon.font: Tokens.font.icon.medium
         clearIcon.padding: Tokens.padding.extraSmall
 
-        Behavior on bg.border.color {
-            CAnim {}
-        }
-
         // Drawn above the list, so it stays a glass header rather than getting hidden
         // behind items that scroll up past it
         z: 1
+
+        // Escape backs out of the search: it empties the field, which puts the page list
+        // back, and hands the focus over. With nothing typed there is nothing to back out
+        // of, so the press is left for whatever else wants it
+        Keys.onEscapePressed: event => {
+            if (!searchField.text) {
+                event.accepted = false;
+                return;
+            }
+
+            searchField.text = "";
+            searchField.focus = false;
+        }
+
+        Behavior on bg.border.color {
+            CAnim {}
+        }
 
         Binding {
             target: root.nState
