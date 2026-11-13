@@ -158,8 +158,8 @@ class LauncherConfig : public settings::ObjectNode {
             vmap({
                 { u"name"_s, markCtx(u"Settings"_s, u"launcher action"_s) },
                 { u"icon"_s, u"settings"_s },
-                { u"description"_s, mark(u"Configure the shell"_s) },
-                { u"command"_s, QStringList{ u"caelestia"_s, u"shell"_s, u"nexus"_s, u"open"_s } },
+                { u"description"_s, mark(u"Search the shell's settings, or open them"_s) },
+                { u"command"_s, QStringList{ u"autocomplete"_s, u"settings"_s } },
             }),
         }))
 };

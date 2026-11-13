@@ -10,103 +10,109 @@ import qs.services
 import qs.modules.launcher.services
 
 // One row of the unified search: an app, a setting, an action or a calculator answer, all drawn the
-// same way so the list reads as one answer to one question rather than four lists stacked up.
+// same way so the list reads as one answer to one question rather than several lists stacked up.
 //
-// The heading above a group is drawn here rather than through ListView.section, because the model is
-// a ScriptModel of plain objects and has no roles for a section to key off.
+// The heading above a group is part of the row under it rather than a row of its own: ListView
+// sections key off a model role, and the model here is a ScriptModel of plain objects which has
+// none. Keeping it inside also means the arrow keys never land on a heading.
 Item {
     id: root
 
     required property var modelData
     required property var list
 
-    readonly property real headerHeight: root.modelData.firstOfGroup ? heading.implicitHeight + Tokens.spacing.small : 0
-
     function onClicked(): void {
         Spotlight.activate(root.modelData, root.list);
     }
 
-    implicitHeight: Tokens.sizes.launcher.itemHeight + root.headerHeight
+    // Laid out by the column rather than by anchoring each piece to an edge, so a heading can never
+    // end up drawn over the row it belongs to
+    implicitHeight: column.implicitHeight
 
     anchors.left: parent?.left
     anchors.right: parent?.right
 
-    StyledText {
-        id: heading
+    Column {
+        id: column
 
-        anchors.left: parent.left
-        anchors.top: parent.top
-        anchors.leftMargin: Tokens.padding.medium
-
-        visible: root.modelData.firstOfGroup
-        text: Spotlight.categoryName(root.modelData.category)
-        color: Colours.palette.m3onSurfaceVariant
-        font: Tokens.font.label.medium
-    }
-
-    // Only the row itself is pressable, so a click on the heading above it does nothing rather than
-    // launching whatever happens to be underneath
-    StyledRect {
         anchors.left: parent.left
         anchors.right: parent.right
-        anchors.bottom: parent.bottom
-        implicitHeight: Tokens.sizes.launcher.itemHeight
 
-        color: "transparent"
-        radius: Tokens.rounding.large
+        StyledText {
+            id: heading
 
-        StateLayer {
-            radius: parent.radius
-            onClicked: root.onClicked()
+            leftPadding: Tokens.padding.medium
+            bottomPadding: Tokens.spacing.extraSmall
+            height: visible ? implicitHeight : 0
+            visible: root.modelData.firstOfGroup
+            text: Spotlight.categoryName(root.modelData.category)
+            color: Colours.palette.m3onSurfaceVariant
+            font: Tokens.font.label.medium
         }
 
-        RowLayout {
+        // Only the row is pressable, so a click on the heading does nothing rather than opening
+        // whatever happens to sit under it
+        StyledRect {
             anchors.left: parent.left
             anchors.right: parent.right
-            anchors.verticalCenter: parent.verticalCenter
-            anchors.margins: Tokens.padding.medium
+            implicitHeight: Tokens.sizes.launcher.itemHeight
 
-            spacing: Tokens.spacing.medium
+            color: "transparent"
+            radius: Tokens.rounding.large
 
-            // An app has a real icon to show; everything else gets its category's glyph
-            Loader {
-                Layout.alignment: Qt.AlignVCenter
-                active: root.modelData.kind === "app" && !!root.modelData.iconSource
-
-                sourceComponent: IconImage {
-                    asynchronous: true
-                    implicitSize: Math.round(Tokens.font.icon.extraLarge.pixelSize)
-                    source: Quickshell.iconPath(root.modelData.iconSource, "image-missing")
-                }
+            StateLayer {
+                radius: parent.radius
+                onClicked: root.onClicked()
             }
 
-            MaterialIcon {
-                Layout.alignment: Qt.AlignVCenter
-                visible: root.modelData.kind !== "app" || !root.modelData.iconSource
-                text: root.modelData.icon || "help_outline"
-                color: Colours.palette.m3onSurface
-                fontStyle: Tokens.font.icon.extraLarge
-                fill: root.modelData.kind === "setting" ? 1 : 0
-            }
+            RowLayout {
+                anchors.left: parent.left
+                anchors.right: parent.right
+                anchors.verticalCenter: parent.verticalCenter
+                anchors.margins: Tokens.padding.medium
 
-            ColumnLayout {
-                Layout.fillWidth: true
-                spacing: 0
+                spacing: Tokens.spacing.medium
 
-                StyledText {
-                    Layout.fillWidth: true
-                    text: root.modelData.title
-                    font: Tokens.font.body.large
-                    elide: Text.ElideRight
+                // An app has a real icon to show; everything else gets its category's glyph
+                Loader {
+                    Layout.alignment: Qt.AlignVCenter
+                    active: root.modelData.kind === "app" && !!root.modelData.iconSource
+
+                    sourceComponent: IconImage {
+                        asynchronous: true
+                        implicitSize: Math.round(Tokens.font.icon.extraLarge.pixelSize)
+                        source: Quickshell.iconPath(root.modelData.iconSource, "image-missing")
+                    }
                 }
 
-                StyledText {
+                MaterialIcon {
+                    Layout.alignment: Qt.AlignVCenter
+                    visible: root.modelData.kind !== "app" || !root.modelData.iconSource
+                    text: root.modelData.icon || "help_outline"
+                    color: Colours.palette.m3onSurface
+                    fontStyle: Tokens.font.icon.extraLarge
+                    fill: root.modelData.kind === "setting" ? 1 : 0
+                }
+
+                ColumnLayout {
                     Layout.fillWidth: true
-                    visible: !!root.modelData.subtitle
-                    text: root.modelData.subtitle
-                    color: Colours.palette.m3onSurfaceVariant
-                    font: Tokens.font.body.small
-                    elide: Text.ElideRight
+                    spacing: 0
+
+                    StyledText {
+                        Layout.fillWidth: true
+                        text: root.modelData.title
+                        font: Tokens.font.body.large
+                        elide: Text.ElideRight
+                    }
+
+                    StyledText {
+                        Layout.fillWidth: true
+                        visible: !!root.modelData.subtitle
+                        text: root.modelData.subtitle
+                        color: Colours.palette.m3onSurfaceVariant
+                        font: Tokens.font.body.small
+                        elide: Text.ElideRight
+                    }
                 }
             }
         }

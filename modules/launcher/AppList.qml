@@ -46,6 +46,9 @@ StyledListView {
             if (text === `${prefix}b` || text.startsWith(`${prefix}b `))
                 return "browser";
 
+            if (text === `${prefix}settings` || text.startsWith(`${prefix}settings `))
+                return "settings";
+
             return "actions";
         }
 
@@ -62,7 +65,11 @@ StyledListView {
         case "spotlight":
             // Each source still runs its own search; Spotlight only ranks and groups what they
             // return (see services/Spotlight.qml)
-            return Spotlight.query(text, Apps.search(text), SettingsSearch.querySettingsScored(text), Actions.query(`${GlobalConfig.launcher.actionPrefix}${text}`));
+            return Spotlight.query(text, Apps.search(text), Actions.query(`${GlobalConfig.launcher.actionPrefix}${text}`));
+        case "settings": {
+            const query = text.slice(`${GlobalConfig.launcher.actionPrefix}settings`.length).trim();
+            return Spotlight.querySettings(query, query ? SettingsSearch.querySettingsScored(query) : []);
+        }
         case "actions":
             return Actions.query(text);
         case "calc":
@@ -99,7 +106,7 @@ StyledListView {
     // (the first of each group carries its heading), so both are measured rather than counted.
     // Every other delegate is a fixed-height row, still capped by maxShown. ContentList clamps
     // the whole thing to maxHeight either way.
-    implicitHeight: state === "ai" || state === "spotlight" ? contentHeight : (Tokens.sizes.launcher.itemHeight + spacing) * Math.min(Config.launcher.maxShown, count) - spacing
+    implicitHeight: state === "ai" || state === "spotlight" || state === "settings" ? contentHeight : (Tokens.sizes.launcher.itemHeight + spacing) * Math.min(Config.launcher.maxShown, count) - spacing
 
     preferredHighlightBegin: 0
     preferredHighlightEnd: height
@@ -141,6 +148,13 @@ StyledListView {
         },
         State {
             name: "spotlight"
+
+            PropertyChanges {
+                root.delegate: resultItem
+            }
+        },
+        State {
+            name: "settings"
 
             PropertyChanges {
                 root.delegate: resultItem
