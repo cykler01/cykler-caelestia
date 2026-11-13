@@ -17,6 +17,11 @@ StyledRect {
     required property var modelData
     required property bool first
     required property bool last
+    // The result currently open, styled the way the page list styles the page you are
+    // on, and the two either side of it, which curve inward on the edge touching it
+    required property bool current
+    required property bool touchesCurrentAbove
+    required property bool touchesCurrentBelow
     required property NexusState nState
 
     readonly property string trail: {
@@ -29,17 +34,33 @@ StyledRect {
     }
 
     Layout.fillWidth: true
+    // The open result pushes its neighbours away a little, so it reads as popping out
+    // of the list rather than just being tinted a different colour
+    Layout.topMargin: root.current ? Tokens.spacing.small : 0
+    Layout.bottomMargin: root.current ? Tokens.spacing.small : 0
     // Rounded up to an even number, so the round icon chip lands on a whole pixel
     implicitHeight: {
         const h = layout.implicitHeight + layout.anchors.margins * 2;
         return h % 2 === 0 ? h : h + 1;
     }
 
-    color: Colours.layer(Colours.palette.m3surfaceContainerHigh, 2)
-    topLeftRadius: stateLayer.pressed ? Tokens.rounding.medium : root.first ? Tokens.rounding.extraLarge : Tokens.rounding.extraSmall
+    color: root.current ? Colours.palette.m3secondaryContainer : Colours.layer(Colours.palette.m3surfaceContainerHigh, 2)
+    topLeftRadius: stateLayer.pressed ? Tokens.rounding.medium : root.current ? Tokens.rounding.extraLargeIncreased : root.first || root.touchesCurrentAbove ? Tokens.rounding.extraLarge : Tokens.rounding.extraSmall
     topRightRadius: root.topLeftRadius
-    bottomLeftRadius: stateLayer.pressed ? Tokens.rounding.medium : root.last ? Tokens.rounding.extraLarge : Tokens.rounding.extraSmall
+    bottomLeftRadius: stateLayer.pressed ? Tokens.rounding.medium : root.current ? Tokens.rounding.extraLargeIncreased : root.last || root.touchesCurrentBelow ? Tokens.rounding.extraLarge : Tokens.rounding.extraSmall
     bottomRightRadius: root.bottomLeftRadius
+
+    Behavior on Layout.topMargin {
+        Anim {
+            type: Anim.DefaultEffects
+        }
+    }
+
+    Behavior on Layout.bottomMargin {
+        Anim {
+            type: Anim.DefaultEffects
+        }
+    }
 
     RadiusBehavior on topLeftRadius {}
     RadiusBehavior on topRightRadius {}
@@ -74,14 +95,14 @@ StyledRect {
             implicitWidth: height
 
             radius: Tokens.rounding.full
-            color: Colours.palette.m3secondaryContainer
+            color: root.current ? Colours.palette.m3primary : Colours.palette.m3secondaryContainer
 
             MaterialIcon {
                 anchors.centerIn: parent
                 anchors.verticalCenterOffset: 1
 
                 text: root.modelData.icon
-                color: Colours.palette.m3onSecondaryContainer
+                color: root.current ? Colours.palette.m3onPrimary : Colours.palette.m3onSecondaryContainer
                 fontStyle: Tokens.font.icon.builders.medium.weight(Font.Medium).build()
                 grade: 25
                 fill: root.modelData.noFill ? 0 : 1

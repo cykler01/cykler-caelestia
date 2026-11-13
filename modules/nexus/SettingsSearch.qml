@@ -38,6 +38,9 @@ QtObject {
         return {
             pageIdx,
             path: entry.path,
+            // Identifies the entry across rebuilds of the result list, so the one that
+            // was opened stays marked as open while the query is edited around it
+            key: `${entry.page}/${entry.path.join(",")}/${entry.section ?? ""}/${entry.label}`,
             label: entry.label,
             subtext: entry.subtext ?? "",
             section: entry.section ?? "",

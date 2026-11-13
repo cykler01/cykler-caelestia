@@ -34,6 +34,10 @@ VerticalFadeFlickable {
 
     readonly property bool empty: root.pages.length === 0 && root.settings.length === 0
 
+    // Where the open result sits in the list right now, or -1 when none of these is it.
+    // The rows either side of it need to know, to curve inward on the edge touching it.
+    readonly property int currentSettingIdx: root.nState.activeSetting ? root.settings.findIndex(entry => entry.key === root.nState.activeSetting) : -1
+
     topMargin: Tokens.padding.large
     bottomMargin: Tokens.padding.large
     contentHeight: root.empty ? emptyText.implicitHeight : content.implicitHeight
@@ -200,6 +204,9 @@ VerticalFadeFlickable {
 
                 first: index === 0
                 last: index === settingsList.model.length - 1
+                current: index === root.currentSettingIdx
+                touchesCurrentAbove: !first && index - 1 === root.currentSettingIdx
+                touchesCurrentBelow: !last && index + 1 === root.currentSettingIdx
                 nState: root.nState
             }
         }

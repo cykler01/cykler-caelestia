@@ -22,6 +22,11 @@ QtObject {
     property string highlightLabel
     property string highlightSection
 
+    // The settings search result currently open, by its key, so it stays marked as the
+    // one you are on in the result list the way the page list marks the current page.
+    // Cleared by picking a page, which is the other way out of a result.
+    property string activeSetting
+
     property string selectedWallpaperCategory
     property BluetoothDevice selectedBtDevice
     property DesktopEntry selectedApp
@@ -73,11 +78,15 @@ QtObject {
         highlightSection = entry.section ?? "";
 
         if (currentPageIdx !== entry.pageIdx) {
-            // Changing the page empties the stack, so the new one goes on after
+            // Changing the page empties the stack and drops the open result, so both
+            // go on after it rather than before
             currentPageIdx = entry.pageIdx;
             subPageIdxStack = path;
+            activeSetting = entry.key ?? "";
             return;
         }
+
+        activeSetting = entry.key ?? "";
 
         if (subPageIdxStack.length === path.length && path.every((idx, i) => subPageIdxStack[i] === idx)) {
             highlightRequested();
@@ -98,5 +107,8 @@ QtObject {
         subPageIdxStack.pop();
     }
 
-    onCurrentPageIdxChanged: subPageIdxStack.length = 0
+    onCurrentPageIdxChanged: {
+        subPageIdxStack.length = 0;
+        activeSetting = "";
+    }
 }
