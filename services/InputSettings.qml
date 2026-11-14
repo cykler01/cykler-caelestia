@@ -45,9 +45,17 @@ Singleton {
     readonly property real touchpadScrollFactor: root.current(root.touchpadScrollFactorKey, 1)
     readonly property bool naturalScroll: root.current(root.naturalScrollKey, false)
 
-    // The override if the option was changed here, otherwise whatever Hyprland reports
+    // What this session changed, then what the managed block already says, then the option's own
+    // default. A shell reload leaves overrides empty, so without the block in the middle every
+    // slider on the page snapped back to its default afterwards - while the setting itself was
+    // still in force, which is what made them look like they had not survived.
+    //
+    // Hyprland is not asked. Hypr.options comes from `hyprctl descriptions`, whose "current" is
+    // not the live value: on this version it reads 0 for a sensitivity that is really 1, and
+    // false for blur that is really on. The block is written here and sourced last by the user's
+    // hyprland.lua, so for the options this page owns it is the authority anyway
     function current(key: string, fallback: var): var {
-        return root.overrides[key] ?? Hypr.options[key] ?? fallback;
+        return root.overrides[key] ?? root.fileOverrides[key] ?? fallback;
     }
 
     function set(key: string, value: var): void {
@@ -71,7 +79,7 @@ Singleton {
     }
 
     function commit(): void {
-        props.overrides = root.overrides;
+        props.overrides = root.merged();
         root.apply();
         root.write();
     }
@@ -190,6 +198,14 @@ Singleton {
         // Rewriting identical content would only churn the file
         if (next !== root.savedText)
             storage.setText(next);
+    }
+
+    // What was changed before the last reload, so the page reads right in the moment before the
+    // file comes back off disk (and still does if it cannot be read at all). Everything in here
+    // was written to the block as well, so the file replaces it rather than disagreeing with it
+    Component.onCompleted: {
+        if (!root.loaded)
+            root.fileOverrides = Object.assign({}, props.overrides);
     }
 
     Timer {
