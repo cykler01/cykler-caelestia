@@ -19,6 +19,14 @@ CustomMouseArea {
     required property bool fullscreen
 
     property point dragStart
+    // Where the pointer set off from when it started heading for the open popout, and when it was
+    // last seen still on its way. See inSafeTriangle
+    property point popoutApex: Qt.point(-1, -1)
+    property double popoutApexAt: 0
+    // How long a pointer that has stopped still counts as on its way there. Long enough to cross
+    // the gap at a human speed, short enough that a pointer parked over another bar item gives up
+    // and opens that one instead
+    readonly property int safeTriangleGrace: 350
     property bool dashboardShortcutActive
     property bool osdShortcutActive
     property bool utilitiesShortcutActive
@@ -110,6 +118,75 @@ CustomMouseArea {
         else
             b = height;
         return x >= l && x <= r && y >= t && y <= b;
+    }
+
+    // The popout's near edge - the side facing the bar, which a pointer leaving the bar is aimed
+    // at - as { x1, y1, x2, y2 }
+    function popoutEdge(): var {
+        const w = panels.popoutsWrapper;
+        const l = bar.insetLeft + w.targetX;
+        const r = l + w.targetW;
+        const t = bar.insetTop + w.targetY;
+        const b = t + w.targetH;
+
+        if (bar.onLeft)
+            return ({
+                    x1: l,
+                    y1: t,
+                    x2: l,
+                    y2: b
+                });
+        if (bar.onRight)
+            return ({
+                    x1: r,
+                    y1: t,
+                    x2: r,
+                    y2: b
+                });
+        if (bar.onTop)
+            return ({
+                    x1: l,
+                    y1: t,
+                    x2: r,
+                    y2: t
+                });
+        return ({
+                x1: l,
+                y1: b,
+                x2: r,
+                y2: b
+            });
+    }
+
+    // The triangle rule: a pointer moving from the item it opened a popout from towards the popout
+    // itself is on its way there, even while it is still passing over the bar's other items. Inside
+    // the triangle drawn from where it set off to the two ends of the popout's near edge, nothing
+    // takes the popout over and nothing closes it - so a diagonal run from the battery icon to its
+    // popout no longer turns into the network one on the way past.
+    //
+    // The apex is wherever the pointer last sat with nowhere to go (see onPositionChanged), and it
+    // only holds for as long as the pointer keeps moving - stop inside the triangle and it lapses,
+    // leaving hover to behave as it always did.
+    function inSafeTriangle(x: real, y: real): bool {
+        if (!popouts.hasCurrent || popoutApex.x < 0)
+            return false;
+        if (Date.now() - popoutApexAt > root.safeTriangleGrace)
+            return false;
+
+        const edge = root.popoutEdge();
+        return root.inTriangle(x, y, popoutApex.x, popoutApex.y, edge.x1, edge.y1, edge.x2, edge.y2);
+    }
+
+    // Which side of the line ab a point sits on; three with the same sign mean the point is inside
+    function side(px: real, py: real, ax: real, ay: real, bx: real, by: real): real {
+        return (px - bx) * (ay - by) - (ax - bx) * (py - by);
+    }
+
+    function inTriangle(px: real, py: real, ax: real, ay: real, bx: real, by: real, cx: real, cy: real): bool {
+        const d1 = root.side(px, py, ax, ay, bx, by);
+        const d2 = root.side(px, py, bx, by, cx, cy);
+        const d3 = root.side(px, py, cx, cy, ax, ay);
+        return !((d1 < 0 || d2 < 0 || d3 < 0) && (d1 > 0 || d2 > 0 || d3 > 0));
     }
 
     // The empty stretch of the bar between its two ends: panels on the bar's own edge can still be reached from it
@@ -405,8 +482,15 @@ CustomMouseArea {
             const triggerPoint = trigger ? root.mapToItem(trigger, x, y) : Qt.point(-1, -1);
             if ((!trigger || !trigger.contains(triggerPoint)) && !inPopout(x, y))
                 popouts.hasCurrent = false;
+        } else if (root.inSafeTriangle(x, y)) {
+            // On its way to the popout: hold everything where it is, and keep holding for as long
+            // as it is still moving that way
+            root.popoutApexAt = Date.now();
         } else if (bar.isOver(x, y, width, height)) {
             bar.checkPopout(bar.vertical ? y : x);
+            // Resting on the bar, so this is where the next trip to a popout sets off from
+            root.popoutApex = Qt.point(x, y);
+            root.popoutApexAt = Date.now();
         } else if ((!popouts.currentName.startsWith("traymenu") || ((popouts.current as StackView)?.depth ?? 0) <= 1) && !inPopout(x, y)) {
             popouts.hasCurrent = false;
             bar.closeTray();
