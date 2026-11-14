@@ -48,16 +48,39 @@ Singleton {
         return monitors.find(m => m.modelData.name === query);
     }
 
+    // How bright a backlight level actually looks, 0-1. The backlight is linear in power, but the
+    // eye is not: the bottom of the range carries most of the change you can see, so a step of a
+    // tenth of it is a different size at every point - a jump down low, barely anything up high.
+    // These are the CIE L* transfer functions, the same curve lightness is measured on, so a step
+    // of a tenth here is a tenth of the visible range wherever it is taken from
+    function perceived(value: real): real {
+        const y = Math.max(0, Math.min(1, value));
+        return (y > 0.008856 ? 116 * Math.cbrt(y) - 16 : 903.3 * y) / 100;
+    }
+
+    function fromPerceived(lightness: real): real {
+        const l = Math.max(0, Math.min(1, lightness)) * 100;
+        return l > 8 ? Math.pow((l + 16) / 116, 3) : l / 903.3;
+    }
+
+    // A step of `delta` of the visible range from `value`. The backlight is set in whole percent,
+    // so a step that would land back on the percent it started from is nudged one further rather
+    // than doing nothing - down at the dim end a tenth of the visible range is a percent or two
+    function step(value: real, delta: real): real {
+        const next = root.fromPerceived(root.perceived(value) + delta);
+        if (delta > 0)
+            return Math.max(next, value + 0.01);
+        if (delta < 0)
+            return Math.min(next, value - 0.01);
+        return next;
+    }
+
     function increaseBrightness(): void {
-        const monitor = getMonitor("active");
-        if (monitor)
-            monitor.setBrightness(monitor.brightness + GlobalConfig.services.brightnessIncrement);
+        getMonitor("active")?.stepBrightness(GlobalConfig.services.brightnessIncrement);
     }
 
     function decreaseBrightness(): void {
-        const monitor = getMonitor("active");
-        if (monitor)
-            monitor.setBrightness(monitor.brightness - GlobalConfig.services.brightnessIncrement);
+        getMonitor("active")?.stepBrightness(-GlobalConfig.services.brightnessIncrement);
     }
 
     onMonitorsChanged: {
@@ -195,6 +218,11 @@ Singleton {
                     monitor.queuedBrightness = NaN;
                 }
             }
+        }
+
+        // Up or down by a share of the visible range rather than of the raw backlight (see step)
+        function stepBrightness(delta: real): void {
+            setBrightness(root.step(brightness, delta));
         }
 
         function setBrightness(value: real): void {
