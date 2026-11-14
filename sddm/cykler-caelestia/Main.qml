@@ -1,0 +1,500 @@
+import QtQuick
+import QtQuick.Effects
+import "components"
+
+// caelestia's lock screen, wearing sddm's auth instead of pam. the composition is
+// the shell's LockSurface: the day on the left, the one thing to answer on the
+// right, and the ways out underneath
+Item {
+    id: surface
+
+    // sddm loads this once per screen. only one of them asks for a password
+    readonly property bool primary: (typeof primaryScreen === "undefined") ? true : primaryScreen
+    // the arrival driver, linear in time so each block can ease its own slice
+    property real t: 0
+    // 1 while the greeter is here, 0 once the password has been taken
+    property real out: 1
+    // 0 glance, 1 focus. the day steps back so the field can step forward
+    property real focusK: Lock.focused ? 1 : 0
+    // while the field has the screen, everything that steps back also stops
+    // taking clicks and hover. a click out there only buys the focus back
+    readonly property bool glanceLive: !Lock.focused
+    readonly property real e: surface.ease(surface.t)
+    readonly property int pad: Math.round(Math.max(Theme.dp(36), Math.min(Theme.dp(76), surface.height * 0.062)))
+    readonly property int rightWidth: Math.round(Math.max(Theme.dp(340), Math.min(Theme.dp(440), surface.width * 0.25)))
+
+    width: 1920
+    height: 1080
+
+    // a long tail, so a block lands rather than stops
+    function ease(x) {
+        var c = Math.max(0, Math.min(1, x));
+        return 1 - Math.pow(1 - c, 5);
+    }
+
+    // a block's own progress: nothing until its turn, then a full ease of its own
+    function rv(delay) {
+        return surface.ease((surface.t - delay) / Math.max(0.05, 1 - delay));
+    }
+
+    Behavior on focusK {
+        NumberAnimation {
+            duration: Theme.ms(520)
+            easing.type: Easing.Bezier
+            easing.bezierCurve: Theme.easeEmphasizedDecel
+        }
+
+    }
+
+    NumberAnimation {
+        id: enterAnim
+
+        target: surface
+        property: "t"
+        to: 1
+        duration: Theme.ms(900)
+    }
+
+    // the greeter leans forward and dissolves as the session takes over
+    ParallelAnimation {
+        id: exitAnim
+
+        NumberAnimation {
+            target: surface
+            property: "out"
+            to: 0
+            duration: Theme.ms(300)
+            easing.type: Easing.Bezier
+            easing.bezierCurve: Theme.easeEmphasizedAccel
+        }
+
+    }
+
+    Connections {
+        function onPhaseChanged() {
+            if (Lock.granted)
+                exitAnim.restart();
+
+        }
+
+        target: Lock
+    }
+
+    // the models, read by role name so no role number has to be guessed
+    Instantiator {
+        model: userModel
+
+        delegate: QtObject {
+            required property string name
+            required property string realName
+            required property string icon
+            required property bool needsPassword
+        }
+
+        onObjectAdded: surface.syncUsers()
+        onObjectRemoved: surface.syncUsers()
+
+        id: users
+    }
+
+    Instantiator {
+        id: sessions
+
+        model: sessionModel
+
+        delegate: QtObject {
+            required property string name
+            required property string comment
+        }
+
+        onObjectAdded: surface.syncSessions()
+        onObjectRemoved: surface.syncSessions()
+    }
+
+    function syncUsers() {
+        var out = [];
+        for (var i = 0; i < users.count; i++) {
+            var o = users.objectAt(i);
+            if (o)
+                out.push({
+                    "name": o.name,
+                    "realName": o.realName,
+                    "icon": o.icon,
+                    "needsPassword": o.needsPassword
+                });
+
+        }
+        Lock.accounts = out;
+    }
+
+    function syncSessions() {
+        var out = [];
+        for (var i = 0; i < sessions.count; i++) {
+            var o = sessions.objectAt(i);
+            if (o)
+                out.push({
+                    "name": o.name,
+                    "comment": o.comment || ""
+                });
+
+        }
+        Lock.sessions = out;
+    }
+
+    Component.onCompleted: {
+        Lock.driver = surface.primary;
+        surface.syncUsers();
+        surface.syncSessions();
+        // sddm remembers who logged in last, and into what
+        for (var i = 0; i < Lock.accounts.length; i++) {
+            if (Lock.accounts[i].name === userModel.lastUser) {
+                Lock.index = i;
+                break;
+            }
+        }
+        if (sessionModel.lastIndex >= 0 && sessionModel.lastIndex < Lock.sessions.length)
+            Lock.sessionIndex = sessionModel.lastIndex;
+
+        // sddm can be told to list nobody; then every login is typed by hand
+        if (Lock.accounts.length === 0)
+            Lock.manual = true;
+
+        // the first account's colours land at once; every pick after it glides
+        surface.paperLive = true;
+        surface.showPaper();
+        Qt.callLater(function() {
+            Theme.settled = true;
+        });
+        surface.t = 0;
+        surface.out = 1;
+        enterAnim.start();
+        if (surface.primary)
+            Qt.callLater(auth.focusInput);
+
+    }
+
+    // ── backdrop ───────────────────────────────────────────────────────────
+    // the scale has to live on a child: MultiEffect renders its source without
+    // the source item's own transform, so a scale on the Image itself is lost
+    Item {
+        id: paperBox
+
+        anchors.fill: parent
+
+        Item {
+            id: paper
+
+            anchors.fill: parent
+            scale: 1.07 - 0.07 * surface.e + surface.focusK * 0.02 + (1 - surface.out) * 0.06
+
+            // background.jpg is generated by sync-sddm.sh and deliberately not
+            // in the repo, so an account that has never painted one gets a
+            // flat surface
+            Rectangle {
+                anchors.fill: parent
+                color: Theme.bgOpaque
+            }
+
+        }
+
+    }
+
+    // one layer per wallpaper shown. each fades in over whatever is under it
+    // once decoded, then retires everything beneath, so switching accounts
+    // quickly still crossfades from what is actually on screen
+    property var paperLayers: []
+    property bool paperLive: false
+
+    function showPaper() {
+        var src = Theme.background;
+        var video = Theme.backgroundVideo;
+        var top = surface.paperLayers.length > 0 ? surface.paperLayers[surface.paperLayers.length - 1] : null;
+        if (top && String(top.src) === String(src) && String(top.video) === String(video))
+            return ;
+
+        surface.paperLayers.push(paperLayer.createObject(paper, {
+            "src": src,
+            "video": video
+        }));
+    }
+
+    function retirePaper(layer) {
+        var i = surface.paperLayers.indexOf(layer);
+        if (i <= 0)
+            return ;
+
+        var gone = surface.paperLayers.splice(0, i);
+        for (var j = 0; j < gone.length; j++)
+            gone[j].destroy();
+    }
+
+    Connections {
+        // the picture and the video move together on a switch: one layer for both
+        function onBackgroundChanged() {
+            if (surface.paperLive)
+                Qt.callLater(surface.showPaper);
+
+        }
+
+        function onBackgroundVideoChanged() {
+            if (surface.paperLive)
+                Qt.callLater(surface.showPaper);
+
+        }
+
+        target: Theme
+    }
+
+    Component {
+        id: paperLayer
+
+        Item {
+            id: layer
+
+            required property url src
+            required property url video
+            // a picture that will not load still fades in, as a flat surface
+            readonly property bool decoded: img.status !== Image.Loading
+
+            anchors.fill: parent
+            opacity: 0
+            onDecodedChanged: {
+                if (layer.decoded)
+                    fadeIn.start();
+
+            }
+            Component.onCompleted: {
+                if (layer.decoded)
+                    fadeIn.start();
+
+            }
+
+            Rectangle {
+                anchors.fill: parent
+                color: Theme.bgOpaque
+                visible: img.status !== Image.Ready
+            }
+
+            Image {
+                id: img
+
+                anchors.fill: parent
+                source: layer.src
+                fillMode: Image.PreserveAspectCrop
+                asynchronous: true
+                cache: false
+            }
+
+            // its own file, so a machine without QtMultimedia loses only the
+            // motion and keeps the still under it
+            Loader {
+                anchors.fill: parent
+                active: String(layer.video) !== ""
+                source: "components/LiveBackdrop.qml"
+                onLoaded: item.source = layer.video
+            }
+
+            NumberAnimation {
+                id: fadeIn
+
+                target: layer
+                property: "opacity"
+                to: 1
+                duration: Theme.lookMs
+                easing.type: Easing.BezierSpline
+                easing.bezierCurve: Theme.easeLook
+                onFinished: surface.retirePaper(layer)
+            }
+
+        }
+
+    }
+
+    // the lock's own blur, live over sharp copies: a blur baked into a small
+    // copy showed the encoder's blocks once stretched. a copy from before that
+    // has it baked in, so only the focus deepening goes over it; blurs don't
+    // add up linearly, and 0.7 over that bake is the lock's 0.82, measured
+    MultiEffect {
+        anchors.fill: parent
+        source: paperBox
+        autoPaddingEnabled: false
+        blurEnabled: true
+        blurMax: 64
+        blur: surface.e * surface.out * (Theme.backgroundSharp ? 0.5 + surface.focusK * 0.32 : surface.focusK * 0.7)
+        visible: Theme.backgroundSharp || surface.focusK > 0.01
+    }
+
+    Rectangle {
+        anchors.fill: parent
+        opacity: surface.e * surface.out * (0.34 + surface.focusK * 0.14)
+
+        gradient: Gradient {
+            GradientStop {
+                position: 0
+                color: Theme.alpha(Theme.cScrim, 0.75)
+            }
+
+            GradientStop {
+                position: 0.45
+                color: Theme.alpha(Theme.cScrim, 0.95)
+            }
+
+            GradientStop {
+                position: 1
+                color: Theme.cScrim
+            }
+
+        }
+
+    }
+
+    // material you's whole point: the wallpaper's own colour laid back over it
+    Rectangle {
+        anchors.fill: parent
+        color: Theme.accent
+        opacity: surface.e * surface.out * 0.07
+    }
+
+    // everything drawn on top leaves together
+    Item {
+        id: stage
+
+        anchors.fill: parent
+        opacity: surface.out
+        scale: 1 + (1 - surface.out) * 0.05
+
+        // a click anywhere off the card puts the greeter back to its resting
+        // face and forgets whatever was half-typed
+        MouseArea {
+            anchors.fill: parent
+            onClicked: {
+                auth.discard();
+                Lock.disengage();
+            }
+        }
+
+        // ── glance chips, top right ────────────────────────────────────────
+        Chips {
+            id: chips
+
+            anchors.right: parent.right
+            anchors.rightMargin: surface.pad
+            anchors.top: parent.top
+            anchors.topMargin: surface.pad
+            visible: surface.primary
+            opacity: surface.rv(0.06) * (1 - surface.focusK * 0.6)
+            enabled: surface.glanceLive
+
+            transform: Translate {
+                y: (1 - surface.rv(0.06)) * -Theme.dp(24)
+            }
+
+        }
+
+        // ── the clock and what asks, down the middle ──────────────────────
+        //
+        // NOTE(fork): the shell's own lock screen is a centred column -- clock,
+        // date, avatar, greeting, field -- so the greeter is laid out the same
+        // way rather than lucid's clock-left/card-right split
+        Item {
+            id: centreCol
+
+            anchors.horizontalCenter: parent.horizontalCenter
+            anchors.top: parent.top
+            anchors.bottom: parent.bottom
+            anchors.topMargin: surface.pad
+            anchors.bottomMargin: surface.pad + Theme.dp(56)
+            width: Math.min(surface.width - surface.pad * 2, Theme.dp(520))
+            visible: surface.primary
+
+            Column {
+                anchors.centerIn: parent
+                spacing: Theme.dp(44)
+
+                Clock {
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    unit: Math.round(Math.min(Theme.dp(150), surface.height * 0.13))
+                    opacity: surface.rv(0.1)
+
+                    transform: Translate {
+                        y: (1 - surface.rv(0.1)) * -Theme.dp(20)
+                    }
+                }
+
+                AuthCard {
+                    id: auth
+
+                    // the column takes its width from its children, so this
+                    // has to name the item that has a width of its own
+                    width: centreCol.width
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    opacity: surface.rv(0.16)
+                    transformOrigin: Item.Top
+                    scale: 0.96 + 0.04 * surface.rv(0.16)
+
+                    transform: Translate {
+                        y: (1 - surface.rv(0.16)) * Theme.dp(28)
+                    }
+                }
+            }
+        }
+
+        // ── the ways out, bottom left ──────────────────────────────────────
+        PowerBar {
+            anchors.horizontalCenter: parent.horizontalCenter
+            anchors.bottom: parent.bottom
+            anchors.bottomMargin: surface.pad
+            visible: surface.primary
+            opacity: surface.rv(0.5) * (1 - surface.focusK * 0.6)
+            enabled: surface.glanceLive
+
+            transform: Translate {
+                y: (1 - surface.rv(0.5)) * 30
+            }
+
+        }
+
+        // ── every other screen: the time, and nothing to type into ─────────
+        Column {
+            anchors.centerIn: parent
+            spacing: Theme.dp(10)
+            visible: !surface.primary
+            opacity: surface.rv(0.08)
+
+            transform: Translate {
+                y: (1 - surface.rv(0.08)) * 24
+            }
+
+            Clock {
+                anchors.horizontalCenter: parent.horizontalCenter
+                unit: Math.round(Math.min(Theme.dp(200), surface.height * 0.17))
+            }
+
+            Row {
+                anchors.horizontalCenter: parent.horizontalCenter
+                spacing: Theme.dp(8)
+                topPadding: Theme.dp(18)
+
+                Glyph {
+                    anchors.verticalCenter: parent.verticalCenter
+                    name: "lock"
+                    size: Theme.dp(17)
+                    color: Theme.subtextDim
+                }
+
+                Text {
+                    anchors.verticalCenter: parent.verticalCenter
+                    text: sddm.hostName
+                    color: Theme.subtextDim
+                    font.family: Theme.fontFamily
+                    font.pixelSize: Theme.fontBodyMd
+                    font.variableAxes: Theme.axes(Theme.fontBodyMd, 420, 0)
+                }
+
+            }
+
+        }
+
+    }
+
+}

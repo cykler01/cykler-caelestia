@@ -1,0 +1,15 @@
+[SddmGreeterTheme]
+Name=cykler-caelestia
+Description=The shell's lock screen, as the login screen
+Author=cykler01
+Copyright=GPL-3.0
+License=GPL-3.0
+Type=sddm-theme
+Version=1.0
+Website=https://github.com/cykler01/cykler-caelestia
+Screenshot=
+MainScript=Main.qml
+ConfigFile=theme.conf
+TranslationsDirectory=
+Theme-API=2.0
+QtVersion=6
