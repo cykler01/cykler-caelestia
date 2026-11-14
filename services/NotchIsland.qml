@@ -2,6 +2,7 @@ pragma Singleton
 
 import QtQuick
 import Quickshell
+import Caelestia
 import Caelestia.Config
 import Caelestia.Services
 import qs.services
@@ -21,6 +22,8 @@ Singleton {
     readonly property string activity: {
         if (root.notifShown)
             return "notif";
+        if (root.toastShown)
+            return "toast";
         if (root.lockShown)
             return "keylock";
         return "";
@@ -56,6 +59,64 @@ Singleton {
     // to say caps lock is off at login is not news, so the first state to arrive is taken as the
     // state of things rather than as a change
     property bool lockReady
+
+    // --- Toasts ---
+
+    // A toast the island has taken over, so the corner list leaves it alone. Toaster has no
+    // "one arrived" signal, only a list that changed, so the newest unclaimed one is picked out
+    // by hand; the claimed ones are remembered just long enough for the list to stop offering them
+    property var claimedToasts: []
+    property string toastTitle
+    property string toastMessage
+    property string toastIcon
+    property int toastType
+    property bool toastShown
+
+    function isToastClaimed(toast: var): bool {
+        return root.claimedToasts.indexOf(toast) !== -1;
+    }
+
+    function showToast(toast: var): void {
+        if (!GlobalConfig.notch.enabled || !GlobalConfig.notch.showToasts)
+            return;
+        // Covered everywhere, the corner is the only place it would be seen
+        if (ShellState.notchCovered())
+            return;
+
+        root.claimedToasts = root.claimedToasts.concat([toast]).slice(-20);
+        root.toastTitle = toast.title;
+        root.toastMessage = toast.message;
+        root.toastIcon = toast.icon;
+        root.toastType = toast.type;
+        root.toastShown = true;
+        toastTimer.interval = toast.timeout > 0 ? toast.timeout : GlobalConfig.notch.showDuration;
+        toastTimer.restart();
+
+        // A lock key underneath would otherwise come back for the rest of its moment
+        root.lockShown = false;
+        lockTimer.stop();
+    }
+
+    Timer {
+        id: toastTimer
+
+        onTriggered: root.toastShown = false
+    }
+
+    Connections {
+        function onToastsChanged(): void {
+            const toasts = Toaster.toasts;
+            for (let i = toasts.length - 1; i >= 0; i--) {
+                const toast = toasts[i];
+                if (toast.closed || root.isToastClaimed(toast))
+                    continue;
+                root.showToast(toast);
+                return;
+            }
+        }
+
+        target: Toaster
+    }
 
     // --- Notifications ---
 
@@ -133,8 +194,10 @@ Singleton {
     function clear(): void {
         root.lockShown = false;
         root.notifShown = false;
+        root.toastShown = false;
         lockTimer.stop();
         notifTimer.stop();
+        toastTimer.stop();
     }
 
     // Nothing left to tuck away: the next one starts out on show again
