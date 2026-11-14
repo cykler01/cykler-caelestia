@@ -23,6 +23,16 @@ StyledListView {
     readonly property string requestedState: stateForText(search.text)
     readonly property string displayState: stateForText(displayText)
 
+    // The result modes build their rows fresh on every keystroke, so nothing in the list survives
+    // from one query to the next: every row is a remove and an add rather than a move. Animating
+    // that is not just pointless, it is what draws one row on top of another - rows slide through
+    // each other on their way to positions the rows being replaced have not left yet
+    readonly property bool rebuildsWholesale: ["spotlight", "settings", "files"].includes(displayState)
+    // False while a switch between modes is in flight. The switch tears the list down and builds
+    // it again, so nothing in it is where it was: animating rows to their new places just slides
+    // them through each other. Set at both ends of the transition below
+    property bool settled
+
     function syncDisplayText(): void {
         if (screenState.launcher && requestedState === displayState)
             displayText = search.text;
@@ -229,6 +239,11 @@ StyledListView {
 
     transitions: Transition {
         SequentialAnimation {
+            PropertyAction {
+                target: root
+                property: "settled"
+                value: false
+            }
             ParallelAnimation {
                 Anim {
                     target: root
@@ -259,6 +274,12 @@ StyledListView {
                 target: root
                 property: "delegate"
             }
+            // Swapping the delegate out and back can leave an item from the old contents behind,
+            // unpositioned at the top of the list and fully opaque - a whole row drawn over the
+            // first real one. Relaying out drops it.
+            ScriptAction {
+                script: root.forceLayout()
+            }
             ParallelAnimation {
                 Anim {
                     target: root
@@ -278,8 +299,8 @@ StyledListView {
                 }
             }
             PropertyAction {
-                targets: [root.add, root.remove]
-                property: "enabled"
+                target: root
+                property: "settled"
                 value: true
             }
         }
@@ -290,7 +311,7 @@ StyledListView {
     }
 
     add: Transition {
-        enabled: !root.state
+        enabled: root.settled && !root.rebuildsWholesale
 
         Anim {
             type: Anim.DefaultEffects
@@ -301,7 +322,7 @@ StyledListView {
     }
 
     remove: Transition {
-        enabled: !root.state
+        enabled: root.settled && !root.rebuildsWholesale
 
         Anim {
             type: Anim.DefaultEffects
@@ -312,6 +333,8 @@ StyledListView {
     }
 
     move: Transition {
+        enabled: root.settled && !root.rebuildsWholesale
+
         Anim {
             property: "y"
         }
@@ -322,11 +345,10 @@ StyledListView {
         }
     }
 
+    // No y animation here, unlike `move` and `displaced`. A row being added takes its final place
+    // immediately, so animating the rows it pushes down leaves the new row sitting on top of the
+    // one that was there - a whole row's worth of text over text, for as long as the slide lasts
     addDisplaced: Transition {
-        Anim {
-            property: "y"
-            type: Anim.StandardSmall
-        }
         Anim {
             type: Anim.DefaultEffects
             property: "opacity"
@@ -335,6 +357,8 @@ StyledListView {
     }
 
     displaced: Transition {
+        enabled: root.settled && !root.rebuildsWholesale
+
         Anim {
             property: "y"
         }
