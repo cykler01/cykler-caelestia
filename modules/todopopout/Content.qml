@@ -22,8 +22,10 @@ Item {
     required property bool open
     required property ScreenState screenState
 
-    // Which list is showing. Falls back to the first list if the chosen one was deleted.
-    property string selectedListId: Todo.defaultListId
+    // Which list is showing. Starts on the one last worked in - which outlives this item, so
+    // closing the sidebar, switching tabs or restarting the shell all come back to it rather than
+    // to the first list. Falls back to the default list if the chosen one was deleted.
+    property string selectedListId: Todo.lastListId
     // The task currently being renamed inline, or "" for none
     property string editingId: ""
     // The task whose deadline/reminder editor is open, or "" for none
@@ -97,6 +99,10 @@ Item {
             }
         ];
     }
+
+    // Remembered across sessions rather than only for as long as this item lives (see
+    // services/Todo.qml). Not a two-way binding: selectedListId is set from here too
+    onSelectedListIdChanged: Todo.selectList(root.selectedListId)
 
     onOpenChanged: {
         if (open) {

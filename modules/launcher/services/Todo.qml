@@ -28,6 +28,10 @@ Singleton {
     // ISO date-time string, or "" when not set. reminders is a list of { at, reminded }, each an
     // independent alarm; there can be any number of them, including none.
     property var tasks: []
+    // The list that was last on show, kept with the lists themselves so that closing the sidebar,
+    // switching tabs or restarting the shell all come back to the one being worked on rather than
+    // to the first one. Set by the to-do tab (modules/todopopout/Content.qml)
+    property string lastListId: root.defaultListId
     property int revision
     property bool imported: false
 
@@ -39,12 +43,22 @@ Singleton {
         const data = JSON.stringify({
             version: 2,
             lists: root.lists,
+            lastListId: root.lastListId,
             tasks: root.tasks
         });
         // Deferred so that writing right after a failed load (the file not existing yet)
         // is safe, like the other services that seed a state file
         Qt.callLater(() => storage.setText(data));
         root.revision++;
+    }
+
+    // Remembered for next time, but only worth writing the file for when it actually changed
+    function selectList(id: string): void {
+        if (!id || id === root.lastListId || !root.lists.some(l => l.id === id))
+            return;
+
+        root.lastListId = id;
+        root.save();
     }
 
     function listName(listId: string): string {
@@ -86,6 +100,9 @@ Singleton {
         root.tasks = root.tasks.map(t => t.listId === id ? Object.assign({}, t, {
                     listId: root.defaultListId
                 }) : t);
+        // Nothing to come back to once it is gone
+        if (root.lastListId === id)
+            root.lastListId = root.defaultListId;
         root.save();
     }
 
@@ -256,6 +273,9 @@ Singleton {
             } else if (data && typeof data === "object") {
                 if (Array.isArray(data.lists) && data.lists.length > 0)
                     root.lists = data.lists;
+                // A list that has since been deleted leaves the default one to open on
+                if (typeof data.lastListId === "string" && root.lists.some(l => l.id === data.lastListId))
+                    root.lastListId = data.lastListId;
                 if (Array.isArray(data.tasks)) {
                     let adopted = false;
                     root.tasks = data.tasks.filter(t => t && typeof t.text === "string" && t.text.length > 0).map(t => {
