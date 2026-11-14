@@ -354,6 +354,8 @@ Item {
         model: root.editMode ? root.placements : []
 
         Item {
+            id: handle
+
             required property var modelData
 
             visible: modelData.enabled
@@ -380,6 +382,39 @@ Item {
 
                 onReleased: root.endDrag()
                 onCanceled: root.endDrag()
+            }
+
+            // NOTE(fork): taking a widget off the desktop from the desktop itself, rather than going
+            // back through the settings to turn it off. Declared after the press that fills the card
+            // so the cross is what the pointer hits, and it writes the same removal the settings page
+            // does, so the rest of the layout closes up behind it. Drawn in the error colour, since it
+            // is the one thing here that throws something away, and inset far enough that the circle
+            // sits inside the card's corner curve instead of cutting across it
+            StyledRect {
+                id: remove
+
+                anchors.top: parent.top
+                anchors.left: parent.left
+                anchors.margins: Tokens.padding.medium
+                implicitWidth: removeLabel.implicitHeight + Tokens.padding.extraSmall * 2
+                implicitHeight: implicitWidth
+                radius: Tokens.rounding.full
+                color: Colours.palette.m3error
+
+                MaterialIcon {
+                    id: removeLabel
+
+                    anchors.centerIn: parent
+                    text: "close"
+                    color: Colours.palette.m3onError
+                    fontStyle: Tokens.font.icon.small
+                }
+
+                StateLayer {
+                    radius: remove.radius
+                    color: Colours.palette.m3onError
+                    onClicked: root.widgetConfig.entries.remove(handle.modelData.index)
+                }
             }
         }
     }
