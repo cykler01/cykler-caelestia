@@ -490,7 +490,9 @@ StyledRect {
                         fillWidth: true
                         inactiveColour: root.modelData.urgency === NotificationUrgency.Critical ? Colours.palette.m3secondary : Colours.layer(Colours.palette.m3surfaceContainerHighest, 2)
                         inactiveOnColour: root.modelData.urgency === NotificationUrgency.Critical ? Colours.palette.m3onSecondary : Colours.palette.m3onSurfaceVariant
-                        text: modelData.text
+                        // "View" in place of the spec's "Activate" for the default action,
+                        // see NotifData.actionLabel
+                        text: modelData.label ?? modelData.text
                         onClicked: modelData.invoke()
 
                         label.horizontalAlignment: Text.AlignHCenter

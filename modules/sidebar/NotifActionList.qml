@@ -180,7 +180,9 @@ Item {
                         id: textComp
 
                         StyledText {
-                            text: action.modelData.text
+                            // "View" in place of the spec's "Activate" for the default action,
+                            // see NotifData.actionLabel
+                            text: action.modelData.label ?? action.modelData.text
                             color: Colours.palette.m3onSurfaceVariant
                         }
                     }

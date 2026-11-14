@@ -48,6 +48,8 @@ QtObject {
     property string body
     property string appIcon
     property string appName
+    // The app's desktop file id, when it sent one: the surest way back to its window
+    property string desktopEntry
     property string image
     property var hints // Hints are not persisted across restarts
     property real expireTimeout: GlobalConfig.notifs.defaultExpireTimeout
@@ -188,12 +190,17 @@ QtObject {
             notif.actions = (notif.notification.actions as Array).map(a => ({
                         identifier: a.identifier,
                         text: a.text,
-                        invoke: () => a.invoke()
+                        label: notif.actionLabel(a.identifier, a.text),
+                        invoke: () => notif.invokeAction(a.identifier, a.text, () => a.invoke())
                     }));
         }
 
         function onHintsChanged(): void {
             notif.hints = notif.notification.hints;
+        }
+
+        function onDesktopEntryChanged(): void {
+            notif.desktopEntry = notif.notification.desktopEntry;
         }
 
         target: notif.notification
@@ -259,6 +266,68 @@ QtObject {
             dummyImageLoader.active = true;
     }
 
+    // The action a notification's own "click me" button is. Apps label it anything or nothing,
+    // but they all give it the same identifier
+    function isDefaultAction(identifier: string, text: string): bool {
+        return identifier === "default" || ["activate", "default"].includes(text.trim().toLowerCase());
+    }
+
+    // "Activate" is what the spec calls it; what it does is show you the thing
+    function actionLabel(identifier: string, text: string): string {
+        return notif.isDefaultAction(identifier, text) ? Tr.tr("View") : (text || Tr.tr("View"));
+    }
+
+    // An app id, a window class and a desktop file id are the same name in three dresses
+    // ("org.mozilla.firefox", "firefox", "Firefox"), so they are compared stripped down
+    function normalise(name: string): string {
+        const base = name.includes(".") ? name.slice(name.lastIndexOf(".") + 1) : name;
+        return base.toLowerCase().replace(/[^a-z0-9]/g, "");
+    }
+
+    function namesMatch(a: string, b: string): bool {
+        if (!a || !b)
+            return false;
+        if (a === b)
+            return true;
+        // "vesktop" against "discord" is not a match, but "firefox" against "firefoxdeveloperedition" is
+        return a.length >= 3 && b.length >= 3 && (a.includes(b) || b.includes(a));
+    }
+
+    // The window this notification came from, or null. The most recently focused one when the app
+    // has several, so a reply lands in the conversation you were last in
+    function toplevel(): var {
+        const names = [notif.desktopEntry, notif.appName].map(n => notif.normalise(n ?? "")).filter(n => n.length > 0);
+        if (names.length === 0)
+            return null;
+
+        const matches = Hypr.toplevels.values.filter(t => {
+            const ipc = t.lastIpcObject;
+            if (!ipc?.class)
+                return false;
+            const classes = [ipc.class, ipc.initialClass ?? ""].map(c => notif.normalise(c));
+            return names.some(n => classes.some(c => notif.namesMatch(n, c)));
+        });
+        if (matches.length === 0)
+            return null;
+
+        return matches.reduce((best, t) => (t.lastIpcObject.focusHistoryID ?? 99) < (best.lastIpcObject.focusHistoryID ?? 99) ? t : best);
+    }
+
+    // Invoking the default action is meant to bring the app up, and most apps do raise their
+    // window - but raising it does nothing for you while it sits on a workspace you are not
+    // looking at, which is why clicking "View" so often appeared to do nothing at all. So the
+    // shell goes to the window itself; focusing it is what switches the workspace
+    function invokeAction(identifier: string, text: string, invoke: var): void {
+        invoke();
+
+        if (!notif.isDefaultAction(identifier, text))
+            return;
+
+        const window = notif.toplevel();
+        if (window)
+            Hypr.focusWindow(window.address);
+    }
+
     function lock(item: Item): void {
         locks.add(item);
     }
@@ -287,6 +356,7 @@ QtObject {
         body = notification.body;
         appIcon = notification.appIcon;
         appName = notification.appName;
+        desktopEntry = notification.desktopEntry;
         image = notification.image;
         maybeTriggerDummyImageLoader();
         expireTimeout = notification.expireTimeout;
@@ -298,7 +368,8 @@ QtObject {
         actions = (notification.actions as Array).map(a => ({
                     identifier: a.identifier,
                     text: a.text,
-                    invoke: () => a.invoke()
+                    label: notif.actionLabel(a.identifier, a.text),
+                    invoke: () => notif.invokeAction(a.identifier, a.text, () => a.invoke())
                 }));
     }
 }
