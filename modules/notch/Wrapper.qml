@@ -145,8 +145,12 @@ Item {
     // Where it rests inside the bar band, centred across the band's thickness (horizontal bars)
     readonly property real barY: !barRef ? 0 : barRef.onBottom ? parent.height + (barRef.insetBottom - height) / 2 : -(barRef.insetTop + height) / 2
 
-    // Where it hangs (or rests, in the bar) in the panel area's coordinates
-    readonly property real hangX: Config.notch.align === PanelAlign.Start ? 0 : Config.notch.align === PanelAlign.End ? parent.width - width : (parent.width - width) / 2
+    // Where it hangs (or rests, in the bar) in the panel area's coordinates. Centred means centred
+    // on the screen, not on the area: the panels are inset by the bar (modules/drawers/Panels.qml),
+    // so with a bar down one side the middle of what is left sits half the bar's width off the
+    // middle of the screen, and the notch hung there. Start and End still go to the edges of the
+    // area they are in
+    readonly property real hangX: Config.notch.align === PanelAlign.Start ? 0 : Config.notch.align === PanelAlign.End ? parent.width - width : (parent.width - width) / 2 + (barRef ? (barRef.insetRight - barRef.insetLeft) / 2 : 0)
 
     readonly property real hangY: (-height - 5) * offsetScale
     // Centre of the bar band on a vertical bar: across its thickness, and halfway along the screen
