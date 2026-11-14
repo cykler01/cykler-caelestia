@@ -252,47 +252,51 @@ Item {
                         }
                     }
                 }
-
-                // A done task sits struck through at the bottom until cleared by hand, deleted one at a
-                // time, or swept away by the auto-clear setting. Deleting the list is only offered for
-                // non-default lists.
-                RowLayout {
-                    Layout.fillWidth: true
-                    visible: root.currentTasks.some(t => t.done) || root.selectedListId !== Todo.defaultListId
-
-                    TextButton {
-                        type: TextButton.Text
-                        visible: root.currentTasks.some(t => t.done)
-                        text: Tr.tr("Clear completed")
-                        onClicked: Todo.clearCompleted(root.selectedListId)
-                    }
-
-                    Item {
-                        Layout.fillWidth: true
-                    }
-
-                    TextButton {
-                        type: TextButton.Text
-                        visible: root.selectedListId !== Todo.defaultListId
-                        text: Tr.tr("Delete this list")
-                        onClicked: {
-                            Todo.removeList(root.selectedListId);
-                            root.selectedListId = Todo.defaultListId;
-                        }
-                    }
-                }
             }
 
             TodoRing {
-                // Matches the height of the rows beside it so the two balance, but capped. The
-                // header gains a row once a list has completed tasks or can be deleted, and
-                // uncapped the ring grew with it - taking width from the very rows that made it
-                // taller, until the buttons were squeezed together and it ran past the panel edge
+                // Matches the height of the rows beside it so the two balance, but capped: the
+                // header gains a row while a list is being added, and uncapped the ring grew with
+                // it - taking width from the very rows that made it taller
                 Layout.preferredWidth: Math.round(Math.min(Math.max(64, header.implicitHeight), 80))
                 Layout.preferredHeight: Layout.preferredWidth
                 doneCount: root.doneTasks
                 overdueCount: root.overdueTasks
                 todoCount: root.todoTasks
+            }
+        }
+
+        // A done task sits struck through at the bottom until cleared by hand, deleted one at a
+        // time, or swept away by the auto-clear setting. Deleting the list is only offered for
+        // non-default lists.
+        //
+        // Under the header rather than in it, and a flow rather than a row: these two labels are
+        // the widest things in the panel, and in a layout a button that cannot stretch makes its
+        // own width a floor the whole column has to honour. Beside the ring they did not fit, so
+        // every row in the column - the tasks, the add field - was laid out past the panel's
+        // right edge and clipped there, and the ring lost its right side. Down here they have the
+        // panel's full width, and a flow sets no floor: on a narrower panel still, the second
+        // wraps under the first instead of pushing everything out of the panel
+        Flow {
+            Layout.fillWidth: true
+            visible: root.currentTasks.some(t => t.done) || root.selectedListId !== Todo.defaultListId
+            spacing: Tokens.spacing.small
+
+            TextButton {
+                type: TextButton.Text
+                visible: root.currentTasks.some(t => t.done)
+                text: Tr.tr("Clear completed")
+                onClicked: Todo.clearCompleted(root.selectedListId)
+            }
+
+            TextButton {
+                type: TextButton.Text
+                visible: root.selectedListId !== Todo.defaultListId
+                text: Tr.tr("Delete this list")
+                onClicked: {
+                    Todo.removeList(root.selectedListId);
+                    root.selectedListId = Todo.defaultListId;
+                }
             }
         }
 
