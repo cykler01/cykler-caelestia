@@ -17,9 +17,6 @@ Item {
     property bool flag
 
     function shouldShowToast(toast: Toast): bool {
-        // NOTE(fork): the notch took this one over, so the corner would be showing it twice
-        if (NotchIsland.isToastClaimed(toast))
-            return false;
         if (!Notifs.hasFullscreen())
             return true;
         if (GlobalConfig.utilities.toasts.fullscreen === "all")

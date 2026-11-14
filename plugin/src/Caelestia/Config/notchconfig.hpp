@@ -17,9 +17,6 @@ class NotchConfig : public settings::ObjectNode {
     CONFIG_PROPERTY(int, hoverExpandDelay, 200)
     CONFIG_PROPERTY(int, collapseDelay, 400)
     CONFIG_PROPERTY(int, maxTitleWidth, 320)
-    // NOTE(fork): a toast (a screenshot saved, a copy failed) drops out of the notch instead of
-    // stacking in the corner. Off sends them back to the corner list
-    CONFIG_PROPERTY(bool, showToasts, true)
     CONFIG_PROPERTY(bool, showArtist, true)
     // Artist before the title ("Artist - Title") or the other way round
     CONFIG_PROPERTY(bool, artistFirst, true)

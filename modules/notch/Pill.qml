@@ -24,8 +24,7 @@ Item {
     property bool showMedia: true
     property bool showClock
 
-    // NOTE(fork): which Dynamic Island activity has the notch, if any: "keylock", "notif",
-    // "toast", or ""
+    // NOTE(fork): which Dynamic Island activity has the notch, if any: "keylock", "notif", or ""
     // for the standing content (clock, media). Set by the Wrapper from NotchIsland.
     property string activity
 
@@ -170,7 +169,7 @@ Item {
         active: root.activityHeld
         opacity: root.activity === "" ? 0 : 1
         visible: opacity > 0
-        sourceComponent: root.shownActivity === "notif" ? notifPill : root.shownActivity === "toast" ? toastPill : lockPill
+        sourceComponent: root.shownActivity === "notif" ? notifPill : lockPill
 
         Behavior on opacity {
             Anim {
@@ -422,12 +421,6 @@ Item {
         id: notifPill
 
         NotifPill {}
-    }
-
-    Component {
-        id: toastPill
-
-        ToastPill {}
     }
 
     // A mark for a side bubble that has been put away: an outline glyph rather than a filled one,
