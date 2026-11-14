@@ -19,13 +19,16 @@ CustomMouseArea {
     required property bool fullscreen
 
     property point dragStart
-    // Where the pointer set off from when it started heading for the open popout, and when it was
-    // last seen still on its way. See inSafeTriangle
+    // Where the pointer set off from heading for the open popout, when it was last seen getting
+    // closer to it, how far off it was then, and where it was on the move before this one. See
+    // inSafeTriangle
     property point popoutApex: Qt.point(-1, -1)
     property double popoutApexAt: 0
-    // How long a pointer that has stopped still counts as on its way there. Long enough to cross
-    // the gap at a human speed, short enough that a pointer parked over another bar item gives up
-    // and opens that one instead
+    property real popoutApexDist: 0
+    property point popoutLast: Qt.point(-1, -1)
+    // How long a pointer that has stopped counts as still on its way. Long enough to cross the gap
+    // at a human speed, short enough that one left sitting in it gives up rather than holding the
+    // popout open for as long as it stays there
     readonly property int safeTriangleGrace: 350
     property bool dashboardShortcutActive
     property bool osdShortcutActive
@@ -158,19 +161,44 @@ CustomMouseArea {
             });
     }
 
-    // The triangle rule: a pointer moving from the item it opened a popout from towards the popout
-    // itself is on its way there, even while it is still passing over the bar's other items. Inside
-    // the triangle drawn from where it set off to the two ends of the popout's near edge, nothing
-    // takes the popout over and nothing closes it - so a diagonal run from the battery icon to its
-    // popout no longer turns into the network one on the way past.
+    // How far the pointer still has to go to reach the popout
+    function popoutDistance(x: real, y: real): real {
+        const edge = root.popoutEdge();
+        return edge.x1 === edge.x2 ? Math.abs(x - edge.x1) : Math.abs(y - edge.y1);
+    }
+
+    // Whether this move was a move at the popout rather than a move along the bar: more of it went
+    // across, towards the popout, than went along. This is what tells going to the popout apart
+    // from going to another icon, and it is read fresh on every move, so a pointer that turns and
+    // runs along the bar - or simply arrives somewhere and stays - stops being on its way at once
+    function headingForPopout(x: real, y: real): bool {
+        if (popoutLast.x < 0)
+            return false;
+
+        const edge = root.popoutEdge();
+        const sideways = edge.x1 === edge.x2;
+        const towards = sideways ? (edge.x1 >= popoutLast.x ? 1 : -1) : (edge.y1 >= popoutLast.y ? 1 : -1);
+        const across = towards * (sideways ? x - popoutLast.x : y - popoutLast.y);
+        const along = Math.abs(sideways ? y - popoutLast.y : x - popoutLast.x);
+        return across > 0 && across >= along;
+    }
+
+    // The triangle rule: a pointer heading from the item it opened a popout from towards the popout
+    // itself is on its way there, so while it is inside the triangle drawn from where it set off to
+    // the two ends of the popout's near edge, nothing takes the popout over and nothing closes it -
+    // a diagonal run at the battery popout no longer turns into the network one on the way past.
     //
-    // The apex is wherever the pointer last sat with nowhere to go (see onPositionChanged), and it
-    // only holds for as long as the pointer keeps moving - stop inside the triangle and it lapses,
-    // leaving hover to behave as it always did.
+    // The triangle alone is a wide fan - the popout is tall and its edge is only a little way off,
+    // so from one icon it covers most of the ones above and below, and resting on the bluetooth
+    // icon left the network popout up. So the pointer has to be moving at the popout as well: the
+    // triangle says where it is pointed, the move says whether it is going there. And it holds
+    // only while the pointer keeps closing on the popout - stall on the way and the grace runs out.
     function inSafeTriangle(x: real, y: real): bool {
         if (!popouts.hasCurrent || popoutApex.x < 0)
             return false;
         if (Date.now() - popoutApexAt > root.safeTriangleGrace)
+            return false;
+        if (!root.headingForPopout(x, y))
             return false;
 
         const edge = root.popoutEdge();
@@ -483,18 +511,25 @@ CustomMouseArea {
             if ((!trigger || !trigger.contains(triggerPoint)) && !inPopout(x, y))
                 popouts.hasCurrent = false;
         } else if (root.inSafeTriangle(x, y)) {
-            // On its way to the popout: hold everything where it is, and keep holding for as long
-            // as it is still moving that way
-            root.popoutApexAt = Date.now();
+            // On its way to the popout: hold it open, and keep holding as long as it is still
+            // getting closer. Wandering about inside the triangle does not count
+            const dist = root.popoutDistance(x, y);
+            if (dist < root.popoutApexDist) {
+                root.popoutApexDist = dist;
+                root.popoutApexAt = Date.now();
+            }
         } else if (bar.isOver(x, y, width, height)) {
             bar.checkPopout(bar.vertical ? y : x);
-            // Resting on the bar, so this is where the next trip to a popout sets off from
+            // Not on its way anywhere, so this is where the next trip at the popout sets off from
             root.popoutApex = Qt.point(x, y);
             root.popoutApexAt = Date.now();
+            root.popoutApexDist = root.popoutDistance(x, y);
         } else if ((!popouts.currentName.startsWith("traymenu") || ((popouts.current as StackView)?.depth ?? 0) <= 1) && !inPopout(x, y)) {
             popouts.hasCurrent = false;
             bar.closeTray();
         }
+
+        root.popoutLast = Qt.point(x, y);
     }
 
     // Open utilities while files are dragged over it, so they can be dropped on the phone share card
