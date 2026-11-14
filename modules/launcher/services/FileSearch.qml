@@ -31,9 +31,9 @@ Singleton {
         return configured.length > 0 ? configured.map(p => Paths.absolutePath(p)) : [Paths.home];
     }
 
-    // The prefixes that reach this mode, all meaning the same thing. Which word someone reaches for
-    // is a coin toss, so all three work
-    readonly property var prefixes: ["find", "files", "search"]
+    // The prefixes that reach this mode, both meaning the same thing. Not "search", which reads as
+    // the launcher's own search rather than as a search of your files
+    readonly property var prefixes: ["find", "files"]
 
     // The part after the prefix, or null when the text is not a file search at all
     function queryFor(text: string): var {
