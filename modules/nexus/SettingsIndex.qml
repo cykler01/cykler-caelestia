@@ -254,6 +254,15 @@ QtObject {
             label: Tr.tr("Widgets"),
             subtext: Tr.tr("The widget cards shown on the wallpaper")
         },
+        {
+            page: "panels",
+            path: [],
+            title: Tr.tr("Panels"),
+            section: Tr.tr("Wallpaper"),
+            label: Tr.tr("Floor equalizer"),
+            subtext: Tr.tr("A large audio spectrum across the bottom of the screen"),
+            keywords: "visualiser visualizer audio spectrum analyser wallpaper eq equaliser"
+        },
 
         {
             page: "panels",

@@ -29,6 +29,9 @@ Item {
     property string activeLabel
     property string occupiedLabel
     property string label
+    // NOTE(fork): with the pointer resting on the strip the mark steps aside for this workspace's
+    // number, so a bar of shapes can be read as numbers without changing the display type
+    property bool revealNumber: false
 
     readonly property list<HyprlandToplevel> toplevels: Hypr.toplevelsForWs(ws, GlobalConfig.bar.workspaces.ignoredTags)
     readonly property bool isOccupied: toplevels.length > 0
@@ -56,25 +59,11 @@ Item {
         return Colours.layer(Colours.palette.m3outlineVariant, 2);
     }
 
-    function updateShape(): void {
-        const shape = indicator.item as MaterialShape;
-        if (!shape)
-            return;
-
-        if (focused)
-            shape.shape = focusedShapeList[Math.floor(Math.random() * focusedShapeList.length)];
-        else
-            shape.shape = Qt.binding(() => isOccupied ? MaterialShape.Square : MaterialShape.Circle);
-    }
-
     anchors.horizontalCenter: parent?.horizontalCenter
     LazyListView.preferredHeight: LazyListView.removing ? 0 : layout.implicitHeight + (hasWindows ? Tokens.padding.extraSmall : 0)
     LazyListView.visibleHeight: LazyListView.preferredHeight
 
     opacity: LazyListView.removing || LazyListView.adding ? 0 : 1
-
-    onFocusedChanged: updateShape()
-    Component.onCompleted: updateShape()
 
     Behavior on LazyListView.visibleHeight {
         Anim {}
@@ -95,21 +84,79 @@ Item {
     Component {
         id: shapeComponent
 
-        MaterialShape {
-            implicitSize: Tokens.sizes.bar.innerWidth - Tokens.padding.small
+        Item {
+            id: shapeWrap
 
-            color: root.fgColour
-            scale: root.focused ? 2 / 3 : root.isOccupied ? 1 / 3 : 1 / 4
+            readonly property real size: Tokens.sizes.bar.innerWidth - Tokens.padding.small
 
-            animationEasing: Tokens.anim.expressiveDefaultSpatial
-            animationDuration: Tokens.anim.durations.expressiveDefaultSpatial * Tokens.anim.durations.scale
-
-            Behavior on color {
-                CAnim {}
+            // A fresh shape each time this workspace takes focus, so the strip is never the same
+            // twice; every other state keeps one that says what it is
+            function reshuffle(): void {
+                if (root.focused)
+                    shapeMark.shape = root.focusedShapeList[Math.floor(Math.random() * root.focusedShapeList.length)];
+                else
+                    shapeMark.shape = Qt.binding(() => root.isOccupied ? MaterialShape.Square : MaterialShape.Circle);
             }
 
-            Behavior on scale {
-                Anim {}
+            implicitWidth: size
+            implicitHeight: size
+
+            Component.onCompleted: reshuffle()
+
+            Connections {
+                function onFocusedChanged(): void {
+                    shapeWrap.reshuffle();
+                }
+
+                target: root
+            }
+
+            MaterialShape {
+                id: shapeMark
+
+                anchors.centerIn: parent
+                implicitSize: shapeWrap.size
+                color: root.fgColour
+                // The number takes the cell over as the pointer arrives, so the mark shrinks back
+                // into the middle of it rather than sitting beside the digit
+                scale: (root.focused ? 2 / 3 : root.isOccupied ? 1 / 3 : 1 / 4) * (root.revealNumber ? 0.5 : 1)
+                opacity: root.revealNumber ? 0 : 1
+
+                animationEasing: Tokens.anim.expressiveDefaultSpatial
+                animationDuration: Tokens.anim.durations.expressiveDefaultSpatial * Tokens.anim.durations.scale
+
+                Behavior on color {
+                    CAnim {}
+                }
+
+                Behavior on scale {
+                    Anim {}
+                }
+
+                Behavior on opacity {
+                    Anim {
+                        type: Anim.DefaultEffects
+                    }
+                }
+            }
+
+            StyledText {
+                anchors.centerIn: parent
+                text: String(root.ws)
+                color: root.fgColour
+                font: Tokens.font.label.medium
+                opacity: root.revealNumber ? 1 : 0
+                scale: root.revealNumber ? 1 : 0.6
+
+                Behavior on opacity {
+                    Anim {
+                        type: Anim.DefaultEffects
+                    }
+                }
+
+                Behavior on scale {
+                    Anim {}
+                }
             }
         }
     }
@@ -198,8 +245,6 @@ Item {
                     return textComponent;
                 return shapeComponent;
             }
-
-            onItemChanged: root.updateShape()
         }
 
         Loader {

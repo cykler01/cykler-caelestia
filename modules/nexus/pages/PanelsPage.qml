@@ -179,11 +179,19 @@ PageBase {
         }
 
         NavRow {
-            last: true
             icon: "widgets"
             text: Tr.tr("Widgets")
             subtext: Tr.tr("The widget cards shown on the wallpaper")
             onClicked: root.nState.openSubPage(18)
+        }
+
+        ToggleRow {
+            last: true
+            // SEARCH: visualiser visualizer audio spectrum analyser wallpaper eq equaliser
+            text: Tr.tr("Floor equalizer")
+            subtext: Tr.tr("A large audio spectrum across the bottom of the screen")
+            checked: GlobalConfig.background.floorEqualizer.enabled
+            onToggled: GlobalConfig.background.floorEqualizer.enabled = checked
         }
     }
 }

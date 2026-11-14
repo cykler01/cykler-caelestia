@@ -24,6 +24,18 @@ ClipRect {
     readonly property int activeWsId: monitor.activeWorkspace?.id ?? 1
     readonly property int activeWsIdx: workspaceIndex(activeWsId)
     readonly property int shown: Math.max(1, Config.bar.workspaces.shown)
+    // NOTE(fork): the pointer over the strip trades the marks for the workspace numbers, and the
+    // pill follows it, so the workspace it is over reads before it is clicked
+    property bool stripHovered: false
+    property int hoveredWs: -1
+    readonly property bool numbersShown: root.stripHovered && Config.bar.workspaces.displayType === BarWorkspaceDisplay.Shapes
+    readonly property int litWsIdx: {
+        if (root.hoveredWs <= 0)
+            return root.activeWsIdx;
+
+        const idx = root.workspaceIndex(root.hoveredWs);
+        return idx >= 0 ? idx : root.activeWsIdx;
+    }
 
     readonly property var wsIds: {
         if (Config.bar.workspaces.showUnoccupied)
@@ -75,6 +87,8 @@ ClipRect {
     radius: Tokens.rounding.full
 
     Item {
+        id: strip
+
         anchors.fill: parent
         scale: root.onSpecial ? 0.8 : 1
         opacity: root.onSpecial ? 0.5 : 1
@@ -126,6 +140,7 @@ ClipRect {
             delegate: Workspace {
                 activeWsId: root.activeWsId
                 ws: Config.bar.workspaces.showUnoccupied ? root.groupOffset + index + 1 : modelData
+                revealNumber: root.numbersShown
                 monitor: root.monitor
                 screen: root.screen
 
@@ -167,7 +182,7 @@ ClipRect {
             sourceComponent: ActiveIndicator {
                 activeWs: {
                     CUtils.dependency(workspaces.itemsDirty);
-                    return workspaces.itemAtIndex(root.activeWsIdx) as Workspace;
+                    return workspaces.itemAtIndex(root.litWsIdx) as Workspace;
                 }
                 mask: workspaces
             }
@@ -203,6 +218,24 @@ ClipRect {
         Behavior on opacity {
             Anim {
                 type: Anim.DefaultEffects
+            }
+        }
+
+        // A handler rather than the click area's own hover: a MouseArea with hover enabled sits
+        // over the window icons and would take their hover with it, so the preview popouts would
+        // never open. A HoverHandler is passive - it watches without holding the pointer
+        HoverHandler {
+            onHoveredChanged: {
+                root.stripHovered = hovered;
+                if (!hovered)
+                    root.hoveredWs = -1;
+            }
+
+            onPointChanged: {
+                // The handler reads in the strip's coordinates, the list itself is inset from them
+                const local = workspaces.mapFromItem(strip, point.position.x, point.position.y);
+                const item = workspaces.itemAt(local.x, local.y) as Workspace;
+                root.hoveredWs = item?.ws ?? -1;
             }
         }
     }

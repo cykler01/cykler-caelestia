@@ -172,6 +172,23 @@ Item {
             screenState.widgetEdit = false;
     }
 
+    // How far the rearrange overlays are in. The mode is entered by holding a card, and everything it
+    // draws - the grid, the drag handles, the two buttons - used to appear on a single frame, so this is
+    // what they are brought in and out with instead. It sits on an item of its own, and is a plain
+    // property rather than a readonly one: under Qt 6.12 a Behavior on either the root's own property or
+    // on a readonly one segfaults the shell the moment it starts, and both were tried here first
+    Item {
+        id: reveal
+
+        property real progress: root.editMode ? 1 : 0
+
+        Behavior on progress {
+            Anim {
+                type: Anim.DefaultEffects
+            }
+        }
+    }
+
     LoggingCategory {
         id: lc
 
@@ -307,7 +324,8 @@ Item {
     Canvas {
         anchors.fill: parent
         z: -1
-        visible: root.editMode
+        visible: reveal.progress > 0
+        opacity: reveal.progress
 
         onPaint: {
             const ctx = getContext("2d");
@@ -349,14 +367,20 @@ Item {
         opacity: 0.2
     }
 
-    // A clear handle over each card, since the cards themselves are for reading rather than grabbing
+    // A clear handle over each card, since the cards themselves are for reading rather than grabbing.
+    // Kept in the tree rather than built when the mode is entered, so the handles can fade in with the
+    // grid; while the mode is off they are disabled, and presses fall through to the cards below
     Repeater {
-        model: root.editMode ? root.placements : []
+        model: root.placements
 
         Item {
+            id: handle
+
             required property var modelData
 
-            visible: modelData.enabled
+            enabled: root.editMode
+            opacity: reveal.progress
+            visible: modelData.enabled && reveal.progress > 0
             z: 3
             x: modelData.col * WidgetGrid.unit
             y: modelData.row * WidgetGrid.unit
@@ -381,14 +405,61 @@ Item {
                 onReleased: root.endDrag()
                 onCanceled: root.endDrag()
             }
+
+            // NOTE(fork): taking a widget off the desktop from the desktop itself, rather than going
+            // back through the settings to turn it off. Declared after the press that fills the card
+            // so the cross is what the pointer hits, and it writes the same removal the settings page
+            // does, so the rest of the layout closes up behind it. Drawn in the error colour, since it
+            // is the one thing here that throws something away, and inset far enough that the circle
+            // sits inside the card's corner curve instead of cutting across it
+            StyledRect {
+                id: remove
+
+                anchors.top: parent.top
+                anchors.left: parent.left
+                anchors.margins: Tokens.padding.medium
+                implicitWidth: removeLabel.implicitHeight + Tokens.padding.extraSmall * 2
+                implicitHeight: implicitWidth
+                radius: Tokens.rounding.full
+                color: Colours.palette.m3error
+
+                MaterialIcon {
+                    id: removeLabel
+
+                    anchors.centerIn: parent
+                    text: "close"
+                    color: Colours.palette.m3onError
+                    fontStyle: Tokens.font.icon.small
+                }
+
+                StateLayer {
+                    radius: remove.radius
+                    color: Colours.palette.m3onError
+                    onClicked: root.widgetConfig.entries.remove(handle.modelData.index)
+                }
+            }
         }
     }
 
     // Adding a widget and arranging them are the same job, so the picker is here rather than only in
     // the settings. Leaving the mode needs no saving: the layout is written on each drop
     RowLayout {
+        id: editBar
+
+        // The distance it slides in from, read here rather than inside the Translate below: a
+        // transform is not an item, so Tokens has no screen to resolve against in one
+        readonly property real dropIn: Tokens.spacing.medium
+
         z: 5
-        visible: root.editMode
+
+        // In and out with the grid, and dropping the last few pixels into place, so the mode reads as
+        // one thing coming up rather than a jump plus two buttons arriving separately
+        opacity: reveal.progress
+        visible: reveal.progress > 0
+        enabled: root.editMode
+        transform: Translate {
+            y: -editBar.dropIn * (1 - reveal.progress)
+        }
         anchors.horizontalCenter: parent.horizontalCenter
         // Under the notch rather than under the middle of the screen, since those are not the same place
         anchors.horizontalCenterOffset: root.notchOffset

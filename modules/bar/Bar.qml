@@ -4,6 +4,7 @@ import QtQuick
 import QtQuick.Layouts
 import Quickshell
 import Caelestia.Config
+import Caelestia.Services
 import qs.components
 import qs.services
 import qs.modules.bar.components
@@ -26,6 +27,8 @@ ColumnLayout {
     readonly property bool clockHidden: ShellState.componentsFor(screen)?.panels?.notch?.showsClock ?? false
     // NOTE(fork): the notch shows the countdown instead, when it is up to show it
     readonly property bool timerHidden: ShellState.componentsFor(screen)?.panels?.notch?.showsTimer ?? false
+    // NOTE(fork): and the download ring, so it is only here while the notch is not showing it
+    readonly property bool downloadsHidden: ShellState.componentsFor(screen)?.panels?.notch?.showsDownloads ?? false
 
     // Extent of the empty stretch between the first and last spacer, so the drawers can cut it out of the
     // frame on an empty workspace (y coordinates along the bar)
@@ -106,6 +109,11 @@ ColumnLayout {
             }
         } else if (id === "activeWindow" && Config.bar.popouts.activeWindow && Config.bar.activeWindow.showOnHover) {
             popouts.currentName = id.toLowerCase();
+            popouts.currentCenter = (ch.item as Item).mapToItem(root, 0, (ch.item as Item).implicitHeight / 2).y ?? 0;
+            popouts.hasCurrent = true;
+        } else if (id === "downloads") {
+            // What the ring cannot say: what it is downloading and how fast it is going
+            popouts.currentName = "downloads";
             popouts.currentCenter = (ch.item as Item).mapToItem(root, 0, (ch.item as Item).implicitHeight / 2).y ?? 0;
             popouts.hasCurrent = true;
         } else if (id === "timer") {
@@ -200,6 +208,18 @@ ColumnLayout {
                         id: tray
 
                         objectName: "taskbarTray"
+                    }
+                }
+            }
+            DelegateChoice {
+                roleValue: "downloads"
+                delegate: EntryWrapper {
+                    // NOTE(fork): the notch's download ring, in the bar for whenever the notch cannot
+                    // show it - the same trade the countdown below makes
+                    shown: Downloads.busy && !root.downloadsHidden
+
+                    DownloadRing {
+                        objectName: "taskbarDownloads"
                     }
                 }
             }
