@@ -111,6 +111,25 @@ Variants {
             }
         }
 
+        // NOTE(fork): the floor equalizer sits above the wallpaper but under the clock, the
+        // shortcuts and the widget cards, so they still read over it
+        Loader {
+            id: floorEqualizer
+
+            // Only as tall as the strip itself: a full-screen loader would resize the item to the
+            // whole screen and stretch the bars to the top edge
+            anchors.left: parent.left
+            anchors.right: parent.right
+            anchors.bottom: parent.bottom
+            height: item?.implicitHeight ?? 0
+            asynchronous: true
+            active: Config.background.floorEqualizer.enabled
+
+            sourceComponent: FloorEqualizer {
+                screen: win.modelData
+            }
+        }
+
         Loader {
             id: clockLoader
 

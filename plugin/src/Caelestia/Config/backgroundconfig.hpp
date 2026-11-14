@@ -51,6 +51,14 @@ class BackgroundVisualiser : public settings::ObjectNode {
     CONFIG_PROPERTY(qreal, spacing, 1)
 };
 
+// NOTE(fork): a second, larger spectrum along the bottom edge of the wallpaper, opt-in and
+// off by default like the visualiser itself
+class BackgroundFloorEqualizer : public settings::ObjectNode {
+    CONFIG_NODE(BackgroundFloorEqualizer, settings::ObjectNode)
+
+    CONFIG_PROPERTY(bool, enabled, false)
+};
+
 class DesktopIcons : public settings::ObjectNode {
     CONFIG_NODE(DesktopIcons, settings::ObjectNode)
 
@@ -157,6 +165,7 @@ class BackgroundConfig : public settings::ObjectNode {
     CONFIG_SUBOBJECT(DesktopIcons, desktopIcons)
     CONFIG_SUBOBJECT(DesktopWidgets, desktopWidgets)
     CONFIG_SUBOBJECT(BackgroundVisualiser, visualiser)
+    CONFIG_SUBOBJECT(BackgroundFloorEqualizer, floorEqualizer)
 };
 
 } // namespace caelestia::shell::config
