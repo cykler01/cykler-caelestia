@@ -1,6 +1,7 @@
 pragma ComponentBehavior: Bound
 
 import QtQuick
+import QtQuick.Effects
 import Quickshell
 import Quickshell.Wayland
 import Caelestia.Config
@@ -108,6 +109,29 @@ Variants {
                 anchors.fill: parent
                 screen: win.modelData
                 wallpaper: wallpaper
+            }
+        }
+
+        // NOTE(fork): the desktop softens while the widget layout is being rearranged, so the snapping
+        // grid and the cards have something quiet behind them. The whole wallpaper layer is captured
+        // rather than just the image, so the visualiser goes soft with it instead of staying sharp
+        // over it; it only exists for as long as the mode does, and is skipped where blur is off
+        Loader {
+            id: editBlur
+
+            anchors.fill: parent
+            active: (widgetsLoader.rearranging ?? false) && PowerSaving.blur
+
+            sourceComponent: MultiEffect {
+                source: ShaderEffectSource {
+                    sourceItem: behindClock
+                    live: true
+                }
+
+                blurEnabled: true
+                blur: 0.6
+                blurMax: 64
+                autoPaddingEnabled: false
             }
         }
 
