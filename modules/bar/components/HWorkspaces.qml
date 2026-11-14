@@ -22,6 +22,10 @@ StyledRect {
     readonly property int shown: Math.max(1, Config.bar.workspaces.shown)
     readonly property int displayType: Config.bar.workspaces.displayType
     readonly property bool showWindows: Config.bar.workspaces.showWindows && Config.bar.workspaces.maxWindowIcons > 0
+    // NOTE(fork): with the pointer on the strip the marks give way to the workspace numbers, so
+    // they read at a glance without the display type having to be changed for it
+    property bool hovered: false
+    readonly property bool numbersShown: root.hovered && root.displayType === BarWorkspaceDisplay.Shapes
 
     readonly property var wsIds: {
         if (Config.bar.workspaces.showUnoccupied) {
@@ -49,6 +53,10 @@ StyledRect {
     color: Colours.tPalette.m3surfaceContainer
     radius: Tokens.rounding.full
     visible: !fullscreen
+
+    HoverHandler {
+        onHoveredChanged: root.hovered = hovered
+    }
 
     RowLayout {
         id: row
@@ -149,14 +157,61 @@ StyledRect {
                 Component {
                     id: shapeIndicator
 
-                    StyledRect {
-                        implicitWidth: cell.focused ? 12 : cell.occupied ? 10 : 8
-                        implicitHeight: implicitWidth
-                        radius: cell.occupied ? Tokens.rounding.extraSmall : Tokens.rounding.full
-                        color: cell.fgColour
+                    Item {
+                        id: shapeWrap
 
-                        Behavior on implicitWidth {
-                            Anim {}
+                        // A number is a little wider than the dot it replaces, so the cell widens
+                        // into the room it needs rather than clipping the digit
+                        implicitWidth: Math.max(cell.focused ? 12 : cell.occupied ? 10 : 8, shapeNum.implicitWidth)
+                        implicitHeight: cell.focused ? 12 : cell.occupied ? 10 : 8
+
+                        StyledRect {
+                            id: shapeMark
+
+                            anchors.centerIn: parent
+                            implicitWidth: cell.focused ? 12 : cell.occupied ? 10 : 8
+                            implicitHeight: implicitWidth
+                            radius: cell.occupied ? Tokens.rounding.extraSmall : Tokens.rounding.full
+                            color: cell.fgColour
+                            // The number takes the cell over as the pointer arrives, so the mark
+                            // shrinks back into the middle of it rather than sitting beside it
+                            opacity: root.numbersShown ? 0 : 1
+                            scale: root.numbersShown ? 0.5 : 1
+
+                            Behavior on implicitWidth {
+                                Anim {}
+                            }
+
+                            Behavior on opacity {
+                                Anim {
+                                    type: Anim.DefaultEffects
+                                }
+                            }
+
+                            Behavior on scale {
+                                Anim {}
+                            }
+                        }
+
+                        StyledText {
+                            id: shapeNum
+
+                            anchors.centerIn: parent
+                            text: String(cell.ws)
+                            color: cell.fgColour
+                            font: Tokens.font.label.medium
+                            opacity: root.numbersShown ? 1 : 0
+                            scale: root.numbersShown ? 1 : 0.6
+
+                            Behavior on opacity {
+                                Anim {
+                                    type: Anim.DefaultEffects
+                                }
+                            }
+
+                            Behavior on scale {
+                                Anim {}
+                            }
                         }
                     }
                 }
