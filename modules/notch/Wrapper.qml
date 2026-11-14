@@ -77,6 +77,8 @@ Item {
     readonly property bool showsClock: Config.notch.enabled && wanted && Config.notch.showClock
     // NOTE(fork): and the same for the countdown, so the ring is in one place rather than two
     readonly property bool showsTimer: Config.notch.enabled && wanted && Config.notch.showTimer
+    // NOTE(fork): and the same for the download ring, so the bar has it whenever the notch does not
+    readonly property bool showsDownloads: Config.notch.enabled && root.downloadsShown
 
     // The brief pill after a track change,
     readonly property bool trackActive: root.playing && shown

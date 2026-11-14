@@ -136,6 +136,13 @@ Item {
             sourceComponent: TimerDetails {}
         }
 
+        Popout {
+            // NOTE(fork): the download ring in the bar says nothing on its own, so hovering it opens
+            // what the notch's bubble shows too
+            name: "downloads"
+            sourceComponent: DownloadDetails {}
+        }
+
         Repeater {
             model: ScriptModel {
                 values: SystemTray.items.values.filter(i => i.hasMenu && i.status !== Status.Passive && !GlobalConfig.bar.tray.hiddenIcons.includes(i.id))

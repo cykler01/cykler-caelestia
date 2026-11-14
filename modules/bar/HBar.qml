@@ -6,6 +6,7 @@ import QtQuick
 import QtQuick.Layouts
 import Quickshell
 import Caelestia.Config
+import Caelestia.Services
 import qs.components
 import qs.services
 
@@ -26,6 +27,8 @@ RowLayout {
     readonly property bool clockHidden: ShellState.componentsFor(screen)?.panels?.notch?.showsClock ?? false
     // NOTE(fork): the notch shows the countdown instead, when it is up to show it
     readonly property bool timerHidden: ShellState.componentsFor(screen)?.panels?.notch?.showsTimer ?? false
+    // NOTE(fork): and the download ring, so it is only here while the notch is not showing it
+    readonly property bool downloadsHidden: ShellState.componentsFor(screen)?.panels?.notch?.showsDownloads ?? false
 
     // Centre of an item along the bar (x), in bar coordinates
     function centerOf(item: Item): real {
@@ -131,6 +134,11 @@ RowLayout {
             popouts.currentName = id.toLowerCase();
             popouts.currentCenter = Qt.binding(() => root.centerOf(ch.item as Item));
             popouts.hasCurrent = true;
+        } else if (id === "downloads") {
+            // What the ring cannot say: what it is downloading and how fast it is going
+            popouts.currentName = "downloads";
+            popouts.currentCenter = Qt.binding(() => root.centerOf(ch.item as Item));
+            popouts.hasCurrent = true;
         } else if (id === "timer") {
             // The section has room for the ring and nothing more, so hovering it opens the count's own panel
             popouts.currentName = "timer";
@@ -220,6 +228,18 @@ RowLayout {
                         id: tray
 
                         objectName: "taskbarTray"
+                    }
+                }
+            }
+            DelegateChoice {
+                roleValue: "downloads"
+                delegate: EntryWrapper {
+                    // NOTE(fork): the notch's download ring, in the bar for whenever the notch cannot
+                    // show it - the same trade the countdown below makes
+                    shown: Downloads.busy && !root.downloadsHidden
+
+                    DownloadRing {
+                        objectName: "taskbarDownloads"
                     }
                 }
             }
