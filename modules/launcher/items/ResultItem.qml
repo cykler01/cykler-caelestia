@@ -7,6 +7,7 @@ import Quickshell.Widgets
 import Caelestia.Config
 import qs.components
 import qs.services
+import qs.utils
 import qs.modules.launcher.services
 
 // One row of the unified search: an app, a setting, an action or a calculator answer, all drawn the
@@ -20,6 +21,11 @@ Item {
 
     required property var modelData
     required property var list
+
+    // The same icon box the plain app list draws (see AppItem): the app list is the launcher's
+    // resting state, and a row has no business growing just because something was typed. AppItem
+    // works it out from the padded row it sits in, so this does too
+    readonly property int iconSize: Math.round((Tokens.sizes.launcher.itemHeight - Tokens.padding.small * 2) * 0.8)
 
     function onClicked(): void {
         Spotlight.activate(root.modelData, root.list);
@@ -80,17 +86,22 @@ Item {
 
                     sourceComponent: IconImage {
                         asynchronous: true
-                        implicitSize: Math.round(Tokens.font.icon.extraLarge.pixelSize)
+                        implicitSize: root.iconSize
                         source: Quickshell.iconPath(root.modelData.iconSource, "image-missing")
                     }
                 }
 
                 MaterialIcon {
                     Layout.alignment: Qt.AlignVCenter
+                    // Boxed to the same width as an app's icon, so the text starts in the same
+                    // place whichever kind of row it is
+                    Layout.preferredWidth: root.iconSize
+                    horizontalAlignment: Text.AlignHCenter
                     visible: root.modelData.kind !== "app" || !root.modelData.iconSource
                     text: root.modelData.icon || "help_outline"
                     color: Colours.palette.m3onSurface
-                    fontStyle: Tokens.font.icon.extraLarge
+                    // Point sizes, so this lands a glyph of about iconSize next to the app icons
+                    fontStyle: Tokens.font.icon.large
                     fill: root.modelData.kind === "setting" ? 1 : 0
                 }
 
@@ -101,7 +112,7 @@ Item {
                     StyledText {
                         Layout.fillWidth: true
                         text: root.modelData.title
-                        font: Tokens.font.body.large
+                        font: Tokens.font.body.medium
                         elide: Text.ElideRight
                     }
 
@@ -109,9 +120,22 @@ Item {
                         Layout.fillWidth: true
                         visible: !!root.modelData.subtitle
                         text: root.modelData.subtitle
-                        color: Colours.palette.m3onSurfaceVariant
+                        color: Colours.palette.m3outline
                         font: Tokens.font.body.small
                         elide: Text.ElideRight
+                    }
+                }
+
+                // Favourites are marked in the app list, so they are marked here too
+                Loader {
+                    Layout.alignment: Qt.AlignVCenter
+                    asynchronous: true
+                    active: root.modelData.kind === "app" && !!root.modelData.payload && Strings.testRegexList(GlobalConfig.launcher.favouriteApps, root.modelData.payload.id)
+
+                    sourceComponent: MaterialIcon {
+                        text: "favorite"
+                        fill: 1
+                        color: Colours.palette.m3primary
                     }
                 }
             }
