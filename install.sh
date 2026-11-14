@@ -7,6 +7,17 @@
 #   ./install.sh --install-deps false   # skip dependencies (already installed)
 #   ./install.sh --repo-only            # pass through: skip AUR packages
 #   ./install.sh --yes                  # don't ask for confirmation (for scripting/CI)
+#   ./install.sh --gui                  # do all of this from a window
+#   ./install.sh --terminal             # stay here, even where a window would open
+#   ./install.sh --modules 'plugin;shell'  # build only these (default: extras;plugin;shell)
+#   ./install.sh --with login-screen    # also install an add-on (repeatable, or comma separated)
+#   ./install.sh --with all             # every add-on
+#   ./install.sh --without login-screen # drop one again
+#   ./install.sh --list-addons          # what the add-ons are, one per line
+#
+# The shell installs into its own prefix. Add-ons are the things that write
+# somewhere else - another package's theme directory, /etc, your home - so none
+# of them happen unless they are asked for by name.
 #
 # Run it from a checkout of the repo, or from anywhere to clone it first.
 
@@ -17,6 +28,111 @@ REPO_URL="https://github.com/cykler01/cykler-caelestia.git"
 INSTALL_DEPS=true
 REPO_ONLY=false
 ASSUME_YES=false
+MODULES=""
+
+# --- Add-ons ---
+# One entry per optional piece. Keep the functions below in step: --list-addons
+# prints from them and the installer window builds its switches from that, so a
+# new add-on needs no second list anywhere. Not the same thing as the "extras"
+# build module, which is part of the shell itself.
+ADDONS=(login-screen)
+
+addon_label() {
+    case "$1" in
+        login-screen) echo "Login screen" ;;
+        *) echo "$1" ;;
+    esac
+}
+
+addon_summary() {
+    case "$1" in
+        login-screen) echo "The sddm theme, in your colours, from your next login" ;;
+        *) echo "" ;;
+    esac
+}
+
+# what it writes that the shell's own install would not
+addon_paths() {
+    case "$1" in
+        login-screen) echo "/usr/share/sddm/themes/cykler-caelestia, /etc/sddm.conf.d" ;;
+        *) echo "" ;;
+    esac
+}
+
+addon_run() {
+    case "$1" in
+        login-screen)
+            echo "==> Installing the sddm theme"
+            sudo "$SRC/sddm/install-theme.sh" --current
+            # paint it in this account's colours straight away, rather than leaving
+            # the greeter on the shipped default until the next wallpaper change
+            "$SRC/sddm/sync-sddm.sh" || true
+            ;;
+        *)
+            echo "No such add-on: $1" >&2
+            return 1
+            ;;
+    esac
+}
+
+addon_known() {
+    local e
+    for e in "${ADDONS[@]}"; do
+        [[ $e == "$1" ]] && return 0
+    done
+    return 1
+}
+
+# nothing is on until it is named
+WANTED=()
+
+addon_wanted() {
+    local e
+    for e in "${WANTED[@]+"${WANTED[@]}"}"; do
+        [[ $e == "$1" ]] && return 0
+    done
+    return 1
+}
+
+addon_add() {
+    local name
+    for name in ${1//,/ }; do
+        if [[ $name == all ]]; then
+            WANTED=("${ADDONS[@]}")
+            continue
+        fi
+        addon_known "$name" || { echo "Unknown add-on: $name (try --list-addons)" >&2; exit 2; }
+        addon_wanted "$name" || WANTED+=("$name")
+    done
+}
+
+addon_drop() {
+    local name keep e
+    for name in ${1//,/ }; do
+        if [[ $name == all ]]; then
+            WANTED=()
+            continue
+        fi
+        keep=()
+        for e in "${WANTED[@]+"${WANTED[@]}"}"; do
+            [[ $e == "$name" ]] || keep+=("$e")
+        done
+        WANTED=("${keep[@]+"${keep[@]}"}")
+    done
+}
+# "" lets the check below pick the window or the terminal
+WITH_GUI=""
+# everything but --gui/--terminal, handed to the window so it starts where you left off
+GUI_ARGS=()
+for a in "$@"; do
+    [[ $a == --gui || $a == --terminal ]] || GUI_ARGS+=("$a")
+done
+
+# the window follows these; in a terminal they are just comments on stdout
+phase() {
+    [[ ${CYKLER_INSTALLER:-0} == 1 ]] && printf '@@cykler:phase %s\n' "$1"
+    return 0
+}
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
@@ -33,9 +149,33 @@ while [[ $# -gt 0 ]]; do
             set -- "--install-deps" "${1#*=}" "${@:2}"
             ;;
         --repo-only) REPO_ONLY=true; shift ;;
+        --modules)
+            [[ $# -ge 2 ]] || { echo "--modules needs a value, e.g. 'plugin;shell'" >&2; exit 2; }
+            MODULES="$2"; shift 2 ;;
+        --modules=*) MODULES="${1#*=}"; shift ;;
+        --with)
+            [[ $# -ge 2 ]] || { echo "--with needs an add-on's name (try --list-addons)" >&2; exit 2; }
+            addon_add "$2"; shift 2 ;;
+        --with=*) addon_add "${1#*=}"; shift ;;
+        --without)
+            [[ $# -ge 2 ]] || { echo "--without needs an add-on's name" >&2; exit 2; }
+            addon_drop "$2"; shift 2 ;;
+        --without=*) addon_drop "${1#*=}"; shift ;;
+        # the names these had before add-ons were a list
+        --login-screen) addon_add login-screen; shift ;;
+        --no-login-screen) addon_drop login-screen; shift ;;
+        --list-addons)
+            for e in "${ADDONS[@]}"; do
+                printf '%s\t%s\t%s\t%s\n' "$e" "$(addon_label "$e")" "$(addon_summary "$e")" "$(addon_paths "$e")"
+            done
+            exit 0
+            ;;
+        --gui) WITH_GUI=1; shift ;;
+        --terminal) WITH_GUI=0; shift ;;
         --yes|-y) ASSUME_YES=true; shift ;;
         -h|--help)
-            sed -n '2,11p' "$0" | sed 's/^# \{0,1\}//'
+            # the whole header comment, however long it grows
+            awk 'NR > 1 && /^#/ { sub(/^# ?/, ""); print; next } NR > 1 { exit }' "$0"
             exit 0
             ;;
         *) echo "Unknown option: $1" >&2; exit 2 ;;
@@ -48,6 +188,32 @@ confirm() {
     read -rp "$1 [y/N] " reply
     [[ $reply == [yY]* ]]
 }
+
+# --- The window ---
+# installer.qml runs this same script through installer/runner.py, its switches
+# as flags, so the window asks exactly what the terminal below would ask
+
+SRC="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+if [[ -z "$WITH_GUI" ]]; then
+    WITH_GUI=0
+    # a window is only worth offering where one can actually open, and where the
+    # shell's own runtime is already installed to draw it
+    if [[ -n "${WAYLAND_DISPLAY:-}" && -t 1 && -f "$SRC/installer.qml" ]] && command -v qs >/dev/null; then
+        WITH_GUI=1
+    fi
+fi
+
+if [[ $WITH_GUI -eq 1 ]]; then
+    if [[ -z "${WAYLAND_DISPLAY:-}" ]]; then
+        echo "No Wayland session here, so the install carries on in the terminal."
+    elif ! command -v qs >/dev/null; then
+        echo "quickshell is not installed yet, so the install carries on in the terminal."
+    else
+        echo "Opening the installer window (./install.sh --terminal stays here)."
+        CYKLER_INSTALL_ARGS="${GUI_ARGS[*]}" exec qs -p "$SRC/installer.qml"
+    fi
+fi
 
 # --- Pre-Download ---
 command -v pacman >/dev/null || { echo "This script only supports Arch Linux." >&2; exit 1; }
@@ -69,6 +235,7 @@ if [[ ! -f CMakeLists.txt || ! -f install-deps.sh ]]; then
 fi
 
 # --- Dependencies ---
+phase deps
 if $INSTALL_DEPS; then
     deps_args=()
     $ASSUME_YES && deps_args+=(--yes)
@@ -81,13 +248,25 @@ fi
 # --- Configure ---
 # CMakeLists.txt reads the version from `git describe --tags`, which fails
 # on clones without tags, so fall back to a fixed one.
+phase configure
 cmake_args=(-B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/)
+[[ -n "$MODULES" ]] && cmake_args+=(-DENABLE_MODULES="$MODULES")
 git describe --tags --abbrev=0 &>/dev/null || cmake_args+=(-DVERSION=0.0.0-fork)
 cmake "${cmake_args[@]}"
 
 # --- Build and install ---
+phase build
 cmake --build build
+phase install
 sudo cmake --install build
+
+# --- Add-ons ---
+# after the shell, so a half-finished build never leaves the login screen
+# pointing at a theme that is not there yet
+for addon in "${WANTED[@]+"${WANTED[@]}"}"; do
+    phase "addon:$addon"
+    addon_run "$addon"
+done
 
 # --- Post-install checks ---
 pacman -Qq quickshell-git &>/dev/null || echo "WARNING: quickshell-git is not installed; the stable quickshell can leave the shell blank."
