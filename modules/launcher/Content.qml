@@ -82,10 +82,7 @@ Item {
         onAccepted: {
             const currentItem = list.currentList?.currentItem;
             if (currentItem) {
-                if (["spotlight", "settings", "files"].includes(list.currentList?.state)) {
-                    // Every kind of unified result knows how to open itself
-                    Spotlight.activate(currentItem.modelData, list.currentList);
-                } else if (list.showWallpapers) {
+                if (list.showWallpapers) {
                     if (Colours.scheme === "dynamic" && currentItem.modelData.path !== Wallpapers.actualCurrent)
                         Wallpapers.previewColourLock = true;
                     Wallpapers.setWallpaper(currentItem.modelData.path);

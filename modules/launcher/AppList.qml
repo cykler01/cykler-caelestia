@@ -2,13 +2,11 @@ pragma ComponentBehavior: Bound
 
 import QtQuick
 import Quickshell
-import Caelestia
 import Caelestia.Config
 import qs.components
 import qs.components.containers
 import qs.components.controls
 import qs.services
-import qs.modules.nexus
 import qs.modules.launcher.items
 import qs.modules.launcher.services
 
@@ -22,16 +20,6 @@ StyledListView {
 
     readonly property string requestedState: stateForText(search.text)
     readonly property string displayState: stateForText(displayText)
-
-    // The result modes build their rows fresh on every keystroke, so nothing in the list survives
-    // from one query to the next: every row is a remove and an add rather than a move. Animating
-    // that is not just pointless, it is what draws one row on top of another - rows slide through
-    // each other on their way to positions the rows being replaced have not left yet
-    readonly property bool rebuildsWholesale: ["spotlight", "settings", "files"].includes(displayState)
-    // False while a switch between modes is in flight. The switch tears the list down and builds
-    // it again, so nothing in it is where it was: animating rows to their new places just slides
-    // them through each other. Set at both ends of the transition below
-    property bool settled
 
     function syncDisplayText(): void {
         if (screenState.launcher && requestedState === displayState)
@@ -56,37 +44,14 @@ StyledListView {
             if (text === `${prefix}b` || text.startsWith(`${prefix}b `))
                 return "browser";
 
-            if (text === `${prefix}settings` || text.startsWith(`${prefix}settings `))
-                return "settings";
-
-            if (FileSearch.queryFor(text) !== null)
-                return "files";
-
             return "actions";
         }
-
-        // Nothing typed is still the plain app list: a bare launcher should open on apps, not on an
-        // empty unified list
-        if (GlobalConfig.launcher.unifiedSearch && text.trim())
-            return "spotlight";
 
         return "apps";
     }
 
     function resultsForText(text: string): var {
         switch (stateForText(text)) {
-        case "spotlight":
-            // Each source still runs its own search; Spotlight only ranks and groups what they
-            // return (see services/Spotlight.qml)
-            return Spotlight.query(text, Apps.search(text));
-        case "files":
-            // Searched off the main thread; this reads whatever came back last, and the model is
-            // rebuilt when the next lot arrives
-            return FileSearch.rows();
-        case "settings": {
-            const query = text.slice(`${GlobalConfig.launcher.actionPrefix}settings`.length).trim();
-            return Spotlight.querySettings(query, query ? SettingsSearch.querySettingsScored(query) : []);
-        }
         case "actions":
             return Actions.query(text);
         case "calc":
@@ -109,13 +74,6 @@ StyledListView {
             SSH.hostRevision;
             Supergfxctl.modeRevision;
             Supergfxctl.modeData;
-            // The calculator answers off the main thread, so the unified list has to be rebuilt
-            // when its answer arrives rather than only when the text changes
-            Qalculator.rawResult;
-            // Both of these answer off the main thread, so the list has to be rebuilt when their
-            // results land rather than only when the text changes
-            FileSearch.results;
-            FileSearch.unavailable;
             return root.resultsForText(root.displayText);
         }
         onValuesChanged: root.currentIndex = 0
@@ -123,16 +81,10 @@ StyledListView {
 
     spacing: Tokens.spacing.small
     orientation: Qt.Vertical
-    // The AI answer is one tall wrapping row, and the result rows come in two heights (the first
-    // of each group carries its heading), so both are measured rather than counted. Every other
-    // delegate is a fixed-height row, still capped by maxShown. ContentList clamps the whole thing
-    // to maxHeight either way.
-    //
-    // Keyed off displayState, not state: `state` flips the moment you type, while the model keeps
-    // showing the old results until the switch animation swaps them. Measuring the old uncapped
-    // app list with the new state's rule is what made the panel shoot to full height for a moment
-    // and then collapse back on the first keystroke.
-    implicitHeight: displayState === "ai" || displayState === "spotlight" || displayState === "settings" || displayState === "files" ? contentHeight : (Tokens.sizes.launcher.itemHeight + spacing) * Math.min(Config.launcher.maxShown, count) - spacing
+    // The AI answer is one tall wrapping row, so its real content height is
+    // used there; every other delegate is a fixed-height row, still capped by
+    // maxShown. ContentList clamps the whole thing to maxHeight either way.
+    implicitHeight: state === "ai" ? contentHeight : (Tokens.sizes.launcher.itemHeight + spacing) * Math.min(Config.launcher.maxShown, count) - spacing
 
     preferredHighlightBegin: 0
     preferredHighlightEnd: height
@@ -170,27 +122,6 @@ StyledListView {
 
             PropertyChanges {
                 root.delegate: appItem
-            }
-        },
-        State {
-            name: "spotlight"
-
-            PropertyChanges {
-                root.delegate: resultItem
-            }
-        },
-        State {
-            name: "settings"
-
-            PropertyChanges {
-                root.delegate: resultItem
-            }
-        },
-        State {
-            name: "files"
-
-            PropertyChanges {
-                root.delegate: resultItem
             }
         },
         State {
@@ -239,11 +170,6 @@ StyledListView {
 
     transitions: Transition {
         SequentialAnimation {
-            PropertyAction {
-                target: root
-                property: "settled"
-                value: false
-            }
             ParallelAnimation {
                 Anim {
                     target: root
@@ -274,12 +200,6 @@ StyledListView {
                 target: root
                 property: "delegate"
             }
-            // Swapping the delegate out and back can leave an item from the old contents behind,
-            // unpositioned at the top of the list and fully opaque - a whole row drawn over the
-            // first real one. Relaying out drops it.
-            ScriptAction {
-                script: root.forceLayout()
-            }
             ParallelAnimation {
                 Anim {
                     target: root
@@ -299,8 +219,8 @@ StyledListView {
                 }
             }
             PropertyAction {
-                target: root
-                property: "settled"
+                targets: [root.add, root.remove]
+                property: "enabled"
                 value: true
             }
         }
@@ -311,7 +231,7 @@ StyledListView {
     }
 
     add: Transition {
-        enabled: root.settled && !root.rebuildsWholesale
+        enabled: !root.state
 
         Anim {
             type: Anim.DefaultEffects
@@ -322,7 +242,7 @@ StyledListView {
     }
 
     remove: Transition {
-        enabled: root.settled && !root.rebuildsWholesale
+        enabled: !root.state
 
         Anim {
             type: Anim.DefaultEffects
@@ -333,8 +253,6 @@ StyledListView {
     }
 
     move: Transition {
-        enabled: root.settled && !root.rebuildsWholesale
-
         Anim {
             property: "y"
         }
@@ -345,10 +263,11 @@ StyledListView {
         }
     }
 
-    // No y animation here, unlike `move` and `displaced`. A row being added takes its final place
-    // immediately, so animating the rows it pushes down leaves the new row sitting on top of the
-    // one that was there - a whole row's worth of text over text, for as long as the slide lasts
     addDisplaced: Transition {
+        Anim {
+            property: "y"
+            type: Anim.StandardSmall
+        }
         Anim {
             type: Anim.DefaultEffects
             property: "opacity"
@@ -357,8 +276,6 @@ StyledListView {
     }
 
     displaced: Transition {
-        enabled: root.settled && !root.rebuildsWholesale
-
         Anim {
             property: "y"
         }
@@ -374,14 +291,6 @@ StyledListView {
 
         AppItem {
             screenState: root.screenState
-        }
-    }
-
-    Component {
-        id: resultItem
-
-        ResultItem {
-            list: root
         }
     }
 
@@ -427,8 +336,6 @@ StyledListView {
 
     Connections {
         function onTextChanged() {
-            Spotlight.prime(root.search.text);
-            FileSearch.prime(root.search.text);
             root.syncDisplayText();
         }
 

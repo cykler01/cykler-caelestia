@@ -29,7 +29,6 @@ REPO_PKGS=(
     networkmanager lm_sensors aubio libpipewire libqalculate taglib power-profiles-daemon
     qt6-base qt6-declarative qt6-imageformats qt6-multimedia
     swappy fish bash grim slurp tesseract wl-clipboard hyprpicker libnotify curl jq xdg-utils
-    fd
 )
 
 
