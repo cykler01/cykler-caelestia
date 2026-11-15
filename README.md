@@ -134,6 +134,7 @@ This fork is only worth anything because of the people below.
 - **[Caelestia](https://github.com/caelestia-dots/shell)** - the shell itself, by
   [@soramanew](https://github.com/soramanew) and the upstream contributors. Everything here is their
   work with our additions on top.
+- **[imnuclr](https://github.com/imnuclr)** - being the co-developer of this project and helping lots especially with the visuals and UI.
 - **Battery power management** - based on [PR #1](https://github.com/cykler01/cykler-caelestia/pull/1) by [@PixelKhaos](https://github.com/PixelKhaos).
 - **Displays page** - based on [PR #1629](https://github.com/caelestia-dots/shell/pull/1629) by
   [@devalentineomonya](https://github.com/devalentineomonya).
@@ -141,6 +142,8 @@ This fork is only worth anything because of the people below.
   [@Mestane](https://github.com/Mestane).
 - **workspace preview** and **proccess list** - based on [caelestia](https://github.com/luca-saggese/caelestia) by [@luca-saggese](https://github.com/luca-saggese)
 - **Widgets Inspiration** - based on [lucid](https://github.com/Sn3akyy1/lucid) by [@Sn3akyy1](https://github.com/Sn3akyy1)
+
+And special thanks again to [@Sn3akyy1](https://github.com/Sn3akyy1) for helping out with visual elements and offering feedback on the project.
 
 ## License
 
