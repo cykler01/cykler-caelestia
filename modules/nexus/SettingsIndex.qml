@@ -40,6 +40,15 @@ QtObject {
             path: [],
             title: Tr.tr("Wallpaper & style"),
             section: Tr.tr("Windows"),
+            label: Tr.tr("Window corner radius"),
+            subtext: Tr.tr("Radius of every window's corners, in pixels; the border around the desktop follows it"),
+            keywords: "corner radius rounded corners window rounding"
+        },
+        {
+            page: "wallpaper",
+            path: [],
+            title: Tr.tr("Wallpaper & style"),
+            section: Tr.tr("Windows"),
             label: Tr.tr("Window opacity")
         },
 
