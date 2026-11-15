@@ -78,7 +78,7 @@ WidgetCard {
 
                     StyledText {
                         text: milestone.info?.status ?? ""
-                        color: milestone.info?.done ? Colours.palette.m3tertiary : Colours.palette.m3onSurfaceVariant
+                        color: milestone.info?.rest ? Colours.palette.m3secondary : milestone.info?.done ? Colours.palette.m3tertiary : Colours.palette.m3onSurfaceVariant
                         font: Tokens.font.label.small
                     }
                 }
@@ -90,7 +90,7 @@ WidgetCard {
                     from: 0
                     to: 1
                     value: milestone.info?.fraction ?? 0
-                    fgColour: milestone.info?.done ? Colours.palette.m3tertiary : Colours.palette.m3primary
+                    fgColour: milestone.info?.rest ? Colours.palette.m3secondary : milestone.info?.done ? Colours.palette.m3tertiary : Colours.palette.m3primary
                     bgColour: Colours.palette.m3surfaceContainerHighest
 
                     Behavior on value {
@@ -158,7 +158,7 @@ WidgetCard {
                         implicitSize: Math.max(24, Math.min(parent.width, parent.height))
                         strokeWidth: 7
                         value: ring.info?.fraction ?? 0
-                        fgColour: ring.info?.done ? Colours.palette.m3tertiary : Colours.palette.m3primary
+                        fgColour: ring.info?.rest ? Colours.palette.m3secondary : ring.info?.done ? Colours.palette.m3tertiary : Colours.palette.m3primary
                         bgColour: Colours.palette.m3surfaceContainerHighest
 
                         Behavior on clampedVal {
@@ -190,7 +190,7 @@ WidgetCard {
                     horizontalAlignment: Text.AlignHCenter
                     elide: Text.ElideRight
                     text: ring.info?.status ?? ""
-                    color: ring.info?.done ? Colours.palette.m3tertiary : Colours.palette.m3onSurfaceVariant
+                    color: ring.info?.rest ? Colours.palette.m3secondary : ring.info?.done ? Colours.palette.m3tertiary : Colours.palette.m3onSurfaceVariant
                     font: Tokens.font.label.small
                 }
             }
@@ -228,7 +228,7 @@ WidgetCard {
                         implicitSize: 26
                         strokeWidth: 3
                         value: compactRow.info?.fraction ?? 0
-                        fgColour: compactRow.info?.done ? Colours.palette.m3tertiary : Colours.palette.m3primary
+                        fgColour: compactRow.info?.rest ? Colours.palette.m3secondary : compactRow.info?.done ? Colours.palette.m3tertiary : Colours.palette.m3primary
                         bgColour: Colours.palette.m3surfaceContainerHighest
 
                         Behavior on clampedVal {
@@ -256,7 +256,7 @@ WidgetCard {
                         Layout.fillWidth: true
                         elide: Text.ElideRight
                         text: compactRow.info?.status ?? ""
-                        color: compactRow.info?.done ? Colours.palette.m3tertiary : Colours.palette.m3outline
+                        color: compactRow.info?.rest ? Colours.palette.m3secondary : compactRow.info?.done ? Colours.palette.m3tertiary : Colours.palette.m3outline
                         font: Tokens.font.label.small
                     }
                 }

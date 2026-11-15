@@ -100,6 +100,9 @@ class ProgressEntry : public settings::ObjectNode {
     // "date" and "interval" use the fields below (YYYY-MM-DD or YYYY-MM-DD HH:mm, local time);
     // "yearly" uses end as MM-DD or MM-DD HH:mm and repeats every year
     CONFIG_PROPERTY(QString, mode, u"date"_s)
+    // The hours a repeating milestone counts: HH:mm for "day" and "daily", a weekday with an
+    // optional HH:mm for "week" and "weekly". Left empty they cover the whole cycle; given, the
+    // time between the end and the next start shows as completed instead of starting over at once
     CONFIG_PROPERTY(QString, start, {})
     CONFIG_PROPERTY(QString, end, {})
     CONFIG_PROPERTY(bool, enabled, true)
