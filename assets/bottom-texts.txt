@@ -1,0 +1,36 @@
+# The random lines shown along the bottom of the screen (Nexus -> Panels -> Utilities -> Desktop text).
+#
+# One text per line. Lines starting with # are notes like this one and are skipped, as are blank
+# lines. Add as many as you like: the file is watched, so the next line shows up without a restart.
+
+I use arch btw
+1337
+303.735.88
+ty Sn3aky
+ty imnuclr
+blahaj :3
+"no mistakes, go"
+bleh :P
+nixOS <3
+hyprland <3
+caelestia <3
+Neovim <3
+Tame Impala <3
+"Playing: Aria Math | C418"
+Supraaaaaaahhhh
+E36 <3
+fuck microsoft
+:wq
+rust <3
+"that is an interesting" -cykler
+"holy opsec" -iamanuclearwarhead
+"unlimited bacon"
+buh :P
+"let it happen"
+caffeine addict
+"I love democracy"
+Raaaaahhhh :3
+"works on my machine" -imnuclr
+"STATE? THIS?"
+"what stop sign?"
+"config loaded with 17 issues"

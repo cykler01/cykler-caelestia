@@ -7,6 +7,7 @@
 import "modules"
 import "modules/drawers"
 import "modules/background"
+import "modules/bottomtext"
 import "modules/areapicker"
 import "modules/notifpopout"
 import "modules/overview"
@@ -21,6 +22,7 @@ import Caelestia.Config
 import qs.services
 import qs.modules.areapicker
 import qs.modules.background
+import qs.modules.bottomtext
 import qs.modules.drawers
 import qs.modules.lock
 import qs.daemons
@@ -66,6 +68,8 @@ ShellRoot {
     Polkit {}
 
     Background {}
+    // NOTE(fork): a random line along the bottom of the screen; see modules/bottomtext
+    TextOverlay {}
     Drawers {}
     AreaPicker {}
     NotifPopout {}

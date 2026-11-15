@@ -866,6 +866,23 @@ QtObject {
             label: Tr.tr("VPN"),
             subtext: Tr.tr("Connect or disconnect the VPN")
         },
+        {
+            page: "panels",
+            path: [5],
+            title: Tr.tr("Utilities"),
+            section: Tr.tr("Desktop text"),
+            label: Tr.tr("Random text"),
+            subtext: Tr.tr("Show a random line along the bottom of the screen"),
+            keywords: "quote random bottom screen line text"
+        },
+        {
+            page: "panels",
+            path: [5],
+            title: Tr.tr("Utilities"),
+            section: Tr.tr("Desktop text"),
+            label: Tr.tr("Texts"),
+            subtext: Tr.tr("One per line; lines starting with # are skipped")
+        },
 
         {
             page: "panels",
