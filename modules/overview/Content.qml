@@ -433,28 +433,13 @@ Item {
         onCentroidChanged: root.updateDrag(centroid.scenePosition.x, centroid.scenePosition.y)
     }
 
-    // One page per notch of the wheel, from anywhere over the overview; a touchpad sends many
-    // small events for one swipe, so they are added up and paused between pages
-    WheelHandler {
-        property real travelled
-
-        onWheel: event => {
-            if (wheelPause.running)
-                return;
-
-            travelled += (event.angleDelta.y || event.angleDelta.x) || (event.pixelDelta.y || event.pixelDelta.x);
-            if (Math.abs(travelled) >= 120) {
-                root.setPage(root.page + (travelled < 0 ? 1 : -1));
-                travelled = 0;
-                wheelPause.restart();
-            }
-        }
-    }
-
+    // A touchpad does not always close a gesture with an event of its own, so a pause is what
+    // tells the next drag from the tail of the last one (see the pager at the end of this file)
     Timer {
-        id: wheelPause
+        id: gesturePause
 
-        interval: 250
+        interval: 220
+        onTriggered: pager.reset()
     }
 
     // Holding a dragged window out past the side of the panel turns the page
@@ -832,6 +817,74 @@ Item {
             text: Icons.getAppCategoryIcon(root.ghostClass, "window")
             color: Colours.palette.m3onSecondaryContainer
             fontStyle: Tokens.font.icon.size(root.ghostSize * 0.5).build()
+        }
+    }
+
+    // Turns the page from anywhere over the overview, on a touchpad as well as by wheel. A two
+    // finger drag on a touchpad is delivered as scroll events rather than as pointer movement:
+    // sideways for a drag across the pages, up or down for one along them, and each axis has to
+    // be read on its own. The distance is added up along whichever axis the gesture settled on
+    // until it is worth a page, and as one continuous drag arrives as many events, a gesture
+    // gets a single page, the way PageUp/PageDown give one each.
+    //
+    // An area rather than a handler on the root item: every tile and the panel itself have areas
+    // of their own over all of it, and a wheel handler underneath them is never handed the
+    // scroll at all. This one sits above the lot and takes no press, so clicks, drags and hovers
+    // carry on through to what is under it.
+    MouseArea {
+        id: pager
+
+        // How far the gesture has carried along the axis it settled on, in the same units the
+        // wheel reports (120 to a notch)
+        property real travelled
+        // The axis being followed: 0 until one of them is clearly the one going somewhere
+        property int axis: 0
+        // A touchpad swipe has already turned a page, so what is left of it is the tail end
+        property bool spent: false
+
+        function reset(): void {
+            pager.travelled = 0;
+            pager.axis = 0;
+            pager.spent = false;
+        }
+
+        anchors.fill: parent
+        acceptedButtons: Qt.NoButton
+
+        onWheel: event => {
+            // A touchpad reports continuous pixel deltas where a wheel reports angle ones; only
+            // the former is the two finger drag, so only it is held to one page
+            const continuous = event.pixelDelta.x !== 0 || event.pixelDelta.y !== 0;
+            const dx = continuous ? event.pixelDelta.x : event.angleDelta.x;
+            const dy = continuous ? event.pixelDelta.y : event.angleDelta.y;
+
+            // Nothing either way is the gesture ending, so the next drag starts from here
+            if (dx === 0 && dy === 0) {
+                pager.reset();
+                return;
+            }
+
+            // Picked once, by whichever axis is pulling the harder, so a hand that wanders off
+            // its line does not have the drag counted on both
+            if (pager.axis === 0) {
+                if (Math.abs(dx) + Math.abs(dy) < 8)
+                    return;
+                pager.axis = Math.abs(dx) > Math.abs(dy) ? 1 : 2;
+            }
+
+            if (pager.spent)
+                return;
+
+            // Dragging left or up carries the grid on to the next page, the way pulling it
+            // across would, and back to the right or down returns to the one before
+            pager.travelled += pager.axis === 1 ? -dx : dy;
+
+            if (Math.abs(pager.travelled) >= 120) {
+                root.setPage(root.page + (pager.travelled > 0 ? 1 : -1));
+                pager.travelled = 0;
+                pager.spent = continuous;
+            }
+            gesturePause.restart();
         }
     }
 }

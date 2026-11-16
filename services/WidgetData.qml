@@ -30,35 +30,131 @@ Singleton {
     readonly property bool wantsSystem: root.widgetConfig.enabled && root.entries.some(e => e.enabled && e.id === "resources")
     // Likewise for the GitHub calendar: a desktop without the card shouldn't fetch one
     readonly property bool wantsGithub: root.widgetConfig.enabled && root.entries.some(e => e.enabled && e.id === "github")
-    property real cpu
-    property real memory
-    property real disk
-    // Celsius; the card formats it with the configured sensor unit. Not a percentage, so it only ever feeds the
-    // rings, which read it against a full-scale of 100 degrees
+    // The readings a system card can be set to show, in the order the settings page lists them. Everything is
+    // sampled as a fraction so rings, bars and lines all share one scale; temperatures read against a full
+    // scale of 100 degrees, the same scale the performance dashboard uses
+    readonly property var systemMetrics: [
+        {
+            id: "cpu",
+            name: Tr.tr("CPU usage"),
+            label: "CPU",
+            icon: "memory"
+        },
+        {
+            id: "ram",
+            name: Tr.tr("Memory usage"),
+            label: "RAM",
+            icon: "memory_alt"
+        },
+        {
+            id: "disk",
+            name: Tr.tr("Disk usage"),
+            label: Tr.tr("Disk"),
+            icon: "hard_drive"
+        },
+        {
+            id: "temp",
+            name: Tr.tr("CPU temperature"),
+            label: Tr.tr("Temp"),
+            icon: "thermometer"
+        },
+        {
+            id: "gpu",
+            name: Tr.tr("GPU usage"),
+            label: "GPU",
+            icon: "videogame_asset"
+        },
+        {
+            id: "gputemp",
+            name: Tr.tr("GPU temperature"),
+            label: Tr.tr("GPU temp"),
+            icon: "device_thermostat"
+        }
+    ]
+
+    function metricInfo(id: string): var {
+        return root.systemMetrics.find(m => m.id === id) ?? root.systemMetrics[0];
+    }
+
+    // Whether a reading is in degrees rather than a percentage, so it is written out with the sensor unit
+    function isTemperature(id: string): bool {
+        return id === "temp" || id === "gputemp";
+    }
+
+    // The readings each card style is set to show, falling back to the old fixed sets for an empty list
+    readonly property var ringMetrics: root.metricList(root.widgetConfig.systemRingMetrics, ["cpu", "ram", "temp"])
+    readonly property var barMetrics: root.metricList(root.widgetConfig.systemBarMetrics, ["cpu", "ram", "disk"])
+    readonly property var lineMetrics: root.metricList(root.widgetConfig.systemLineMetrics, ["cpu", "ram", "disk"])
+
+    function metricList(list: var, fallback: var): var {
+        const known = root.systemMetrics.map(m => m.id);
+        const out = (list ?? []).filter(id => known.includes(id)).slice(0, 3);
+        for (let i = out.length; i < 3; i++)
+            out.push(fallback[i]);
+        return out;
+    }
+
+    // The GPU is polled only when a card is actually set to show it, since on NVIDIA that means running
+    // nvidia-smi every tick
+    readonly property bool wantsGpu: root.wantsSystem && [...root.ringMetrics, ...root.barMetrics, ...root.lineMetrics].some(id => id === "gpu" || id === "gputemp")
+
+    // id -> latest reading (a fraction), and id -> its recent history
+    property var readings: ({})
+    property var histories: ({})
+
+    // Raw temperatures in Celsius, so the card can format them with the configured unit
     property real temperature
-    property var cpuHistory: []
-    property var ramHistory: []
-    property var diskHistory: []
+    property real gpuTemperature
+
+    function valueFor(id: string): real {
+        return root.readings[id] ?? 0;
+    }
+
+    function historyFor(id: string): var {
+        return root.histories[id] ?? [];
+    }
+
+    // The reading as it should be read out: a temperature with its unit, everything else as a percentage
+    function textFor(id: string): string {
+        if (id === "temp")
+            return Units.formatSensorTemp(root.temperature);
+        if (id === "gputemp")
+            return Units.formatSensorTemp(root.gpuTemperature);
+        return Math.round(Math.max(0, Math.min(1, root.valueFor(id))) * 100) + "%";
+    }
 
     function push(history: var, value: real): var {
-        const next = history.concat([Math.max(0, Math.min(1, value))]);
+        const next = (history ?? []).concat([Math.max(0, Math.min(1, value))]);
         return next.length > 24 ? next.slice(next.length - 24) : next;
     }
 
+    function finite(value: real): real {
+        return isNaN(value) ? 0 : value;
+    }
+
     function sample(): void {
-        root.cpu = Cpu.percentage;
-        root.memory = Memory.percentage;
-        root.disk = Storage.percentage;
-        root.temperature = Cpu.temperature;
-        root.cpuHistory = root.push(root.cpuHistory, root.cpu);
-        root.ramHistory = root.push(root.ramHistory, root.memory);
-        root.diskHistory = root.push(root.diskHistory, root.disk);
+        root.temperature = root.finite(Cpu.temperature);
+        root.gpuTemperature = root.wantsGpu ? root.finite(Gpu.temperature) : 0;
+
+        const now = {
+            cpu: root.finite(Cpu.percentage),
+            ram: root.finite(Memory.percentage),
+            disk: root.finite(Storage.percentage),
+            temp: root.temperature / 100,
+            gpu: root.wantsGpu ? root.finite(Gpu.percentage) : 0,
+            gputemp: root.gpuTemperature / 100
+        };
+
+        const histories = {};
+        for (const id in now)
+            histories[id] = root.push(root.histories[id], now[id]);
+
+        root.readings = now;
+        root.histories = histories;
     }
 
     function clearSystem(): void {
-        root.cpuHistory = [];
-        root.ramHistory = [];
-        root.diskHistory = [];
+        root.histories = {};
     }
 
     // The readings live in the services, which stop polling as soon as nothing references them. Holding a
@@ -74,6 +170,10 @@ Singleton {
 
     ServiceRef {
         service: root.wantsSystem ? Storage : null
+    }
+
+    ServiceRef {
+        service: root.wantsGpu ? Gpu : null
     }
 
     Timer {

@@ -24,18 +24,26 @@ Item {
     implicitWidth: placeholder.active ? Tokens.sizes.dashboard.perfPlaceholderWidth : Math.max(content.implicitWidth, processesExpanded ? processList.implicitWidth : 0)
     implicitHeight: (placeholder.active ? placeholder.implicitHeight + Tokens.padding.extraLarge * 2 : content.implicitHeight) + (processesExpanded ? Tokens.spacing.small + processList.implicitHeight : 0)
 
-    // A small control inside the card's top left corner, like the media tab's equalizer button, so
+    // The battery card, always the last card on the right in either layout, has an empty top right corner, so
+    // the button sits there whenever it is shown rather than over the first card's contents
+    readonly property bool buttonOnRight: UPower.displayDevice.isLaptopBattery && Config.dashboard.performance.showBattery
+
+    // A small control inside the card's top corner, like the media tab's equalizer button, so
     // opening the list neither takes a row out of the tab nor moves the graphs down
     IconButton {
         id: processesButton
 
-        x: content.x + Tokens.padding.medium
+        x: root.buttonOnRight ? content.x + content.width - width - Tokens.padding.medium : content.x + Tokens.padding.medium
         y: content.y + Tokens.padding.medium
         z: 10
         icon: "list_alt"
         type: root.processesExpanded ? IconButton.Filled : IconButton.Tonal
         isToggle: true
         checked: root.processesExpanded
+        // The battery card is drawn in the secondary colours, the same ones a tonal button uses, so on it the
+        // idle button takes the primary ones instead. Opened, it is filled with primary either way
+        inactiveColour: root.buttonOnRight ? Colours.palette.m3primaryContainer : Colours.palette.m3secondaryContainer
+        inactiveOnColour: root.buttonOnRight ? Colours.palette.m3onPrimaryContainer : Colours.palette.m3onSecondaryContainer
         onClicked: root.processesExpanded = !root.processesExpanded
     }
 
@@ -107,7 +115,8 @@ Item {
 
                 active: Config.dashboard.performance.showCpu || (Config.dashboard.performance.showGpu && Gpu.type !== GpuType.None) || Config.dashboard.performance.showMemory || Config.dashboard.performance.showNetwork || Config.dashboard.performance.showStorage
                 sourceComponent: ResourceGraph {
-                    topInset: root.cardInset
+                    // Only needs the strip at its top when the button sits in its corner rather than the battery card's
+                    topInset: root.buttonOnRight ? 0 : root.cardInset
                 }
             }
 

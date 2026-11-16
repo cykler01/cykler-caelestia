@@ -58,10 +58,29 @@ Item {
             root.closed();
     }
 
+    // How far the picker has come in: the dimmer, then the sheet, then its tiles. Opening used to be
+    // a single frame over the desktop; this is what it is brought in with instead, on the same curve
+    // the rearrange overlays use (see DesktopWidgets.qml). Kept on an item of its own rather than on
+    // the root, since a Behavior on the root's own property is what crashes this shell on Qt 6.12
+    Item {
+        id: reveal
+
+        property real progress: 0
+
+        Component.onCompleted: progress = 1
+
+        Behavior on progress {
+            Anim {
+                type: Anim.DefaultEffects
+            }
+        }
+    }
+
     // Dims the desktop behind the sheet, and takes a click outside it as "never mind"
     StyledRect {
         anchors.fill: parent
         color: Qt.alpha(Colours.palette.m3scrim, 0.5)
+        opacity: reveal.progress
 
         MouseArea {
             anchors.fill: parent
@@ -77,6 +96,13 @@ Item {
         height: Math.min(header.implicitHeight + grid.implicitHeight + Tokens.padding.large * 3, parent.height * 0.75)
         radius: Tokens.rounding.extraLarge
         color: Colours.palette.m3surfaceContainer
+        // Up a touch small and a little below its place, settling as the dimmer comes in, so the
+        // picker arrives as a surface over the desktop rather than as a frame that was always there
+        opacity: reveal.progress
+        scale: 0.94 + 0.06 * reveal.progress
+        transform: Translate {
+            y: (1 - reveal.progress) * Tokens.spacing.medium
+        }
 
         // Swallows clicks that would otherwise reach the dimmer behind and close the sheet
         MouseArea {
@@ -156,8 +182,10 @@ Item {
 
                     Tile {
                         required property var modelData
+                        required property int index
 
                         kind: modelData.id
+                        order: index
                         // The first style stands for the widget in the list; the next step shows them all
                         variant: WidgetCatalog.typesFor(modelData.id)[0]?.id ?? ""
                         name: modelData.name
@@ -174,8 +202,10 @@ Item {
 
                     Tile {
                         required property var modelData
+                        required property int index
 
                         kind: root.selectedKind
+                        order: index
                         variant: modelData.id
                         name: modelData.name
                         subtext: Tr.tr("%1 rows tall").arg(modelData.height)
@@ -194,6 +224,11 @@ Item {
         required property string variant
         required property string name
         required property string subtext
+        // Where it sits in the grid, so the tiles can come in one after another, and how far below
+        // its place a tile starts as it does. The Grid positions the tiles, so this is a transform
+        // rather than a y of its own: moving y would fight the layout
+        property int order
+        property real enterOffset
 
         signal activated
 
@@ -201,6 +236,13 @@ Item {
         implicitHeight: preview.implicitHeight + labels.implicitHeight + Tokens.padding.small * 3
         radius: Tokens.rounding.large
         color: Colours.palette.m3surfaceContainerLow
+        transform: Translate {
+            y: tile.enterOffset
+        }
+
+        // The list is built when the picker opens, and again on the way back from a style step, so
+        // the tiles rise into place both times rather than the grid filling in all at once
+        Component.onCompleted: enter.start()
 
         WidgetPreview {
             id: preview
@@ -243,6 +285,35 @@ Item {
         StateLayer {
             radius: parent.radius
             onClicked: tile.activated()
+        }
+
+        // Each tile arrives a moment after the one before it
+        SequentialAnimation {
+            id: enter
+
+            PauseAnimation {
+                duration: tile.order * 25
+            }
+
+            ParallelAnimation {
+                NumberAnimation {
+                    target: tile
+                    property: "opacity"
+                    from: 0
+                    to: 1
+                    duration: 200
+                    easing.type: Easing.OutCubic
+                }
+
+                NumberAnimation {
+                    target: tile
+                    property: "enterOffset"
+                    from: 10
+                    to: 0
+                    duration: 300
+                    easing.type: Easing.OutCubic
+                }
+            }
         }
     }
 }

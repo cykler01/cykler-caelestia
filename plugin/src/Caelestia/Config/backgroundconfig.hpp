@@ -146,6 +146,11 @@ class DesktopWidgets : public settings::ObjectNode {
             vmap({ { u"mode"_s, u"day"_s } }),
             vmap({ { u"mode"_s, u"week"_s } }),
         }))
+    // The readings each style of system card shows, in slot order. Ids are from services/WidgetData.qml
+    // ("cpu", "ram", "disk", "temp", "gpu", "gputemp"); the two-reading variants show the first two
+    CONFIG_PROPERTY(QStringList, systemRingMetrics, DEFAULT_ARG({ u"cpu"_s, u"ram"_s, u"temp"_s }))
+    CONFIG_PROPERTY(QStringList, systemBarMetrics, DEFAULT_ARG({ u"cpu"_s, u"ram"_s, u"disk"_s }))
+    CONFIG_PROPERTY(QStringList, systemLineMetrics, DEFAULT_ARG({ u"cpu"_s, u"ram"_s, u"disk"_s }))
     // The folder the photo card picks from; the user's pictures unless told otherwise
     CONFIG_PROPERTY(QString, photoDir, QStandardPaths::writableLocation(QStandardPaths::PicturesLocation))
     CONFIG_PROPERTY(qreal, opacity, 0.7)
