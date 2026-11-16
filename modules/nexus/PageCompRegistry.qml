@@ -305,7 +305,11 @@ QtObject {
             }
         },
         Component {
-            PlaceholderComp {}
+            StackPage {
+                Component {
+                    PluginsPage {}
+                }
+            }
         },
 
         // About
