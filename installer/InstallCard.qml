@@ -164,8 +164,12 @@ Item {
                     color: Theme.subtextDim
                     font.family: Theme.fontMono
                     font.pixelSize: Theme.fontBodySm
+                    // a pacman error puts what actually went wrong at the END of
+                    // the line, so eliding one line hid the only part worth
+                    // reading. Long lines wrap; a runaway one still stops at six
+                    wrapMode: Text.WrapAtWordBoundaryOrAnywhere
+                    maximumLineCount: 6
                     elide: Text.ElideRight
-                    maximumLineCount: 1
                 }
 
                 // follow the tail, the way a terminal does
