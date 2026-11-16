@@ -10,14 +10,10 @@ Item {
     // where the window is running, when that is not Hyprland
     property string elsewhere
 
-    signal leave(bool start)
-
     readonly property var ask: Install.ask
     readonly property bool asking: !!card.ask
 
-    opacity: card.shown ? 1 : 0
-    visible: opacity > 0.01
-    enabled: card.shown
+    signal leave(bool start)
 
     function dismiss(): void {
         if (Install.running)
@@ -25,6 +21,10 @@ Item {
         else
             card.leave(false);
     }
+
+    opacity: card.shown ? 1 : 0
+    visible: opacity > 0.01
+    enabled: card.shown
 
     Behavior on opacity {
         NumberAnimation {
@@ -107,10 +107,15 @@ Item {
             SecretField {
                 id: secret
 
-                width: parent.width
+                anchors.horizontalCenter: parent.horizontalCenter
+                maxWidth: parent.width
                 visible: card.asking && card.ask.kind === "password"
                 failed: card.asking && card.ask.retry
                 onAccepted: (value) => Install.answer(value)
+                onVisibleChanged: {
+                    if (secret.visible)
+                        secret.focusInput();
+                }
             }
 
             Row {
@@ -128,14 +133,6 @@ Item {
                     variant: "tonal"
                     onClicked: Install.answer("n")
                 }
-            }
-
-            Button {
-                text: "Send"
-                variant: "filled"
-                icon: "arrow_forward"
-                visible: card.asking && card.ask.kind === "password"
-                onClicked: Install.answer(secret.take())
             }
         }
 
