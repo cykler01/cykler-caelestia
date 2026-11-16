@@ -205,7 +205,7 @@ WidgetCard {
         Layout.fillWidth: true
         Layout.fillHeight: true
         visible: sys.style === "compact"
-        spacing: Tokens.spacing.medium
+        spacing: Tokens.spacing.small
         uniformCellSizes: true
 
         Repeater {
@@ -321,10 +321,15 @@ component StripReading: ColumnLayout {
             fontStyle: Tokens.font.icon.small
         }
 
+        // A quarter of the card is only just wide enough for "100%" beside the icon, so the
+        // figure gives up a point or two of size rather than spilling past the card's edge
         StyledText {
+            Layout.fillWidth: true
             text: `${Math.round(Math.max(0, Math.min(1, strip.info.value)) * 100)}%`
             color: Colours.palette.m3onSurface
             font: Tokens.font.label.builders.large.weight(Font.DemiBold).build()
+            fontSizeMode: Text.HorizontalFit
+            minimumPixelSize: 9
         }
     }
 

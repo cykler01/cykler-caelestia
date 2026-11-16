@@ -22,6 +22,9 @@ WidgetCard {
     readonly property bool lineView: gh.variant.endsWith("line")
     // The stats variants show the stars and followers under the calendar, on top of the days themselves
     readonly property bool stats: gh.variant.endsWith("-stats")
+    // Whether the stars and followers are shown at all: under the calendar in the stats variants, and over
+    // the record in the streak one
+    readonly property bool wantsProfile: gh.stats || gh.streakView
     // The two variants drawn from the whole year rather than the last thirty days
     readonly property bool yearView: gh.variant === "year"
     readonly property bool streakView: gh.variant === "streak"
@@ -171,12 +174,17 @@ WidgetCard {
     // and that lands behind the squares that are already there
     Component.onCompleted: {
         WidgetData.requestGithub(gh.user, false);
-        if (gh.stats)
+        if (gh.wantsProfile)
+            WidgetData.requestGithubStats(gh.user, false);
+    }
+    // Switching to a style that shows them fetches the counts then, rather than waiting for the next refresh
+    onWantsProfileChanged: {
+        if (gh.wantsProfile)
             WidgetData.requestGithubStats(gh.user, false);
     }
     onUserChanged: {
         WidgetData.requestGithub(gh.user, false);
-        if (gh.stats)
+        if (gh.wantsProfile)
             WidgetData.requestGithubStats(gh.user, false);
     }
 
@@ -368,7 +376,7 @@ WidgetCard {
             if (gh.longView)
                 yearData.refresh(true);
             WidgetData.requestGithub(gh.user, true);
-            if (gh.stats)
+            if (gh.wantsProfile)
                 WidgetData.requestGithubStats(gh.user, true);
         }
     }
@@ -526,8 +534,8 @@ WidgetCard {
         }
     }
 
-    // Streak: how many days running there has been something, big, with the record and the year's total
-    // beside it and the last week under those to show where the run stands
+    // Streak: how many days running there has been something, big, with the profile counts, the record and
+    // the year's total beside it and the last week under those to show where the run stands
     ColumnLayout {
         Layout.fillWidth: true
         Layout.fillHeight: true
@@ -568,15 +576,38 @@ WidgetCard {
                     color: Colours.palette.m3onSurfaceVariant
                     font: Tokens.font.label.medium
                 }
+
             }
 
             Item {
                 Layout.fillWidth: true
             }
 
+            // Packed close: with the profile counts on top there are four rows here, and the card is only
+            // four squares tall
             ColumnLayout {
                 Layout.alignment: Qt.AlignVCenter
-                spacing: Tokens.spacing.small
+                spacing: 0
+
+                // The profile's stars and followers over the record, so the column fills the card's height
+                // instead of leaving a gap above it
+                RowLayout {
+                    Layout.alignment: Qt.AlignRight
+                    // The line boxes below carry their own leading, which is room enough between the rows
+                    Layout.bottomMargin: -Tokens.spacing.extraSmall
+                    visible: gh.profile !== null
+                    spacing: Tokens.spacing.medium
+
+                    Stat {
+                        icon: "star"
+                        value: gh.compact(gh.profile?.stars)
+                    }
+
+                    Stat {
+                        icon: "group"
+                        value: gh.compact(gh.profile?.followers)
+                    }
+                }
 
                 StreakStat {
                     label: Tr.tr("Longest")
@@ -591,6 +622,7 @@ WidgetCard {
                 // The last seven days under the figures, today on the right and outlined
                 RowLayout {
                     Layout.fillWidth: true
+                    Layout.topMargin: 2
                     spacing: gh.gap
 
                     Repeater {
@@ -611,6 +643,7 @@ WidgetCard {
                         }
                     }
                 }
+
             }
         }
     }

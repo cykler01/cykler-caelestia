@@ -453,7 +453,7 @@ Singleton {
                 {
                     id: "streak",
                     name: Tr.tr("Streak"),
-                    height: 4
+                    height: 5
                 }
             ]
         },

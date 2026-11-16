@@ -382,36 +382,41 @@ WidgetCard {
                             anchors.margins: Tokens.padding.small
                             spacing: 0
 
-                            StyledText {
+                            // The city, with AM/PM or the day it is there when that isn't today
+                            // ("+1" the way timetables mark an arrival the next morning) at the far
+                            // end. Kept on this row rather than beside the time: a tile is a third
+                            // of the card, and the time already takes all of its width
+                            RowLayout {
                                 Layout.fillWidth: true
-                                elide: Text.ElideRight
-                                text: city.modelData.name
-                                color: Colours.palette.m3onSurfaceVariant
-                                font: Tokens.font.label.builders.medium.weight(Font.DemiBold).build()
+                                spacing: Tokens.spacing.extraSmall
+
+                                StyledText {
+                                    Layout.fillWidth: true
+                                    elide: Text.ElideRight
+                                    text: city.modelData.name
+                                    color: Colours.palette.m3onSurfaceVariant
+                                    font: Tokens.font.label.builders.medium.weight(Font.DemiBold).build()
+                                }
+
+                                StyledText {
+                                    visible: text !== ""
+                                    text: clock.dayShift(city.index) !== 0 ? (clock.dayShift(city.index) > 0 ? "+1" : "\u22121") : clock.twelveHour ? Qt.formatTime(city.time, "AP") : ""
+                                    color: clock.dayShift(city.index) !== 0 ? Colours.palette.m3tertiary : Colours.palette.m3outline
+                                    font: Tokens.font.label.builders.small.weight(Font.Bold).build()
+                                }
                             }
 
                             Item {
                                 Layout.fillHeight: true
                             }
 
-                            RowLayout {
-                                spacing: 2
-
-                                StyledText {
-                                    text: Qt.formatTime(city.time, clock.twelveHour ? "h:mm" : "HH:mm")
-                                    color: Colours.palette.m3onSurface
-                                    font: Tokens.font.title.builders.large.weight(Font.DemiBold).build()
-                                }
-
-                                // AM/PM, or the day it is there when that isn't today: "+1" the way
-                                // timetables mark an arrival the next morning
-                                StyledText {
-                                    Layout.alignment: Qt.AlignTop
-                                    visible: text !== ""
-                                    text: clock.dayShift(city.index) !== 0 ? (clock.dayShift(city.index) > 0 ? "+1" : "\u22121") : clock.twelveHour ? Qt.formatTime(city.time, "AP") : ""
-                                    color: clock.dayShift(city.index) !== 0 ? Colours.palette.m3tertiary : Colours.palette.m3outline
-                                    font: Tokens.font.label.builders.small.weight(Font.Bold).build()
-                                }
+                            StyledText {
+                                Layout.fillWidth: true
+                                text: Qt.formatTime(city.time, clock.twelveHour ? "h:mm" : "HH:mm")
+                                color: Colours.palette.m3onSurface
+                                font: Tokens.font.title.builders.large.weight(Font.DemiBold).build()
+                                fontSizeMode: Text.HorizontalFit
+                                minimumPixelSize: 10
                             }
 
                             RowLayout {
