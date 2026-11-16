@@ -132,9 +132,12 @@ Item {
         color: Theme.bgSunken
         clip: true
 
-        // deep sky, lifted towards the accent where the star sits
+        // deep sky, lifted towards the accent where the star sits. It carries the
+        // same radius as the sky: clip only trims a child to the bounding box,
+        // not to rounded corners, so a square child pokes out of all four
         Rectangle {
             anchors.fill: parent
+            radius: sky.radius
             gradient: Gradient {
                 GradientStop {
                     position: 0
@@ -242,11 +245,15 @@ Item {
                     }
                 }
 
+                // rounded to match the sky. The cloud is centred up in the top
+                // right and reaches well past that corner, so a square path put
+                // a hard corner over the rounded one -- clip does not round
                 PathRectangle {
                     x: 0
                     y: 0
                     width: sky.width
                     height: sky.height
+                    radius: sky.radius
                 }
             }
         }
