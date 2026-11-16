@@ -104,6 +104,11 @@ Item {
     property string ghostIcon
     property string ghostClass
     readonly property real ghostSize: 64
+    // Where the drag was grabbed, in this item's coordinates. Everything the drag draws wells
+    // out of that point rather than from wherever the pointer happened to be left last time
+    property point ghostOrigin
+    // 0 with the ghost still on the grab, 1 once it has caught up with the pointer
+    property real emerge: 1
     property point dragPoint
     // The workspace a dropped window would land on, or -1
     property int dropWsId: -1
@@ -176,6 +181,12 @@ Item {
         if (Math.abs(press.x - p.pressX) > 2 || Math.abs(press.y - p.pressY) > 2)
             return;
 
+        // Both before the drag is live, so the ghost is never drawn at a stale point first.
+        // The press is already past the handler's drag threshold by a few pixels, so the ghost
+        // has next to nowhere to travel and lands under the pointer straight away
+        root.emerge = 0;
+        root.ghostOrigin = Qt.point(p.pressX, p.pressY);
+
         root.ghostIsWorkspace = p.kind === "workspace";
         root.ghostLabel = p.label ?? "";
         root.ghostIcon = p.icon ?? "";
@@ -185,6 +196,8 @@ Item {
         else
             root.dragClient = p.client;
         root.updateDrag(sceneX, sceneY);
+        emergeAnim.restart();
+        waveAnim.restart();
     }
 
     function updateDrag(sceneX: real, sceneY: real): void {
@@ -700,15 +713,72 @@ Item {
         }
     }
 
-    // The app being dragged, as its icon in a disc under the pointer. It pops in as the drag
-    // starts and shrinks away when it ends.
+    // Carries the ghost out from the grab to the pointer
+    Anim {
+        id: emergeAnim
+
+        target: root
+        property: "emerge"
+        from: 0
+        to: 1
+        type: Anim.DefaultSpatial
+    }
+
+    // A ring that wells out from under the pointer as the drag begins, so the lift starts
+    // where the hand is instead of a disc simply turning up there
+    StyledRect {
+        id: wave
+
+        x: root.ghostOrigin.x - width / 2
+        y: root.ghostOrigin.y - height / 2
+        implicitWidth: root.ghostSize
+        implicitHeight: root.ghostSize
+        radius: Tokens.rounding.full
+        border.width: 2
+        border.color: Colours.palette.m3primary
+        visible: opacity > 0
+        opacity: 0
+        scale: 0.35
+
+        ParallelAnimation {
+            id: waveAnim
+
+            Anim {
+                target: wave
+                property: "scale"
+                from: 0.35
+                to: 2.2
+                type: Anim.DefaultSpatial
+            }
+
+            SequentialAnimation {
+                Anim {
+                    target: wave
+                    property: "opacity"
+                    from: 0
+                    to: 0.55
+                    type: Anim.FastEffects
+                }
+
+                Anim {
+                    target: wave
+                    property: "opacity"
+                    to: 0
+                    type: Anim.SlowEffects
+                }
+            }
+        }
+    }
+
+    // The app being dragged, as its icon in a disc under the pointer. It wells up out of the
+    // grab as the drag starts and shrinks away when it ends.
     StyledRect {
         id: ghost
 
         readonly property bool shown: root.dragging
 
-        x: root.dragPoint.x - width / 2
-        y: root.dragPoint.y - height / 2
+        x: root.ghostOrigin.x + (root.dragPoint.x - root.ghostOrigin.x) * root.emerge - width / 2
+        y: root.ghostOrigin.y + (root.dragPoint.y - root.ghostOrigin.y) * root.emerge - height / 2
         width: root.ghostSize
         height: root.ghostSize
         radius: Tokens.rounding.full
