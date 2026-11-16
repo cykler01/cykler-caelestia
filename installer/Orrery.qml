@@ -44,12 +44,14 @@ Item {
     property real phase
     readonly property int lit: orrery.stage === 1 ? orrery.belt.filter(b => b.on).length : orrery.bodies.filter(b => b.on).length
     readonly property int total: orrery.stage === 1 ? orrery.beltCount : orrery.count
+    // the shots are up, so the system steps aside for them
+    readonly property bool shotsUp: orrery.installing && shotView.ready
     // the tier being chosen is at full strength, the other recedes. Plain
     // rather than readonly so the Behaviors below can ease them: a Shape's
     // strokeColor has no transition of its own, so these used to snap while the
     // bodies faded, and the two halves of the change disagreed
-    property real planetWeight: orrery.stage === 1 ? 0.35 : 1
-    property real beltWeight: orrery.stage === 1 ? 1 : 0.5
+    property real planetWeight: orrery.shotsUp ? 0 : orrery.stage === 1 ? 0.35 : 1
+    property real beltWeight: orrery.shotsUp ? 0 : orrery.stage === 1 ? 1 : 0.5
     // plain, not readonly: the Behavior below needs something it can write to
     property real beltScale: orrery.stage === 1 ? 1.3 : 1
     // whichever of the two lists the pointer is in, or null
@@ -321,6 +323,13 @@ Item {
             anchors.fill: parent
             preferredRendererType: Shape.CurveRenderer
             asynchronous: true
+            opacity: orrery.shotsUp ? 0 : 1
+
+            Behavior on opacity {
+                NumberAnimation {
+                    duration: Theme.durLong
+                }
+            }
 
             ShapePath {
                 strokeWidth: 0
@@ -365,6 +374,10 @@ Item {
             id: core
 
             readonly property real d: Theme.dp(86)
+            // The breathing drives a property of its own. An animation that
+            // wrote straight to opacity would replace the binding below, and the
+            // star would then never fade out of the way of the shots
+            property real pulse: 1
 
             x: orrery.cx - width / 2
             y: orrery.cy - height / 2
@@ -372,6 +385,7 @@ Item {
             height: core.d
             scale: orrery.installing ? 1 + orrery.progress * 0.22 : 1
             z: 1
+            opacity: (orrery.shotsUp ? 0 : 1) * core.pulse
 
             Behavior on scale {
                 NumberAnimation {
@@ -386,7 +400,7 @@ Item {
 
                 NumberAnimation {
                     target: core
-                    property: "opacity"
+                    property: "pulse"
                     to: 0.78
                     duration: 2600
                     easing.type: Easing.InOutSine
@@ -394,7 +408,7 @@ Item {
 
                 NumberAnimation {
                     target: core
-                    property: "opacity"
+                    property: "pulse"
                     to: 1
                     duration: 2600
                     easing.type: Easing.InOutSine
@@ -572,6 +586,26 @@ Item {
                     onEntered: orrery.bodyEntered(orrery.beltFrom + rock.index)
                     onExited: orrery.bodyExited(orrery.beltFrom + rock.index)
                     onClicked: orrery.bodyToggled(orrery.beltFrom + rock.index)
+                }
+            }
+        }
+
+        Shots {
+            id: shotView
+
+            anchors.left: parent.left
+            anchors.right: parent.right
+            anchors.top: parent.top
+            anchors.bottom: parent.bottom
+            anchors.margins: Theme.dp(26)
+            anchors.bottomMargin: orrery.footHeight
+            dir: Qt.resolvedUrl("../docs/screenshots").toString().replace("file://", "")
+            opacity: orrery.shotsUp ? 1 : 0
+            visible: opacity > 0
+
+            Behavior on opacity {
+                NumberAnimation {
+                    duration: Theme.durLong
                 }
             }
         }
