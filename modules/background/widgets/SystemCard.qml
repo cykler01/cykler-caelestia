@@ -9,25 +9,31 @@ import qs.components.controls
 import qs.services
 import qs.modules.background
 
-// --- System resources: rings, bars or a line graph, showing all three readings or just CPU and RAM ---
+// --- System resources: rings, bars or a line graph, showing three readings or two. Which readings each style
+// shows is picked in the settings ---
 WidgetCard {
     id: sys
 
     readonly property string style: sys.variant.startsWith("bars") ? "bars" : sys.variant.startsWith("line") ? "line" : "rings"
     readonly property bool basic: sys.variant.endsWith("basic")
 
+    // Which readings this style shows, as picked in Settings > Panels > Widgets > System. The two-reading
+    // variants show the first two of the three slots
+    readonly property var metrics: {
+        const all = sys.style === "bars" ? WidgetData.barMetrics : sys.style === "line" ? WidgetData.lineMetrics : WidgetData.ringMetrics;
+        return sys.basic ? all.slice(0, 2) : all;
+    }
+
+    // One colour per slot rather than per reading, so the card keeps the same look whichever readings it shows
+    readonly property list<color> slotColours: [Colours.palette.m3primary, Colours.palette.m3tertiary, Colours.palette.m3secondary]
+
     // The readings are a sample taken every few seconds rather than the live value: a ring that restarts an
     // animation on every tick keeps the whole desktop redrawing, and that was the shell's biggest single power
     // cost while idle. They and their histories are sampled in services/WidgetData.qml rather than here, since
     // the card is unloaded whenever windows hide the desktop - sampling here would empty the graph and drop
     // every reading to zero each time you came back to a bare workspace
-    readonly property real cpu: WidgetData.cpu
-    readonly property real memory: WidgetData.memory
-    readonly property real disk: WidgetData.disk
-    readonly property real temperature: WidgetData.temperature
-    readonly property var cpuHistory: WidgetData.cpuHistory
-    readonly property var ramHistory: WidgetData.ramHistory
-    readonly property var diskHistory: WidgetData.diskHistory
+    readonly property var readings: WidgetData.readings
+    readonly property var histories: WidgetData.histories
 
     title: Tr.tr("System")
     icon: "monitoring"
@@ -37,32 +43,24 @@ WidgetCard {
         Layout.maximumWidth: Number.POSITIVE_INFINITY
         visible: sys.style === "rings"
         spacing: 0
-        // Three equal columns spread across the card, rather than bunched at the left
+        // Equal columns spread across the card, rather than bunched at the left
         uniformCellSizes: true
 
-        Meter {
-            label: "CPU"
-            icon: "memory"
-            value: sys.cpu
-            colour: Colours.palette.m3primary
-        }
+        Repeater {
+            model: sys.style === "rings" ? sys.metrics : []
 
-        Meter {
-            label: "RAM"
-            icon: "memory_alt"
-            value: sys.memory
-            colour: Colours.palette.m3tertiary
-        }
+            Meter {
+                required property string modelData
+                required property int index
 
-        // CPU temperature in place of disk space, which is the reading that actually changes day to day. The
-        // ring fills against a full scale of 100 degrees, the same scale the performance dashboard uses
-        Meter {
-            visible: !sys.basic
-            label: Tr.tr("Temp")
-            icon: "thermometer"
-            value: sys.temperature / 100
-            valueText: Units.formatSensorTemp(sys.temperature)
-            colour: Colours.palette.m3secondary
+                readonly property var info: WidgetData.metricInfo(modelData)
+
+                label: info.label
+                icon: info.icon
+                value: WidgetData.valueFor(modelData)
+                valueText: WidgetData.isTemperature(modelData) ? WidgetData.textFor(modelData) : ""
+                colour: sys.slotColours[index] ?? Colours.palette.m3primary
+            }
         }
     }
 
@@ -73,54 +71,30 @@ WidgetCard {
         spacing: Tokens.spacing.medium
         uniformCellSizes: true
 
-        BarMeter {
-            label: "CPU"
-            value: sys.cpu
-            colour: Colours.palette.m3primary
-        }
+        Repeater {
+            model: sys.style === "bars" ? sys.metrics : []
 
-        BarMeter {
-            label: "RAM"
-            value: sys.memory
-            colour: Colours.palette.m3tertiary
-        }
+            BarMeter {
+                required property string modelData
+                required property int index
 
-        BarMeter {
-            visible: !sys.basic
-            label: Tr.tr("Disk")
-            value: sys.disk
-            colour: Colours.palette.m3secondary
+                label: WidgetData.metricInfo(modelData).label
+                value: WidgetData.valueFor(modelData)
+                valueText: WidgetData.textFor(modelData)
+                colour: sys.slotColours[index] ?? Colours.palette.m3primary
+            }
         }
     }
 
     ResourceLines {
         visible: sys.style === "line"
-        series: sys.basic ? [{
-                label: "CPU",
-                values: sys.cpuHistory,
-                value: sys.cpu,
-                colour: Colours.palette.m3primary
-            }, {
-                label: "RAM",
-                values: sys.ramHistory,
-                value: sys.memory,
-                colour: Colours.palette.m3tertiary
-            }] : [{
-                label: "CPU",
-                values: sys.cpuHistory,
-                value: sys.cpu,
-                colour: Colours.palette.m3primary
-            }, {
-                label: "RAM",
-                values: sys.ramHistory,
-                value: sys.memory,
-                colour: Colours.palette.m3tertiary
-            }, {
-                label: Tr.tr("Disk"),
-                values: sys.diskHistory,
-                value: sys.disk,
-                colour: Colours.palette.m3secondary
-            }]
+        series: sys.style !== "line" ? [] : sys.metrics.map((id, i) => ({
+                    label: WidgetData.metricInfo(id).label,
+                    values: sys.histories[id] ?? [],
+                    value: sys.readings[id] ?? 0,
+                    valueText: WidgetData.textFor(id),
+                    colour: sys.slotColours[i] ?? Colours.palette.m3primary
+                }))
     }
 
 component Meter: ColumnLayout {
@@ -175,6 +149,7 @@ component BarMeter: ColumnLayout {
     property string label
     property real value
     property color colour
+    property string valueText: ""
 
     Layout.fillWidth: true
     Layout.fillHeight: true
@@ -212,7 +187,7 @@ component BarMeter: ColumnLayout {
     StyledText {
         Layout.fillWidth: true
         horizontalAlignment: Text.AlignHCenter
-        text: Math.round(Math.max(0, Math.min(1, bar.value)) * 100) + "%"
+        text: bar.valueText !== "" ? bar.valueText : Math.round(Math.max(0, Math.min(1, bar.value)) * 100) + "%"
         color: Colours.palette.m3onSurface
         font: Tokens.font.label.small
     }
@@ -221,7 +196,7 @@ component BarMeter: ColumnLayout {
 component ResourceLines: ColumnLayout {
     id: lines
 
-    // [{ label, values, value, colour }]
+    // [{ label, values, value, valueText, colour }]
     property var series
 
     Layout.fillWidth: true
@@ -327,7 +302,7 @@ component ResourceLines: ColumnLayout {
                 }
 
                 StyledText {
-                    text: Math.round(Math.max(0, Math.min(1, legend.modelData.value ?? 0)) * 100) + "%"
+                    text: legend.modelData.valueText ?? Math.round(Math.max(0, Math.min(1, legend.modelData.value ?? 0)) * 100) + "%"
                     color: Colours.palette.m3onSurface
                     font: Tokens.font.label.small
                 }

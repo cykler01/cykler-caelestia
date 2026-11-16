@@ -148,6 +148,11 @@ QtObject {
                 Component {
                     ProgressPanel {}
                 }
+
+                // System resources card readings sub-page
+                Component {
+                    SystemPanel {}
+                }
             }
         },
         Component {

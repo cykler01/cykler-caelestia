@@ -1449,6 +1449,14 @@ QtObject {
             label: Tr.tr("Progress"),
             subtext: Tr.tr("Milestone dates and intervals")
         },
+        {
+            page: "panels",
+            path: [18],
+            title: Tr.tr("Widgets"),
+            section: Tr.tr("Card content"),
+            label: Tr.tr("System"),
+            subtext: Tr.tr("Which readings the rings, bars and line graph show")
+        },
 
         {
             page: "panels",
@@ -1507,6 +1515,34 @@ QtObject {
             section: Tr.tr("Milestones"),
             label: Tr.tr("Add milestone"),
             subtext: Tr.tr("Adds it to every progress card")
+        },
+
+        {
+            page: "panels",
+            path: [18, 23],
+            title: Tr.tr("System"),
+            section: Tr.tr("Rings"),
+            label: Tr.tr("Rings readings"),
+            subtext: Tr.tr("Which readings the system card shows in this style"),
+            keywords: "cpu ram memory disk temperature gpu metrics performance resources ring"
+        },
+        {
+            page: "panels",
+            path: [18, 23],
+            title: Tr.tr("System"),
+            section: Tr.tr("Bars"),
+            label: Tr.tr("Bars readings"),
+            subtext: Tr.tr("Which readings the system card shows in this style"),
+            keywords: "cpu ram memory disk temperature gpu metrics performance resources bar"
+        },
+        {
+            page: "panels",
+            path: [18, 23],
+            title: Tr.tr("System"),
+            section: Tr.tr("Line graph"),
+            label: Tr.tr("Line graph readings"),
+            subtext: Tr.tr("Which readings the system card shows in this style"),
+            keywords: "cpu ram memory disk temperature gpu metrics performance resources line"
         },
 
         {

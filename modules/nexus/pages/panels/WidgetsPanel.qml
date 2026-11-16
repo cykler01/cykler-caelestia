@@ -185,11 +185,18 @@ PageBase {
         }
 
         NavRow {
-            last: true
             icon: "hourglass_top"
             text: Tr.tr("Progress")
             subtext: Tr.tr("Milestone dates and intervals")
             onClicked: root.nState.openSubPage(22)
+        }
+
+        NavRow {
+            last: true
+            icon: "monitoring"
+            text: Tr.tr("System")
+            subtext: Tr.tr("Which readings the rings, bars and line graph show")
+            onClicked: root.nState.openSubPage(23)
         }
     }
 }

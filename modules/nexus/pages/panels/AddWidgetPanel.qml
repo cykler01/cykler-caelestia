@@ -15,7 +15,7 @@ import qs.modules.background.widgets
 // desktop and goes back to the widget list.
 //
 // Both steps are grids of real widgets rather than lists of names (see widgets/WidgetPreview.qml): the six
-// resources styles are the same four words apart, and "Rings · CPU, RAM and disk" tells you much less about what
+// resources styles are the same four words apart, and "Rings · three readings" tells you much less about what
 // you are about to add than a picture of it does.
 PageBase {
     id: root

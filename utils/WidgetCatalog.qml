@@ -86,32 +86,32 @@ Singleton {
             types: [
                 {
                     id: "rings-all",
-                    name: Tr.tr("Rings · CPU, RAM and temperature"),
+                    name: Tr.tr("Rings · three readings"),
                     height: 5
                 },
                 {
                     id: "rings-basic",
-                    name: Tr.tr("Rings · CPU and RAM"),
+                    name: Tr.tr("Rings · two readings"),
                     height: 4
                 },
                 {
                     id: "bars-all",
-                    name: Tr.tr("Bars · CPU, RAM and disk"),
+                    name: Tr.tr("Bars · three readings"),
                     height: 5
                 },
                 {
                     id: "bars-basic",
-                    name: Tr.tr("Bars · CPU and RAM"),
+                    name: Tr.tr("Bars · two readings"),
                     height: 4
                 },
                 {
                     id: "line-all",
-                    name: Tr.tr("Line graph · CPU, RAM and disk"),
+                    name: Tr.tr("Line graph · three readings"),
                     height: 6
                 },
                 {
                     id: "line-basic",
-                    name: Tr.tr("Line graph · CPU and RAM"),
+                    name: Tr.tr("Line graph · two readings"),
                     height: 5
                 }
             ]
