@@ -42,6 +42,15 @@ Item {
         return [...ids].sort((a, b) => a - b);
     }
 
+    // How many windows the overview is showing in all, for the header line
+    readonly property int windowCount: {
+        let n = 0;
+        for (const t of Hypr.toplevels.values)
+            if ((t.workspace?.id ?? -1) > 0 && !Hypr.isToplevelIgnored(t, GlobalConfig.bar.workspaces.ignoredTags))
+                n++;
+        return n;
+    }
+
     // Every workspace the overview can show, in order, split into pages of ten. By default
     // that is every workspace in groups of ten (matching the keybinds), out to the last group
     // that has a window or is focused plus one empty group so a fresh one can be reached.
@@ -485,6 +494,26 @@ Item {
                 level: 3
             }
 
+            // A sheen down the top of the panel, so its upper edge catches a little light the
+            // way a pane of glass would instead of the whole surface reading as one flat fill.
+            // The stops fade the same colour out rather than fading to "transparent", which is
+            // a transparent black and would darken the middle of the gradient.
+            StyledRect {
+                anchors.fill: parent
+                radius: parent.radius
+
+                gradient: Gradient {
+                    GradientStop {
+                        position: 0
+                        color: Qt.alpha(Colours.palette.m3surfaceBright, 0.1)
+                    }
+                    GradientStop {
+                        position: 0.5
+                        color: Qt.alpha(Colours.palette.m3surfaceBright, 0)
+                    }
+                }
+            }
+
             // Keeps clicks that land between the tiles from closing the overview
             MouseArea {
                 anchors.fill: parent
@@ -495,6 +524,46 @@ Item {
 
                 anchors.centerIn: parent
                 spacing: Tokens.spacing.large
+
+                // A slim line above the grid saying what the panel is and how much is open, so it
+                // reads as a surface of its own rather than a bare grid floating on the scrim
+                Item {
+                    width: root.gridWidth
+                    implicitHeight: Math.max(heading.implicitHeight, summary.implicitHeight)
+
+                    Row {
+                        id: heading
+
+                        anchors.left: parent.left
+                        anchors.verticalCenter: parent.verticalCenter
+                        spacing: Tokens.spacing.small
+
+                        MaterialIcon {
+                            anchors.verticalCenter: parent.verticalCenter
+                            text: "grid_view"
+                            color: Colours.palette.m3primary
+                            fontStyle: Tokens.font.icon.small
+                        }
+
+                        StyledText {
+                            anchors.verticalCenter: parent.verticalCenter
+                            text: Tr.tr("Workspaces")
+                            color: Colours.palette.m3onSurface
+                            font: Tokens.font.label.builders.large.letterSpacing(1.2).weight(Font.DemiBold).build()
+                        }
+                    }
+
+                    StyledText {
+                        id: summary
+
+                        anchors.right: parent.right
+                        anchors.verticalCenter: parent.verticalCenter
+                        animate: true
+                        text: Tr.trN("%n window open", "%n windows open", root.windowCount)
+                        color: Colours.palette.m3onSurfaceVariant
+                        font: Tokens.font.label.medium
+                    }
+                }
 
                 // Fixed to the size of a full page, so the panel doesn't change size on a short last page
                 Item {

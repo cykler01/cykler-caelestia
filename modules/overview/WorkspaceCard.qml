@@ -31,6 +31,9 @@ ClippingRectangle {
     property bool lifted
     // Position on the page, so the tiles can come in one after another
     property int order
+    // How far below its place the tile starts as it comes in. The Grid positions the tiles, so
+    // this is a transform rather than a y of its own: moving y would fight the layout
+    property real enterOffset
 
     signal pointerMoved
     // Pressed on the tile itself rather than on a window, so the whole workspace can be dragged
@@ -115,6 +118,9 @@ ClippingRectangle {
     implicitHeight: root.cardHeight
     // Lifts a little for the keyboard's choice and more for a window about to land on it
     scale: root.dropTarget ? 1.04 : root.lifted ? 0.96 : root.selected ? 1.015 : 1
+    transform: Translate {
+        y: root.enterOffset
+    }
 
     Behavior on scale {
         Anim {
@@ -134,16 +140,32 @@ ClippingRectangle {
             value: 0
         }
 
+        PropertyAction {
+            target: root
+            property: "enterOffset"
+            value: 14
+        }
+
         PauseAnimation {
             duration: root.order * 30
         }
 
-        NumberAnimation {
-            target: root
-            property: "opacity"
-            to: 1
-            duration: 220
-            easing.type: Easing.OutCubic
+        ParallelAnimation {
+            NumberAnimation {
+                target: root
+                property: "opacity"
+                to: 1
+                duration: 220
+                easing.type: Easing.OutCubic
+            }
+
+            NumberAnimation {
+                target: root
+                property: "enterOffset"
+                to: 0
+                duration: 320
+                easing.type: Easing.OutCubic
+            }
         }
     }
 
@@ -252,6 +274,18 @@ ClippingRectangle {
         }
     }
 
+    // An empty workspace has no preview to put in the tile, so its number is drawn large and
+    // faint across the middle instead: a page of free slots then reads as a row of numbers
+    // rather than a row of blank boxes. The corner badge is left off for those, so the number
+    // isn't said twice.
+    StyledText {
+        anchors.centerIn: parent
+        visible: !root.occupied
+        text: root.wsLabel
+        color: Qt.alpha(root.active ? Colours.palette.m3primary : Colours.palette.m3onSurfaceVariant, root.active || root.selected ? 0.55 : 0.28)
+        font: Tokens.font.headline.builders.large.scale(Math.max(1, root.cardHeight / 130)).weight(Font.DemiBold).build()
+    }
+
     // The workspace number top left and how many windows it holds top right, both overlaid on
     // the tile so they stay readable over a bright window preview
     StyledRect {
@@ -259,10 +293,17 @@ ClippingRectangle {
         anchors.top: parent.top
         anchors.margins: Tokens.padding.small
 
-        implicitWidth: label.implicitWidth + Tokens.padding.small * 2
+        visible: root.occupied
+        // Both badges are circles until their contents outgrow one, so a page of tiles has the
+        // same shape in both top corners rather than a pill on one side and a circle on the other
+        implicitWidth: Math.max(implicitHeight, label.implicitWidth + Tokens.padding.small * 2)
         implicitHeight: label.implicitHeight + Tokens.padding.extraSmall * 2
         radius: Tokens.rounding.full
-        color: Qt.alpha(Colours.palette.m3surfaceContainerLowest, 0.6)
+        // The focused workspace's number is filled in rather than only tinted: a hairline border
+        // around the tile alone is easy to miss across a page of ten
+        color: root.active ? Colours.palette.m3primary : Qt.alpha(Colours.palette.m3surfaceContainerLowest, 0.65)
+        border.width: 1
+        border.color: root.active ? "transparent" : Qt.alpha(Colours.palette.m3outline, 0.35)
 
         // The handle for carrying the whole workspace: a window preview usually covers all of the
         // tile, so there is often no bare part of it to grab. A click here still opens it.
@@ -284,8 +325,8 @@ ClippingRectangle {
 
             anchors.centerIn: parent
             text: root.wsLabel
-            color: root.active ? Colours.palette.m3primary : root.occupied ? Colours.palette.m3onSurface : Colours.palette.m3onSurfaceVariant
-            font: Tokens.font.body.medium
+            color: root.active ? Colours.palette.m3onPrimary : Colours.palette.m3onSurface
+            font: Tokens.font.label.builders.large.weight(Font.DemiBold).build()
         }
     }
 
@@ -298,7 +339,9 @@ ClippingRectangle {
         implicitWidth: Math.max(implicitHeight, count.implicitWidth + Tokens.padding.small * 2)
         implicitHeight: count.implicitHeight + Tokens.padding.extraSmall * 2
         radius: Tokens.rounding.full
-        color: Qt.alpha(Colours.palette.m3surfaceContainerLowest, 0.6)
+        color: Qt.alpha(Colours.palette.m3surfaceContainerLowest, 0.65)
+        border.width: 1
+        border.color: Qt.alpha(Colours.palette.m3outline, 0.35)
 
         StyledText {
             id: count
@@ -306,6 +349,7 @@ ClippingRectangle {
             anchors.centerIn: parent
             text: root.windows.length
             color: Colours.palette.m3onSurfaceVariant
+            font: Tokens.font.label.builders.large.weight(Font.DemiBold).build()
         }
     }
 }
