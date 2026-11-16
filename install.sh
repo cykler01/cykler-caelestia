@@ -41,11 +41,12 @@ MODULES=""
 # prints from them and the installer window builds its switches from that, so a
 # new add-on needs no second list anywhere. Not the same thing as the "extras"
 # build module, which is part of the shell itself.
-ADDONS=(login-screen)
+ADDONS=(login-screen scheduling)
 
 addon_label() {
     case "$1" in
         login-screen) echo "SDDM login screen" ;;
+        scheduling) echo "Scheduling priority" ;;
         *) echo "$1" ;;
     esac
 }
@@ -53,6 +54,7 @@ addon_label() {
 addon_summary() {
     case "$1" in
         login-screen) echo "The SDDM theme, in your colours, from your next login" ;;
+        scheduling) echo "Stops ananicy scheduling the shell as a background daemon" ;;
         *) echo "" ;;
     esac
 }
@@ -61,6 +63,7 @@ addon_summary() {
 addon_paths() {
     case "$1" in
         login-screen) echo "/usr/share/sddm/themes/cykler-caelestia, /etc/sddm.conf.d" ;;
+        scheduling) echo "/etc/ananicy.d" ;;
         *) echo "" ;;
     esac
 }
@@ -73,6 +76,10 @@ addon_run() {
             # paint it in this account's colours straight away, rather than leaving
             # the greeter on the shipped default until the next wallpaper change
             "$SRC/sddm/sync-sddm.sh" || true
+            ;;
+        scheduling)
+            echo "==> Installing the ananicy scheduling rule"
+            sudo "$SRC/scheduling/install-rules.sh"
             ;;
         *)
             echo "No such add-on: $1" >&2

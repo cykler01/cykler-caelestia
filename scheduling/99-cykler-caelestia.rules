@@ -1,0 +1,16 @@
+# Scheduling priority for the quickshell process that runs cykler-caelestia.
+#
+# The stock ananicy rulesets (cachyos-ananicy-rules, among others) classify
+# "qs" as a background Service - nice 10, ionice best-effort 6 - in
+# 00-default/DEs-and-WMs/dank-material-shell.rules. That is a fair call when
+# quickshell is only drawing a bar. Here it is the whole desktop shell: bar,
+# notifications, launcher, dashboard, lock screen. Scheduled as a background
+# daemon it loses wakeup latency to every ordinary application, which shows up
+# as dropped frames while scrolling or opening a panel.
+#
+# The same rulesets give the equivalent shells far more: gnome-shell and
+# kwin_wayland get LowLatency_RT (nice -12), plasmashell gets nice -6. This
+# matches plasmashell rather than LowLatency_RT, since this shell also runs
+# system pollers and the visualisers, and -12 would let those crowd out real
+# work.
+{ "name": "qs", "nice": -6, "ioclass": "best-effort", "ionice": 2 }
