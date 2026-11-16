@@ -56,8 +56,8 @@ confirm() {
 echo "==> The following packages will be installed from the official repos:"
 printf '    %s\n' "${REPO_PKGS[@]}"
 echo
-if confirm "Proceed with repo package install?"; then
-    sudo pacman -S --needed "${REPO_PKGS[@]}"
+if confirm "Update the system and install these?"; then
+    sudo pacman -Syu --needed "${REPO_PKGS[@]}"
 else
     echo "==> Skipped repo packages. You'll need to install these manually:"
     printf '    %s\n' "${REPO_PKGS[@]}"
