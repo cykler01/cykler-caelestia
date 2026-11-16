@@ -38,6 +38,18 @@ PageBase {
             onSelected: app => GlobalConfig.general.apps.terminal = app.command
         }
 
+        // NOTE(fork): left empty, the desktop's own default browser is used (through xdg-open), so
+        // this only takes over once something is picked here
+        DefaultRow {
+            icon: "language"
+            label: Tr.trCtx("Web browser", "default app category")
+            status: GlobalConfig.general.apps.browser.length > 0 ? GlobalConfig.general.apps.browser.join(" ") : Tr.trCtx("System default", "default web browser")
+            category: "WebBrowser"
+            offersSystemDefault: true
+            onSelected: app => GlobalConfig.general.apps.browser = app.command
+            onSystemDefaultSelected: GlobalConfig.general.apps.browser = []
+        }
+
         DefaultRow {
             icon: "volume_up"
             label: Tr.trCtx("Audio", "default app category")
@@ -80,7 +92,15 @@ PageBase {
 
         readonly property int popupHeight: root.flickable.height - y + root.flickable.contentY - Tokens.padding.large - Tokens.padding.extraExtraLarge
 
+        // NOTE(fork): a desktop entry category (e.g. "WebBrowser") to narrow the list to, when the
+        // row is for one kind of app. Every app is listed if nothing installed claims it
+        property string category
+        // Whether the list starts with an entry that clears the choice, for a row where nothing
+        // picked means "leave it to the desktop"
+        property bool offersSystemDefault
+
         signal selected(app: DesktopEntry)
+        signal systemDefaultSelected
 
         keepPopupAsChild: {
             if (root.nState.animatingContainer || root.opacity < 1)
@@ -104,9 +124,72 @@ PageBase {
                 implicitHeight: CUtils.clamp(row.popupHeight, Tokens.sizes.nexus.minPopupHeight, Tokens.sizes.nexus.maxPopupHeight)
 
                 model: {
-                    const apps = [...DesktopEntries.applications.values];
+                    const all = [...DesktopEntries.applications.values];
+                    const matching = row.category ? all.filter(a => (a.categories ?? []).includes(row.category)) : all;
+                    const apps = matching.length > 0 ? matching : all;
                     const favourited = new Set(apps.filter(a => Strings.testRegexList(GlobalConfig.launcher.favouriteApps, a.id)));
                     return apps.sort((a, b) => (favourited.has(b) - favourited.has(a)) || a.name.localeCompare(b.name));
+                }
+
+                header: row.offersSystemDefault ? systemDefaultItem : null
+
+                Component {
+                    id: systemDefaultItem
+
+                    StateLayer {
+                        anchors.fill: undefined
+                        width: list.width
+                        implicitHeight: defaultLayout.implicitHeight + defaultLayout.anchors.margins * 2
+                        radius: Tokens.rounding.small
+
+                        onClicked: {
+                            row.popup.open = false;
+                            row.systemDefaultSelected();
+                        }
+
+                        RowLayout {
+                            id: defaultLayout
+
+                            anchors.fill: parent
+                            anchors.margins: Tokens.padding.medium
+                            spacing: Tokens.spacing.medium
+
+                            MaterialIcon {
+                                Layout.preferredWidth: Math.round(Tokens.font.icon.large.pointSize * 1.8)
+                                horizontalAlignment: Text.AlignHCenter
+                                text: "public"
+                                color: Colours.palette.m3primary
+                                fontStyle: Tokens.font.icon.large
+                            }
+
+                            ColumnLayout {
+                                Layout.fillWidth: true
+                                spacing: 0
+
+                                StyledText {
+                                    Layout.fillWidth: true
+                                    text: Tr.trCtx("System default", "default web browser")
+                                    font: Tokens.font.body.small
+                                    elide: Text.ElideRight
+                                }
+
+                                StyledText {
+                                    Layout.fillWidth: true
+                                    text: Tr.tr("Whatever the desktop opens links with")
+                                    color: Colours.palette.m3outline
+                                    font: Tokens.font.label.small
+                                    elide: Text.ElideRight
+                                }
+                            }
+
+                            MaterialIcon {
+                                visible: GlobalConfig.general.apps.browser.length === 0
+                                text: "check"
+                                color: Colours.palette.m3primary
+                                fontStyle: Tokens.font.icon.small
+                            }
+                        }
+                    }
                 }
 
                 delegate: StateLayer {

@@ -6,6 +6,7 @@ import Caelestia.Config
 import Caelestia.I18n
 import qs.components
 import qs.services
+import qs.modules.launcher.services as LauncherServices
 
 StyledRect {
     id: root
@@ -171,7 +172,7 @@ StyledRect {
             wrapMode: Text.WordWrap
 
             onLinkActivated: link => {
-                Qt.openUrlExternally(link);
+                LauncherServices.Browser.open(link);
                 root.screenState.sidebar = false;
             }
         }

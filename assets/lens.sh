@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 
+# Any arguments are the browser command to open the result in (Nexus → Apps → Web browser); with
+# none, the desktop's default browser opens it through xdg-open.
+
 image=$(mktemp --tmpdir caelestia-lens.XXXXXX.png)
 trap 'rm -f "$image"' EXIT
 
@@ -37,5 +40,10 @@ if [ -z "$url" ]; then
     exit 1
 fi
 
-xdg-open "https://lens.google.com/uploadbyurl?url=${url}" >/dev/null 2>&1
+lens_url="https://lens.google.com/uploadbyurl?url=${url}"
+if [ $# -gt 0 ]; then
+    setsid -f "$@" "$lens_url" >/dev/null 2>&1
+else
+    xdg-open "$lens_url" >/dev/null 2>&1
+fi
 notify-send -a caelestia-shell "Google Lens" "Analysis opened in your browser"

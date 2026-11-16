@@ -11,6 +11,7 @@ import qs.components.controls
 import qs.components.effects
 import qs.services
 import qs.utils
+import qs.modules.launcher.services as LauncherServices
 
 StyledRect {
     id: root
@@ -438,7 +439,7 @@ StyledRect {
                     if (!root.expanded)
                         return;
 
-                    Qt.openUrlExternally(link);
+                    LauncherServices.Browser.open(link);
                     root.modelData.popup = false;
                 }
 

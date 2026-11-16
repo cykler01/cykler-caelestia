@@ -47,7 +47,10 @@ Searcher {
                 list.screenState.widgetEdit = true;
             } else if (["ocr", "lens", "colourpicker"].includes(command[0])) {
                 list.screenState.launcher = false;
-                Quickshell.execDetached(["bash", `${Quickshell.shellDir}/assets/${command[0]}.sh`]);
+                // Lens ends in a browser, so it is handed the one picked in Nexus → Apps (nothing,
+                // when none is, leaves it to xdg-open)
+                const extra = command[0] === "lens" ? GlobalConfig.general.apps.browser : [];
+                Quickshell.execDetached(["bash", `${Quickshell.shellDir}/assets/${command[0]}.sh`, ...extra]);
             } else {
                 list.screenState.launcher = false;
                 if (!SessionManager.exec(command))

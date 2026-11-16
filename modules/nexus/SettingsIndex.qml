@@ -1590,6 +1590,13 @@ QtObject {
             path: [],
             title: Tr.tr("Apps"),
             section: Tr.tr("Default applications"),
+            label: Tr.trCtx("Web browser", "default app category")
+        },
+        {
+            page: "apps",
+            path: [],
+            title: Tr.tr("Apps"),
+            section: Tr.tr("Default applications"),
             label: Tr.tr("Audio")
         },
         {

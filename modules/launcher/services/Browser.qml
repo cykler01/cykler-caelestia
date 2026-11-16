@@ -2,11 +2,15 @@ pragma Singleton
 
 import QtQuick
 import Quickshell
+import Caelestia.Config
 
-// Backs the ">b " launcher state. Whatever is typed ends up in the default browser: as a
-// link when it looks like one, and as a web search otherwise. Going through xdg-open means
-// the browser is whatever the desktop has as its default, and one that is already running
-// takes the address as a new tab.
+// Backs the ">b " launcher state. Whatever is typed ends up in the browser: as a link when it
+// looks like one, and as a web search otherwise. The browser is the one picked in Nexus → Apps
+// (general.apps.browser), or with none picked whatever the desktop has as its default, through
+// xdg-open. Either way one that is already running takes the address as a new tab.
+//
+// NOTE(fork): it is also where the rest of the shell opens web links, so a link in a
+// notification lands in the same browser the launcher uses.
 Singleton {
     id: root
 
@@ -37,10 +41,16 @@ Singleton {
         return /^https?:\/\//i.test(trimmed) ? trimmed : `${root.defaultScheme}${trimmed}`;
     }
 
+    // Web links go to the picked browser; anything else (mailto:, file:, ...) and every link
+    // when no browser is picked goes to the desktop's own handler
     function open(url: string): void {
         if (!url)
             return;
 
-        Quickshell.execDetached(["xdg-open", url]);
+        const browser = GlobalConfig.general.apps.browser;
+        if (browser.length > 0 && /^https?:\/\//i.test(url))
+            Quickshell.execDetached([...browser, url]);
+        else
+            Quickshell.execDetached(["xdg-open", url]);
     }
 }
