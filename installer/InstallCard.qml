@@ -69,7 +69,9 @@ Item {
             width: parent.width
             height: Theme.dp(6)
             radius: height / 2
-            color: Theme.bgSunken
+            // bgSunken is pure black in the dark scheme, darker than the panel
+            // behind it, so an empty track read as a hard black gash
+            color: Theme.alpha(Theme.outline, 0.4)
             visible: !Install.finished
 
             Rectangle {
