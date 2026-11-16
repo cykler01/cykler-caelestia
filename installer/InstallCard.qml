@@ -208,6 +208,80 @@ Item {
             visible: Install.ok
         }
 
+        // -- what to type once it is running -----------------------------
+        //
+        // every one of these is a real subcommand of the installed cli, taken
+        // from `caelestia --help` and `caelestia shell --help`
+        Column {
+            width: parent.width
+            spacing: Theme.dp(5)
+            visible: Install.ok
+
+            Text {
+                text: "From a terminal, after this:"
+                color: Theme.subtext
+                font.family: Theme.fontFamily
+                font.pixelSize: Theme.fontBodySm
+                font.variableAxes: Theme.axes(Theme.fontBodySm, 560, 0)
+            }
+
+            Item {
+                width: 1
+                height: Theme.dp(2)
+            }
+
+            Repeater {
+                model: [
+                    {
+                        "cmd": "caelestia shell -d",
+                        "what": "start it detached"
+                    },
+                    {
+                        "cmd": "caelestia shell -r",
+                        "what": "restart it after a change"
+                    },
+                    {
+                        "cmd": "caelestia shell -l",
+                        "what": "print its log"
+                    },
+                    {
+                        "cmd": "caelestia scheme list",
+                        "what": "the colour schemes it ships with"
+                    },
+                    {
+                        "cmd": "caelestia -h",
+                        "what": "everything else the cli does"
+                    }
+                ]
+
+                Row {
+                    id: hint
+
+                    required property var modelData
+
+                    width: parent.width
+                    spacing: Theme.dp(8)
+
+                    Text {
+                        width: Theme.dp(150)
+                        text: hint.modelData.cmd
+                        color: Theme.accent
+                        font.family: Theme.fontMono
+                        font.pixelSize: Theme.fontBodySm
+                        elide: Text.ElideRight
+                    }
+
+                    Text {
+                        text: hint.modelData.what
+                        color: Theme.subtextDim
+                        font.family: Theme.fontFamily
+                        font.pixelSize: Theme.fontBodySm
+                        elide: Text.ElideRight
+                    }
+                }
+            }
+        }
+
         Item {
             width: parent.width
             height: Theme.dp(44)
