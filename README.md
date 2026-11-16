@@ -59,14 +59,45 @@ has pulled in and built on.
 | **Layout editor** | A miniature screen where every part of the shell is a tile you drag into place - bar, launcher, dashboard, notch, sidebar, OSD, session menu, popups, toasts and the desktop items - with separate Shell and Desktop layers | *Nexus → Layout*  | [▶](https://cykler.dev/caelestia/demos/layout) |
 | **Taskbar on any edge** | The bar moves to left, right, top or bottom with its own horizontal components, cuts its middle away on an empty workspace so the wallpaper shows through, and can mirror the right-edge panels when it is on the right | *Nexus → Layout*  | [▶](https://cykler.dev/caelestia/demos/bar) |
 | **Session menu customisation** | Chooses which actions the session menu offers, and which the lock screen's session controls show, each as its own ordered on/off list | *Nexus → Panels → Session menu / Lock screen* | [▶](https://cykler.dev/caelestia/demos/session-menu) |
-| **Desktop widgets & app shortcuts** | Widget cards (calendar, clock, weather, focus timer, resources, now playing, battery, Bluetooth battery, fetch, visualiser, sticky note, pictures, GitHub, stocks, portfolio, progress and to-do) with styles, an ordered grid, rearrange mode and live previews, plus application shortcuts | *Nexus → Panels → Desktop* | [▶](https://cykler.dev/caelestia/demos/desktop) |
+| **Desktop widgets & app shortcuts** | Widget cards (calendar, clock, weather, focus timer, resources, network, now playing, lyrics, battery, Bluetooth battery, fetch, visualiser, sticky note, pictures, GitHub, stocks, portfolio, progress and to-do), each picked from a grid of live previews and given one of its styles: an ordered grid you drag to rearrange, per-card on/off, live previews, card opacity and blur, and the settings the cards read (stocks tickers and holdings, progress milestones, the pictures folder, the GitHub name), plus application shortcuts | *Nexus → Panels → Desktop* | [▶](https://cykler.dev/caelestia/demos/desktop) |
 | **Updates page** | Checks this fork's repo for new commits and pulls, rebuilds, installs through `pkexec`, and stops or restarts the shell from inside the session | *Nexus → Updates* | [▶](https://cykler.dev/caelestia/demos/updates) |
 | **Phone integration** | Pairs with an Android phone over KDE Connect: drop files on a device to send them, browse and download its storage, and mirror its screen with `scrcpy` | *Utilities card* | [▶](https://cykler.dev/caelestia/demos/phone-integration) |
 | **Polkit agent** | Asks for the password to do something privileged in the shell's own prompt instead of the GNOME dialog | *Whole session* | [▶](https://cykler.dev/caelestia/demos/polkit) |
+| **Graphical installer** | Does the whole install from a window - what to build, which add-ons to include, and the theme to log into - asking exactly what `install.sh` would, and keeps going in the background if the window is closed | `./install.sh --gui` | — |
+| **SDDM login theme** | A login screen in the shell's own colours, wearing whichever account's wallpaper and palette is picked, with battery, network and Bluetooth status, a power menu and optional fingerprint login | `./install.sh --with login-screen` | — |
+| **Download progress** | A ring in the bar that fills as a browser or Steam download runs, with the file name, percentage and speed on hover and in the notch; a transfer that cannot say how large it will be gets a turning arc instead | Bar / notch | — |
+| **Workspace window previews** | Hovering a window's icon in the taskbar shows a live preview of that window and its title, so a workspace's windows can be told apart before switching to one | Taskbar workspace icons | — |
+| **Weather location picker** | Sets a fixed weather location by searching for a place or dropping a pin on the map, instead of leaving it to the IP lookup | *Nexus → Weather location* | — |
+| **Dashboard process list** | Every running process with its CPU and memory, sortable by either, and a way to end the selected one | *Dashboard → Performance* | — |
+| **Rearrangeable dashboard** | The home page's four places (two rows, two columns) hold whichever cards you put in them, in your order, dragged around in a live preview; the old fixed layout is the default | *Nexus → Panels → Dashboard* | — |
+| **Stopwatch & alarms** | Beside the countdown: a stopwatch with laps and alarms at a time of day, all still keeping time and ringing while the sidebar is shut, with the ring by the bar's clock and the notch's bubbles carrying on where the panel leaves off | *Utilities → Timer* | — |
 
-Smaller additions: `>b` opens a new browser tab from the launcher, sound effects are available
-but off by default, and the settings sidebar keeps stable page keys so anything can jump
-straight to a page.
+Smaller additions:
+
+-   **Splash text** - a line of text at random along the bottom of the screen, read from
+    `assets/bottom-texts.txt` (watched, so adding a line is enough) and rotated while the session runs
+-   **Window corner radius and window opacity** - how round the windows themselves are and how
+    see-through, applied to open windows and written back to the Hyprland variables
+    (*Nexus → Wallpaper & style*)
+-   **Animation speed** - one multiplier over every animation the shell plays
+-   **Floor equalizer** - a spectrum spanning the bottom edge of the screen, from the same cava
+    capture as the other visualisers
+-   **Settings search** - matches the individual toggles, sliders and pickers rather than only the
+    page they are filed under, and shows which page and section each result came from
+-   **Trackpad scrolling** - touchpad scroll speed and direction, applied at runtime and kept
+    across a Hyprland reload (*Nexus → Input*)
+-   **Bluetooth battery** - the charge left in each connected device, in the bar's Bluetooth popout
+    and as a desktop widget
+-   **Sidebar panel options** - full height, reveal on hover, and how tall the hover trigger is
+    (*Nexus → Sidebar*)
+-   **Dino game** - with nothing to read in it, the notification dock turns into the game on space
+-   **Game mode** - one quick toggle that switches off Hyprland's animations, blur, gaps, shadows
+    and mouse acceleration, and puts them all back
+-   **Screen recording** - records the screen from the utilities card
+-   **VPN toggle** - any command-driven VPN provider as a quick toggle
+-   `>b` opens a new browser tab from the launcher
+-   sound effects are available but off by default
+-   the settings sidebar keeps stable page keys so anything can jump straight to a page
 
 ## Installation
 
@@ -106,7 +137,9 @@ cd cykler-caelestia
 ```
 
 `install.sh` takes `--install-deps false` if you already have the dependencies, `--repo-only` to
-skip AUR packages, or `-y` to skip the prompts. Then start it with `caelestia shell -d`.
+skip AUR packages, or `-y` to skip the prompts. `--gui` asks all of the same questions in a window
+instead, and `--with login-screen` also installs the SDDM theme (see `./install.sh --list-addons`
+for what else is on offer). Then start it with `caelestia shell -d`.
 
 Nix users can try the upstream flake that this fork keeps (although we haven't tested it ourselves):
 
