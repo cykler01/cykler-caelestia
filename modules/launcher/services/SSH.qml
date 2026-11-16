@@ -15,15 +15,6 @@ Searcher {
     property var hostData: []
     property int hostRevision
 
-    function transformSearch(search: string): string {
-        const prefix = `${GlobalConfig.launcher.actionPrefix}ssh`;
-        return search.startsWith(`${prefix} `) ? search.slice(`${prefix} `.length) : "";
-    }
-
-    function selector(item: var): string {
-        return `${item.name} ${item.description}`;
-    }
-
     function search(searchText: string): var {
         const prefix = `${GlobalConfig.launcher.actionPrefix}ssh`;
         const query = searchText.startsWith(`${prefix} `) ? searchText.slice(`${prefix} `.length).trim().toLowerCase() : "";
@@ -77,10 +68,10 @@ Searcher {
         return result.sort((a, b) => a.name.localeCompare(b.name));
     }
 
-    list: root.hostData
-    useFuzzy: false
-    keys: ["name", "description"]
-    weights: [0.8, 0.2]
+    // Hosts are plain JS objects, which a list<QtObject> turns into nulls - and the fzf index the
+    // base builds from it then throws on them. search() above filters hostData itself, so the
+    // base's index is never used: give it nothing to build
+    list: []
 
     Process {
         id: readConfig
