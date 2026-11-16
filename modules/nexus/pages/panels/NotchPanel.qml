@@ -137,11 +137,18 @@ PageBase {
         }
 
         ToggleRow {
-            last: true
             text: Tr.tr("Show downloads")
             subtext: Tr.tr("Show browser and Steam downloads in the notch while any are running")
             checked: Config.notch.showDownloads
             onToggled: GlobalConfig.notch.showDownloads = checked
+        }
+
+        ToggleRow {
+            last: true
+            text: Tr.tr("Show screen recording")
+            subtext: Tr.tr("Show a running screen recording in the notch, or in the bar when the notch is hidden")
+            checked: Config.notch.showRecording
+            onToggled: GlobalConfig.notch.showRecording = checked
         }
 
         // Dynamic island

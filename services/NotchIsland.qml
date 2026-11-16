@@ -44,6 +44,7 @@ Singleton {
     property bool timerTucked
     property bool stopwatchTucked
     property bool downloadsTucked
+    property bool recordingTucked
 
     // --- Lock keys ---
 
@@ -165,6 +166,15 @@ Singleton {
         }
 
         target: Downloads
+    }
+
+    Connections {
+        function onRunningChanged(): void {
+            if (!Recorder.running)
+                root.recordingTucked = false;
+        }
+
+        target: Recorder
     }
 
     // A device refresh can leave Hypr without a main keyboard for a moment, which reads as both

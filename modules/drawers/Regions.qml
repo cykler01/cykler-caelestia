@@ -89,6 +89,10 @@ Region {
     }
 
     N {
+        item: root.panels.notch.recordingBubble
+    }
+
+    N {
         item: root.panels.notch.timerBubble
     }
 

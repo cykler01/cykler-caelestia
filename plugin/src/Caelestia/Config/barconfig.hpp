@@ -148,8 +148,9 @@ class BarConfig : public settings::ObjectNode {
             LIST_ENTRY(spacer, true),
             LIST_ENTRY(activeWindow, true),
             LIST_ENTRY(spacer, true),
-            // NOTE(fork): the countdown and the download ring sit together above the tray, out of
-            // the end of the bar the tray and clock already share
+            // NOTE(fork): the recording dot, the countdown and the download ring sit together above
+            // the tray, out of the end of the bar the tray and clock already share
+            LIST_ENTRY(recording, true),
             LIST_ENTRY(downloads, true),
             LIST_ENTRY(timer, true),
             LIST_ENTRY(tray, true),

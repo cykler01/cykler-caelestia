@@ -1111,6 +1111,14 @@ QtObject {
             page: "panels",
             path: [11],
             title: Tr.tr("Notch"),
+            section: Tr.tr("Standing notch"),
+            label: Tr.tr("Show screen recording"),
+            subtext: Tr.tr("Show a running screen recording in the notch, or in the bar when the notch is hidden")
+        },
+        {
+            page: "panels",
+            path: [11],
+            title: Tr.tr("Notch"),
             section: Tr.tr("Dynamic island"),
             label: Tr.tr("Show lock keys"),
             subtext: Tr.tr("Drop the notch down to say when caps lock or num lock changes, in place of a toast")

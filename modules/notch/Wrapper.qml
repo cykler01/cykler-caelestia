@@ -72,6 +72,9 @@ Item {
     // notch turned off for workspaces that have windows) there would otherwise be nowhere it could
     // ever appear. It brings the notch down on its own for as long as it runs, like an activity.
     readonly property bool downloadsShown: Config.notch.showDownloads && Downloads.busy && emptyWorkspace
+    // NOTE(fork): a screen recording in progress, on the same terms as a download: it brings the
+    // notch down on its own while it runs, and the bar shows it instead whenever the notch cannot
+    readonly property bool recordingShown: Config.notch.showRecording && Recorder.running && emptyWorkspace
     readonly property bool persistent: wanted && (Config.notch.showClock || musicShown || timerShown || stopwatchShown)
     // Whether the notch is standing in for the clock, so the bar can drop its own
     readonly property bool showsClock: Config.notch.enabled && wanted && Config.notch.showClock
@@ -79,6 +82,8 @@ Item {
     readonly property bool showsTimer: Config.notch.enabled && wanted && Config.notch.showTimer
     // NOTE(fork): and the same for the download ring, so the bar has it whenever the notch does not
     readonly property bool showsDownloads: Config.notch.enabled && root.downloadsShown
+    // NOTE(fork): and the same for the recording dot
+    readonly property bool showsRecording: Config.notch.enabled && root.recordingShown
 
     // The brief pill after a track change,
     readonly property bool trackActive: root.playing && shown
@@ -91,7 +96,7 @@ Item {
 
     // The authentication prompt is a panel of its own, drawn where the notch would be (it has to
     // hold the keyboard, which the drawers window cannot), so the notch steps out of its way
-    readonly property bool shouldBeActive: Config.notch.enabled && (persistent || trackActive || activityShown || downloadsShown) && !screenState.dashboard && !screenState.launcher && !NotchIsland.authActive
+    readonly property bool shouldBeActive: Config.notch.enabled && (persistent || trackActive || activityShown || downloadsShown || recordingShown) && !screenState.dashboard && !screenState.launcher && !NotchIsland.authActive
     property real offsetScale: shouldBeActive ? 0 : 1
 
     // NOTE(fork): an activity pulls the notch back out of the bar band (see inBarProg below) for as
@@ -102,13 +107,14 @@ Item {
     // NOTE(fork): handles on the side bubbles declared further down, for the window that draws
     // their surfaces and marks out where the pointer can reach them
     readonly property alias downloadBubble: downloadBubble
+    readonly property alias recordingBubble: recordingBubble
     readonly property alias timerBubble: timerBubble
     readonly property alias stopwatchBubble: stopwatchBubble
 
     // Whether the pill is carrying a mark for a bubble that has been put away. The pill only takes
     // the pointer while it is (see modules/drawers/Regions.qml): with nothing to press on it there
     // is no reason for it to be in the way of whatever is under the top of the screen.
-    readonly property bool hasMarks: (timerShown && NotchIsland.timerTucked) || (stopwatchShown && NotchIsland.stopwatchTucked) || (downloadsShown && NotchIsland.downloadsTucked)
+    readonly property bool hasMarks: (timerShown && NotchIsland.timerTucked) || (stopwatchShown && NotchIsland.stopwatchTucked) || (downloadsShown && NotchIsland.downloadsTucked) || (recordingShown && NotchIsland.recordingTucked)
 
     // Services are reference counted, so cava - and the PipeWire capture it reads - stops the
     // moment the pill's own ref (in Pill.qml) goes away. Started cold it has to settle its
@@ -317,6 +323,31 @@ Item {
     }
 
     Bubble {
+        id: recordingBubble
+
+        shown: root.recordingShown && root.shouldBeActive && root.inBarProg < 0.001 && !NotchIsland.recordingTucked
+        size: root.height
+        detailWidth: recordingSegment.detailWidth
+        // Beyond the download's bubble when there is one, and in its place when there is not - the
+        // left-hand mirror of how the stopwatch sits past the countdown
+        mirrored: true
+        x: (downloadBubble.visible ? downloadBubble.x : 0) - width - recordingBubble.gap
+        y: 0
+
+        RecordingSegment {
+            id: recordingSegment
+
+            anchors.fill: parent
+
+            expandProg: recordingBubble.expandProg
+            mirrored: recordingBubble.mirrored
+            onDismissed: NotchIsland.recordingTucked = true
+            // Pressing the dot opens the utilities panel, where the recorder's own card is
+            onActivated: root.screenState.utilities = true
+        }
+    }
+
+    Bubble {
         id: timerBubble
 
         shown: root.timerShown && root.wanted && root.shouldBeActive && root.inBarProg < 0.001 && !NotchIsland.timerTucked
@@ -385,12 +416,13 @@ Item {
             cavaWarm: root.cavaWarm
             allowLive: root.visualiserLive
             showMedia: root.hasRecent && (root.trackActive || (root.persistent && Config.notch.showMusic))
-            showClock: (root.persistent || root.downloadsShown) && Config.notch.showClock
+            showClock: (root.persistent || root.downloadsShown || root.recordingShown) && Config.notch.showClock
             activity: root.activityShown ? NotchIsland.activity : ""
             compact: root.inBarProg > 0.5
             timerTucked: root.timerShown && NotchIsland.timerTucked
             stopwatchTucked: root.stopwatchShown && NotchIsland.stopwatchTucked
             downloadsTucked: root.downloadsShown && NotchIsland.downloadsTucked
+            recordingTucked: root.recordingShown && NotchIsland.recordingTucked
         }
     }
 }

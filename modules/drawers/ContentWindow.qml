@@ -273,7 +273,7 @@ StyledWindow {
             implicitWidth: panels.notch.inBarProg > 0.999 ? 0 : panels.notch.width
         }
 
-        // NOTE(fork): the notch's side bubbles (a countdown, a stopwatch, a download), drawn with
+        // NOTE(fork): the notch's side bubbles (a countdown, a stopwatch, a download, a recording), drawn with
         // the notch's own surface and left in its smin, so the gap between them closes into a neck
         // and they read as the pill growing an arm rather than as circles parked beside it. They
         // part and join again on their own as they come, go and open out on hover, which is the
@@ -287,7 +287,14 @@ StyledWindow {
             id: downloadBg
 
             bubble: panels.notch.downloadBubble
-            excludeCorners: [notchBg]
+            excludeCorners: [notchBg, recordingBg]
+        }
+
+        BubbleBg {
+            id: recordingBg
+
+            bubble: panels.notch.recordingBubble
+            excludeCorners: [notchBg, downloadBg]
         }
 
         BubbleBg {

@@ -29,6 +29,8 @@ RowLayout {
     readonly property bool timerHidden: ShellState.componentsFor(screen)?.panels?.notch?.showsTimer ?? false
     // NOTE(fork): and the download ring, so it is only here while the notch is not showing it
     readonly property bool downloadsHidden: ShellState.componentsFor(screen)?.panels?.notch?.showsDownloads ?? false
+    // NOTE(fork): and the recording dot, on the same terms
+    readonly property bool recordingHidden: ShellState.componentsFor(screen)?.panels?.notch?.showsRecording ?? false
 
     // Centre of an item along the bar (x), in bar coordinates
     function centerOf(item: Item): real {
@@ -228,6 +230,19 @@ RowLayout {
                         id: tray
 
                         objectName: "taskbarTray"
+                    }
+                }
+            }
+            DelegateChoice {
+                roleValue: "recording"
+                delegate: EntryWrapper {
+                    // NOTE(fork): the notch's recording dot, in the bar for whenever the notch cannot
+                    // show it - the same trade the download ring below makes
+                    shown: Recorder.running && !root.recordingHidden
+
+                    RecordingDot {
+                        objectName: "taskbarRecording"
+                        screenState: root.screenState
                     }
                 }
             }

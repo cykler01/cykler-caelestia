@@ -3,6 +3,7 @@ pragma Singleton
 import QtQuick
 import Quickshell
 import Quickshell.Io
+import Caelestia.Config
 import qs.services
 
 Singleton {
@@ -11,6 +12,13 @@ Singleton {
     readonly property alias running: props.running
     readonly property alias paused: props.paused
     readonly property alias elapsed: props.elapsed
+    // NOTE(fork): how long it has been going, as 1:23 or 1:02:03, for the indicators that show it
+    readonly property string elapsedDisplay: {
+        const hours = Math.floor(root.elapsed / 3600);
+        const mins = Math.floor((root.elapsed % 3600) / 60);
+        const secs = Math.floor(root.elapsed % 60).toString().padStart(2, "0");
+        return hours > 0 ? `${hours}:${mins.toString().padStart(2, "0")}:${secs}` : `${mins}:${secs}`;
+    }
     property int refCount: 0
     property bool needsStart
     property list<string> startArgs
@@ -101,10 +109,16 @@ Singleton {
         onExited: checkProc.running = true
     }
 
-    // Only poll while something is showing the state, i.e. the utilities drawer is open
+    // NOTE(fork): whether a recording indicator (the notch's bubble, the bar's dot) could be up to
+    // show it. Those have to notice a recording started from a keybind as well, so they keep the
+    // poll going for as long as they are switched on, not only while one happens to be visible.
+    readonly property bool indicatorWanted: GlobalConfig.notch.showRecording || GlobalConfig.bar.entries.values.some(e => e.id === "recording" && e.enabled)
+
+    // Only poll while something is showing the state: the utilities drawer is open, or an
+    // indicator is switched on (see indicatorWanted)
     Timer {
         interval: 1000
-        running: root.refCount > 0
+        running: root.refCount > 0 || root.indicatorWanted
         repeat: true
         triggeredOnStart: true
 

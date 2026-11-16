@@ -33,6 +33,7 @@ Item {
     property bool timerTucked
     property bool stopwatchTucked
     property bool downloadsTucked
+    property bool recordingTucked
 
     readonly property string trackTitle: root.local ? Music.title : Players.recentPlayer?.trackTitle ?? ""
     readonly property string trackArtist: root.local ? Music.artist : Players.recentPlayer?.trackArtist ?? ""
@@ -249,9 +250,15 @@ Item {
             // back when it is pressed. The pill's own width eases, so these grow it rather than
             // appearing in it.
             RowLayout {
-                visible: root.timerTucked || root.stopwatchTucked || root.downloadsTucked
+                visible: root.timerTucked || root.stopwatchTucked || root.downloadsTucked || root.recordingTucked
                 Layout.alignment: Qt.AlignVCenter
                 spacing: 0
+
+                Mark {
+                    visible: root.recordingTucked
+                    icon: "screen_record"
+                    onClicked: NotchIsland.recordingTucked = false
+                }
 
                 Mark {
                     visible: root.downloadsTucked

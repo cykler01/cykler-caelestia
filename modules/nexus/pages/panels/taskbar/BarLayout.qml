@@ -18,6 +18,7 @@ PageBase {
             logo: Tr.tr("Logo"),
             workspaces: Tr.tr("Workspaces"),
             activeWindow: Tr.tr("Active window"),
+            recording: Tr.tr("Screen recording"),
             downloads: Tr.tr("Downloads"),
             timer: Tr.tr("Timer"),
             tray: Tr.tr("Tray"),

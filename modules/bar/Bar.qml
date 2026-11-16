@@ -29,6 +29,8 @@ ColumnLayout {
     readonly property bool timerHidden: ShellState.componentsFor(screen)?.panels?.notch?.showsTimer ?? false
     // NOTE(fork): and the download ring, so it is only here while the notch is not showing it
     readonly property bool downloadsHidden: ShellState.componentsFor(screen)?.panels?.notch?.showsDownloads ?? false
+    // NOTE(fork): and the recording dot, on the same terms
+    readonly property bool recordingHidden: ShellState.componentsFor(screen)?.panels?.notch?.showsRecording ?? false
 
     // Extent of the empty stretch between the first and last spacer, so the drawers can cut it out of the
     // frame on an empty workspace (y coordinates along the bar)
@@ -208,6 +210,19 @@ ColumnLayout {
                         id: tray
 
                         objectName: "taskbarTray"
+                    }
+                }
+            }
+            DelegateChoice {
+                roleValue: "recording"
+                delegate: EntryWrapper {
+                    // NOTE(fork): the notch's recording dot, in the bar for whenever the notch cannot
+                    // show it - the same trade the download ring below makes
+                    shown: Recorder.running && !root.recordingHidden
+
+                    RecordingDot {
+                        objectName: "taskbarRecording"
+                        screenState: root.screenState
                     }
                 }
             }

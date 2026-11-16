@@ -38,6 +38,8 @@ class NotchConfig : public settings::ObjectNode {
     CONFIG_PROPERTY(int, keyLockDuration, 1600)
     // Browser and Steam downloads, while any are running (see services/downloads.cpp)
     CONFIG_PROPERTY(bool, showDownloads, true)
+    // A screen recording, for as long as one is running (see services/Recorder.qml)
+    CONFIG_PROPERTY(bool, showRecording, true)
     // Notifications as they arrive, for the apps named in notifApps
     CONFIG_PROPERTY(bool, showNotifs, true)
     // Which apps the island is for, matched the way silencedApps is: case-insensitively, against
