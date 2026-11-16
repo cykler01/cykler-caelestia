@@ -9,6 +9,7 @@ https://github.com/user-attachments/assets/35d5068b-dca0-414d-b933-bd5a9d548262
 ![GitHub last commit](https://img.shields.io/github/last-commit/cykler01/cykler-caelestia?style=flat-square&labelColor=101418&color=9ccbfb)
 ![GitHub release](https://img.shields.io/github/v/release/cykler01/cykler-caelestia?style=flat-square&labelColor=101418&color=9ccbfb)
 ![GitHub issues](https://img.shields.io/github/issues/cykler01/cykler-caelestia?style=flat-square&labelColor=101418&color=9ccbfb)
+![GitHub repo size](https://img.shields.io/github/repo-size/cykler01/cykler-caelestia?style=flat-square&labelColor=101418&color=9ccbfb)
 ![GitHub license](https://img.shields.io/github/license/cykler01/cykler-caelestia?style=flat-square&labelColor=101418&color=9ccbfb)
 
 </div>
@@ -18,7 +19,28 @@ https://github.com/user-attachments/assets/35d5068b-dca0-414d-b933-bd5a9d548262
 > it should work on most other systems. If you run into an error, please open an
 > [issue](https://github.com/cykler01/cykler-caelestia/issues).
 
-## Features added in this fork
+<details open>
+<summary><h2>Showcase</h2></summary>
+
+<table>
+  <tr>
+    <td width="25%"><a href="docs/screenshots/desktop-widgets.webp"><img src="docs/screenshots/desktop-widgets.webp" alt="Desktop widgets"></a></td>
+    <td width="25%"><a href="docs/screenshots/media-equalizer.webp"><img src="docs/screenshots/media-equalizer.webp" alt="Music and equalizer"></a></td>
+    <td width="25%"><a href="docs/screenshots/overview.webp"><img src="docs/screenshots/overview.webp" alt="Window overview"></a></td>
+    <td width="25%"><a href="docs/screenshots/launcher-ai.webp"><img src="docs/screenshots/launcher-ai.webp" alt="Launcher AI"></a></td>
+  </tr>
+  <tr>
+    <td width="25%"><a href="docs/screenshots/sidebar-todo.webp"><img src="docs/screenshots/sidebar-todo.webp" alt="Sidebar to-do and utilities"></a></td>
+    <td width="25%"><a href="docs/screenshots/settings-audio.webp"><img src="docs/screenshots/settings-audio.webp" alt="Settings and audio"></a></td>
+    <td width="25%"><a href="docs/screenshots/updates-phone.webp"><img src="docs/screenshots/updates-phone.webp" alt="Updates and phone"></a></td>
+    <td width="25%"><a href="docs/screenshots/dev-workspace.webp"><img src="docs/screenshots/dev-workspace.webp" alt="Development workspace"></a></td>
+  </tr>
+</table>
+
+</details>
+
+<details>
+<summary><h2>Features added in this fork</h2></summary>
 
 Every feature below is either our own work on top of upstream, or upstream work this fork
 has pulled in and built on.
@@ -96,7 +118,10 @@ Smaller additions:
 -   sound effects are available but off by default
 -   the settings sidebar keeps stable page keys so anything can jump straight to a page
 
-## Installation
+</details>
+
+<details>
+<summary><h2>Installation</h2></summary>
 
 > [!NOTE]
 > This installs the shell only. For the full Caelestia dotfiles (themes, Hyprland config, keybinds),
@@ -144,7 +169,7 @@ Nix users can try the upstream flake that this fork keeps (although we haven't t
 nix run github:cykler01/cykler-caelestia#with-cli
 ```
 
-## Keeping up to date
+### Keeping up to date
 
 ```sh
 ./update.sh
@@ -156,6 +181,8 @@ fork merged with upstream regularly (best effort, no promises).
 
 Or do the same thing from inside the session: *Settings → Updates* checks the repo, shows what is
 incoming, and can pull, rebuild, install and restart the shell for you.
+
+</details>
 
 ## Credits
 
