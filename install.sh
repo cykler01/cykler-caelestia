@@ -14,6 +14,9 @@
 #   ./install.sh --with all             # every add-on
 #   ./install.sh --without login-screen # drop one again
 #   ./install.sh --list-addons          # what the add-ons are, one per line
+#   ./install.sh --features ocr,fonts   # only these optional dependency groups
+#   ./install.sh --features ''          # required dependencies only
+#   ./install.sh --list-features        # what the groups are, one per line
 #
 # The shell installs into its own prefix. Add-ons are the things that write
 # somewhere else - another package's theme directory, /etc, your home - so none
@@ -27,6 +30,9 @@ REPO_URL="https://github.com/cykler01/cykler-caelestia.git"
 
 INSTALL_DEPS=true
 REPO_ONLY=false
+# unset leaves install-deps.sh to its own default, which is every group
+FEATURES_SET=false
+FEATURES=""
 ASSUME_YES=false
 MODULES=""
 
@@ -39,14 +45,14 @@ ADDONS=(login-screen)
 
 addon_label() {
     case "$1" in
-        login-screen) echo "Login screen" ;;
+        login-screen) echo "SDDM login screen" ;;
         *) echo "$1" ;;
     esac
 }
 
 addon_summary() {
     case "$1" in
-        login-screen) echo "The sddm theme, in your colours, from your next login" ;;
+        login-screen) echo "The SDDM theme, in your colours, from your next login" ;;
         *) echo "" ;;
     esac
 }
@@ -149,6 +155,11 @@ while [[ $# -gt 0 ]]; do
             set -- "--install-deps" "${1#*=}" "${@:2}"
             ;;
         --repo-only) REPO_ONLY=true; shift ;;
+        --features)
+            [[ $# -ge 2 ]] || { echo "--features needs a value, e.g. 'ocr,fonts' (try --list-features)" >&2; exit 2; }
+            FEATURES="$2"; FEATURES_SET=true; shift 2 ;;
+        --features=*) FEATURES="${1#*=}"; FEATURES_SET=true; shift ;;
+        --list-features) ./install-deps.sh --list-features; exit 0 ;;
         --modules)
             [[ $# -ge 2 ]] || { echo "--modules needs a value, e.g. 'plugin;shell'" >&2; exit 2; }
             MODULES="$2"; shift 2 ;;
@@ -247,6 +258,7 @@ if $INSTALL_DEPS; then
     deps_args=()
     $ASSUME_YES && deps_args+=(--yes)
     $REPO_ONLY && deps_args+=(--repo-only)
+    $FEATURES_SET && deps_args+=(--features "$FEATURES")
     ./install-deps.sh "${deps_args[@]}"
 else
     echo "Skipping dependencies (--install-deps false)."

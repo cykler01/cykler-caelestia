@@ -3,45 +3,120 @@
 # install-deps.sh — installs build and runtime dependencies for cykler-caelestia
 #
 # Usage:
-#   ./install-deps.sh              # install everything (repo + AUR), asking before each step
-#   ./install-deps.sh --repo-only  # skip AUR packages
-#   ./install-deps.sh --yes        # don't ask for confirmation (for scripting/CI)
+#   ./install-deps.sh                    # everything, asking before each step
+#   ./install-deps.sh --repo-only        # skip AUR packages
+#   ./install-deps.sh --yes              # don't ask for confirmation (for scripting/CI)
+#   ./install-deps.sh --list-features    # the optional feature groups, one per line
+#   ./install-deps.sh --features a,b     # only these optional groups (empty for none)
+#
+# Packages come in two kinds. The required ones are not a choice: the plugin
+# links libqalculate, libpipewire, aubio, taglib and cava at build time, the
+# shell will not start without quickshell or its icon font, and nothing builds
+# without cmake. Those are installed, not offered. Everything else belongs to a
+# feature that the shell does without, and those are the groups below.
 
 
 set -euo pipefail
 
 REPO_ONLY=false
 ASSUME_YES=false
-for arg in "$@"; do
-    case "$arg" in
-        --repo-only) REPO_ONLY=true ;;
-        --yes|-y) ASSUME_YES=true ;;
+# unset means every group; set (even to empty) means exactly what was asked for
+FEATURES_SET=false
+WANTED=""
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --repo-only) REPO_ONLY=true; shift ;;
+        --yes|-y) ASSUME_YES=true; shift ;;
+        --features) WANTED="${2-}"; FEATURES_SET=true; shift 2 ;;
+        --features=*) WANTED="${1#*=}"; FEATURES_SET=true; shift ;;
+        --list-features) LIST_FEATURES=true; shift ;;
+        *) shift ;;
     esac
 done
+LIST_FEATURES="${LIST_FEATURES:-false}"
 
 
-# --- Packages available in the official Arch repos ---
-REPO_PKGS=(
-    # -- build deps
-    git cmake ninja qt6-shadertools
-    # -- runtime deps
-    ddcutil brightnessctl python
-    networkmanager lm_sensors aubio libpipewire libqalculate taglib power-profiles-daemon
+# --- Required: not offered, because nothing works without them ---------------
+#
+# build: nothing compiles without these
+# qt: the toolkit the whole shell is
+# plugin: pkg_check_modules(... REQUIRED) in plugin/CMakeLists.txt, so the build
+#   fails outright if any of them is missing
+REQ_REPO=(
+    git cmake ninja qt6-shadertools python
     qt6-base qt6-declarative qt6-imageformats qt6-multimedia
-    swappy fish bash grim slurp tesseract wl-clipboard hyprpicker libnotify curl jq xdg-utils
+    libqalculate libpipewire aubio taglib
 )
 
-
-# --- Packages that only exist in the AUR ---
-AUR_PKGS=(
-    caelestia-cli
+# quickshell is what the shell runs on, m3shapes is a QML module it imports,
+# cava is linked by the plugin, the symbols font draws every icon in the shell,
+# and the cli is the `caelestia` command the installer starts the shell with
+REQ_AUR=(
     aur/quickshell-git
     qt6-m3shapes-git
     libcava
     ttf-material-symbols-variable
-    ttf-rubik-vf
-    ttf-cascadia-code-nerd
+    caelestia-cli
 )
+
+
+# --- Optional: one line per feature the shell can do without ------------------
+#
+# id|label|summary|repo packages|aur packages
+# Keep in step with the installer window, which builds its switches from
+# --list-features and hands the chosen ids back on --features.
+FEATURES=(
+    "screenshots|Screenshots|The area picker, annotating a shot and copying it|grim slurp wl-clipboard swappy|"
+    "ocr|Screen OCR|Reads the text out of any part of the screen|tesseract|"
+    "picker|Colour picker|Picks a colour from anywhere on screen|hyprpicker|"
+    "brightness|Brightness|The backlight, and external monitors over DDC|brightnessctl ddcutil|"
+    "sensors|Sensors & power|Temperatures, fan readings and power profiles|lm_sensors power-profiles-daemon|"
+    "network|Network|The network widget, its list and its controls|networkmanager|"
+    "web|Weather & tiles|Fetches the weather and the desktop tiles|curl jq|"
+    "desktop|Desktop links|Opening links, and notifications from scripts|xdg-utils libnotify|"
+    "shells|Script shells|The shells the bundled scripts are written in|fish bash|"
+    "fonts|Extra fonts|Rubik and Cascadia Code Nerd Font|  |ttf-rubik-vf ttf-cascadia-code-nerd"
+)
+
+feature_field() {
+    # -- feature_field <line> <1-indexed field>
+    printf '%s' "$1" | cut -d'|' -f"$2"
+}
+
+if [[ "$LIST_FEATURES" == true ]]; then
+    for f in "${FEATURES[@]}"; do
+        id=$(feature_field "$f" 1)
+        label=$(feature_field "$f" 2)
+        summary=$(feature_field "$f" 3)
+        pkgs="$(feature_field "$f" 4) $(feature_field "$f" 5)"
+        printf '%s\t%s\t%s\t%s\n' "$id" "$label" "$summary" "$(echo $pkgs)"
+    done
+    exit 0
+fi
+
+feature_wanted() {
+    # -- feature_wanted <id>; every group unless --features said otherwise
+    [[ "$FEATURES_SET" == false ]] && return 0
+    local want
+    IFS=',' read -ra want <<< "$WANTED"
+    local w
+    for w in "${want[@]}"; do
+        [[ "$w" == "$1" ]] && return 0
+    done
+    return 1
+}
+
+REPO_PKGS=("${REQ_REPO[@]}")
+AUR_PKGS=("${REQ_AUR[@]}")
+PICKED=()
+for f in "${FEATURES[@]}"; do
+    id=$(feature_field "$f" 1)
+    feature_wanted "$id" || continue
+    PICKED+=("$(feature_field "$f" 2)")
+    # unquoted on purpose: these are space separated lists, not single words
+    for p in $(feature_field "$f" 4); do REPO_PKGS+=("$p"); done
+    for p in $(feature_field "$f" 5); do AUR_PKGS+=("$p"); done
+done
 
 confirm() {
     # -- confirm "prompt text"
@@ -53,8 +128,21 @@ confirm() {
     [[ ! "$reply" =~ ^[Nn]$ ]]
 }
 
-echo "==> The following packages will be installed from the official repos:"
-printf '    %s\n' "${REPO_PKGS[@]}"
+echo "==> Required, from the official repos. The shell cannot build or run"
+echo "    without these, so they are not optional:"
+printf '    %s\n' "${REQ_REPO[@]}"
+if (( ${#PICKED[@]} )); then
+    echo
+    echo "==> Also, for the features you asked for: ${PICKED[*]}"
+fi
+echo
+# -Syu, not -S. Arch does not support installing into a half-updated system:
+# pulling one package from a newer repo than the rest gives you errors like
+# "installing libpipewire breaks dependency 'libpipewire=<older>' required by
+# pipewire", because the rest of that stack is still pinned to the old version.
+# pacman lists everything it is about to touch and asks again before it does.
+echo "==> Arch cannot install into a half-updated system, so this brings the"
+echo "    system up to date first. pacman will list what that means and ask."
 echo
 if confirm "Update the system and install these?"; then
     sudo pacman -Syu --needed "${REPO_PKGS[@]}"
@@ -80,7 +168,9 @@ done
 
 if [[ -z "$AUR_HELPER" ]]; then
     echo
-    echo "==> No AUR helper (yay/paru) found."
+    echo "==> No AUR helper (yay/paru) found. One is needed to reach the AUR,"
+    echo "    and the AUR is where quickshell and the icon font come from, so"
+    echo "    without it the shell has nothing to run on."
     if confirm "Install yay now (clones and builds it with makepkg)?"; then
         tmpdir=$(mktemp -d)
         git clone https://aur.archlinux.org/yay.git "$tmpdir/yay"
@@ -88,16 +178,19 @@ if [[ -z "$AUR_HELPER" ]]; then
         rm -rf "$tmpdir"
         AUR_HELPER="yay"
     else
-        echo "==> Skipping AUR packages. Install these manually: ${AUR_PKGS[*]}"
+        echo "==> Skipping AUR packages. The shell will NOT run until these are"
+        echo "    installed by hand: ${AUR_PKGS[*]}"
         exit 0
     fi
 fi
 
 echo
-echo "==> The following packages will be installed from the AUR using $AUR_HELPER:"
-printf '    %s\n' "${AUR_PKGS[@]}"
+echo "==> Required, from the AUR using $AUR_HELPER. quickshell is what the shell"
+echo "    runs on and the symbols font draws every icon in it, so these are not"
+echo "    optional either:"
+printf '    %s\n' "${REQ_AUR[@]}"
 echo
-if confirm "Proceed with AUR package install?"; then
+if confirm "Install the required AUR packages?"; then
     "$AUR_HELPER" -S --needed "${AUR_PKGS[@]}"
 else
     echo "==> Skipped AUR packages. You'll need to install these manually:"
