@@ -504,13 +504,18 @@ CustomMouseArea {
 
         // A workspace window preview is opened by its icon and then hangs well inside the bar's area,
         // which the generic hit-test below does not know about. Keep it open while the pointer travels
-        // from the icon into the panel, and close it once it has left both
-        if (popouts.currentName === "windowpreview") {
-            const trigger = popouts.windowPreviewTrigger;
-            const triggerPoint = trigger ? root.mapToItem(trigger, x, y) : Qt.point(-1, -1);
-            if ((!trigger || !trigger.contains(triggerPoint)) && !inPopout(x, y))
-                popouts.hasCurrent = false;
-        } else if (root.inSafeTriangle(x, y)) {
+        // from the icon into the panel, and close it once it has left both. Only while it is actually
+        // open: currentName outlives the preview, and matching on the name alone left every later move
+        // stuck in here, so nothing else on the bar could open a popout again
+        const previewOpen = popouts.hasCurrent && popouts.currentName === "windowpreview";
+        const trigger = previewOpen ? popouts.windowPreviewTrigger : null;
+        const onPreview = previewOpen && ((trigger && trigger.contains(root.mapToItem(trigger, x, y))) || inPopout(x, y));
+        if (previewOpen && !onPreview)
+            popouts.hasCurrent = false;
+
+        if (onPreview) {
+            // Still on the icon or the preview: leave it be
+        } else if (!previewOpen && root.inSafeTriangle(x, y)) {
             // On its way to the popout: hold it open, and keep holding as long as it is still
             // getting closer. Wandering about inside the triangle does not count
             const dist = root.popoutDistance(x, y);
