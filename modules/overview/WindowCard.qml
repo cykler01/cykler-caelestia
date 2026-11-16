@@ -31,6 +31,15 @@ ClippingRectangle {
     property bool ghosted
     // Another window is being dragged over this one and would trade places with it
     property bool dropHighlight
+    // Hyprland reports a window a moment before its geometry, so a card can have no size of its
+    // own on its first frame - which, with every edge falling back to 0, would put it in the
+    // tile's top left corner at the 2x2 px floor below and then slide it out from there.
+    // Nothing is drawn until it can be put where it belongs.
+    readonly property bool placed: root.fit > 0 && (root.ipc?.size?.[0] ?? 0) > 0
+    // Turned on a pass after that first placement, so the placement itself is a jump rather than
+    // an animation. It can only ever turn on later than the bindings it guards, whichever order
+    // those happen to be evaluated in
+    property bool settled
 
     // Pressed, so the overview can start dragging this window if the pointer then moves
     signal grabbed(real grabX, real grabY)
@@ -80,27 +89,37 @@ ClippingRectangle {
     // it to the bounding box and leave the corners square
     opacity: root.ghosted ? 0.35 : 1
     scale: root.dropHighlight ? 1.06 : root.hovered && !root.ghosted ? 1.02 : 1
+    visible: root.placed
 
-    // Windows glide to their new places when the layout changes, after a swap say
+    // Windows glide to their new places when the layout changes, after a swap say. Not when the
+    // card is first put in place, which is an arrival rather than a move.
     Behavior on x {
+        enabled: root.settled
+
         Anim {
             type: Anim.DefaultSpatial
         }
     }
 
     Behavior on y {
+        enabled: root.settled
+
         Anim {
             type: Anim.DefaultSpatial
         }
     }
 
     Behavior on width {
+        enabled: root.settled
+
         Anim {
             type: Anim.DefaultSpatial
         }
     }
 
     Behavior on height {
+        enabled: root.settled
+
         Anim {
             type: Anim.DefaultSpatial
         }
@@ -112,8 +131,13 @@ ClippingRectangle {
         }
     }
 
-    // Pops in when it first appears, on the same curve the drag ghost uses
-    Component.onCompleted: popIn.start()
+    // Pops in where it belongs, on the same curve the drag ghost uses
+    onPlacedChanged: {
+        if (!root.placed)
+            return;
+        popIn.start();
+        Qt.callLater(() => root.settled = true);
+    }
 
     Anim {
         id: popIn

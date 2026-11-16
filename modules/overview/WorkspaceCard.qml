@@ -19,6 +19,10 @@ ClippingRectangle {
     required property int cardWidth
     required property int cardHeight
     required property ScreenState screenState
+    // The usable area of the monitor the overview is on, to fall back on for a workspace
+    // Hyprland has not made yet. Dropping a window on an empty tile is what makes that
+    // workspace, so for a moment it has no monitor of its own to scale the window into
+    required property var fallbackUsable
     // Outlined as the keyboard's current choice, apart from the focused workspace
     property bool selected
     // A window is being dragged over this tile and would land here if let go
@@ -101,7 +105,7 @@ ClippingRectangle {
     // of the monitor they sit on (see geometry.js) and scaled into this tile by one factor for
     // both axes, then centred: a workspace on a monitor shaped differently to the tile is
     // letterboxed rather than stretched, and on a matching monitor it fills the tile.
-    readonly property var usable: Geometry.usableRect(root.workspace?.monitor?.lastIpcObject)
+    readonly property var usable: Geometry.usableRect(root.workspace?.monitor?.lastIpcObject) ?? root.fallbackUsable
     // The tile's content is inset by its border, so window geometry has to match
 
     readonly property real contentWidth: root.cardWidth - root.border.width * 2

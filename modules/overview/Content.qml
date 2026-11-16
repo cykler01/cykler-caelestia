@@ -617,6 +617,7 @@ Item {
                                 order: index
                                 cardWidth: root.cardWidth
                                 cardHeight: root.cardHeight
+                                fallbackUsable: root.usable
                                 screenState: root.screenState
                                 onPointerMoved: root.selectedId = modelData
                                 onWindowGrabbed: (card, gx, gy) => {
