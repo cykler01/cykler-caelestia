@@ -108,7 +108,7 @@ Item {
                 id: secret
 
                 anchors.horizontalCenter: parent.horizontalCenter
-                maxWidth: parent.width
+                maxWidth: Math.min(parent.width, Theme.dp(340))
                 visible: card.asking && card.ask.kind === "password"
                 failed: card.asking && card.ask.retry
                 onAccepted: (value) => Install.answer(value)

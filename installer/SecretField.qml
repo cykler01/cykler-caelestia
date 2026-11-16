@@ -17,16 +17,13 @@ Rectangle {
     property string placeholder: "Enter your password"
     property bool failed
     property bool reveal
-    // the most the pill may grow to; the parent gives it the room it has
-    property real maxWidth: Theme.dp(420)
+    // one size, whatever is typed into it
+    property real maxWidth: Theme.dp(340)
 
     readonly property int dotSize: Theme.dp(11)
     readonly property int dotGap: Theme.dp(7)
     readonly property int pad: Theme.dp(6)
     readonly property real sideSize: field.implicitHeight - field.pad * 2
-    // narrow around the placeholder until there is something to show, the way
-    // the lock screen's grows as you type
-    readonly property real contentWidth: input.text.length === 0 ? ph.width : field.reveal ? Math.max(Theme.dp(40), input.contentWidth) : input.text.length * (field.dotSize + field.dotGap) - field.dotGap
 
     signal accepted(string value)
 
@@ -44,23 +41,9 @@ Rectangle {
     }
 
     implicitHeight: Theme.dp(52)
-    implicitWidth: Math.min(field.maxWidth, field.sideSize * 2 + field.pad * 2 + Theme.dp(28) + field.contentWidth)
+    implicitWidth: field.maxWidth
     radius: height / 2
     color: Theme.bgTile
-
-    Behavior on implicitWidth {
-        NumberAnimation {
-            duration: Theme.durLong
-            easing.type: Theme.easeStandard
-        }
-    }
-
-    TextMetrics {
-        id: ph
-
-        text: field.placeholder
-        font: phText.font
-    }
 
     // left: the lock, which is also how you reveal what you typed
     Rectangle {
@@ -108,7 +91,7 @@ Rectangle {
             id: phText
 
             anchors.centerIn: parent
-            text: ph.text
+            text: field.placeholder
             color: field.failed ? Theme.error : Theme.subtextDim
             font.family: Theme.fontFamily
             font.pixelSize: Theme.fontBodyMd
