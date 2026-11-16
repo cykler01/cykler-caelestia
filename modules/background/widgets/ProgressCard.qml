@@ -9,13 +9,14 @@ import qs.components.controls
 import qs.services
 import qs.modules.background
 
-// --- Progress: custom milestones as wide bars, rings, or a compact list ---
+// --- Progress: custom milestones as wide bars, rings, a compact list, or grids of dots ---
 WidgetCard {
     id: progress
 
-    readonly property string style: progress.variant === "rings" ? "rings" : progress.variant === "compact" ? "compact" : "bars"
+    readonly property string style: progress.variant === "rings" ? "rings" : progress.variant === "compact" ? "compact" : progress.variant === "dots" ? "dots" : "bars"
     readonly property bool rings: progress.style === "rings"
     readonly property bool compact: progress.style === "compact"
+    readonly property bool dots: progress.style === "dots"
     // The card is unloaded while windows cover the desktop, so it takes the time again when it
     // comes back instead of trusting a tick that happened before it went away.
     property double now: Date.now()
@@ -43,7 +44,7 @@ WidgetCard {
         Layout.fillWidth: true
         Layout.fillHeight: true
         Layout.minimumHeight: 0
-        visible: !progress.rings && !progress.compact && !progress.empty
+        visible: !progress.rings && !progress.compact && !progress.dots && !progress.empty
         spacing: Tokens.spacing.medium
 
         Repeater {
@@ -264,6 +265,107 @@ WidgetCard {
                 StyledText {
                     text: `${compactRow.info?.percent ?? 0}%`
                     color: Colours.palette.m3onSurfaceVariant
+                    font: Tokens.font.label.small
+                }
+            }
+        }
+    }
+
+    // Dots: each milestone as a little field of dots that fill in, left to right and row by row. The grid
+    // takes whatever room its tile has, so two milestones get deep fields and four still get a few rows
+    GridLayout {
+        Layout.fillWidth: true
+        Layout.fillHeight: true
+        Layout.minimumHeight: 0
+        visible: progress.dots && !progress.empty
+        columns: progress.items.length <= 1 ? 1 : 2
+        rowSpacing: Tokens.spacing.medium
+        columnSpacing: Tokens.spacing.large
+
+        Repeater {
+            model: Milestones.entries
+
+            ColumnLayout {
+                id: field
+
+                required property var modelData
+                readonly property var info: Milestones.resolve(field.modelData, progress.now)
+                readonly property color fg: field.info?.rest ? Colours.palette.m3secondary : field.info?.done ? Colours.palette.m3tertiary : Colours.palette.m3primary
+
+                visible: field.info !== null
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+                Layout.minimumWidth: 0
+                Layout.minimumHeight: 0
+                Layout.preferredWidth: 1
+                spacing: Tokens.spacing.extraSmall
+
+                RowLayout {
+                    Layout.fillWidth: true
+                    spacing: Tokens.spacing.small
+
+                    StyledText {
+                        Layout.fillWidth: true
+                        Layout.minimumWidth: 0
+                        elide: Text.ElideRight
+                        text: field.info?.label ?? ""
+                        color: Colours.palette.m3onSurface
+                        font: Tokens.font.label.medium
+                    }
+
+                    StyledText {
+                        text: `${field.info?.percent ?? 0}%`
+                        color: field.fg
+                        font: Tokens.font.label.builders.medium.weight(Font.DemiBold).build()
+                    }
+                }
+
+                Item {
+                    id: grid
+
+                    readonly property real dot: 7
+                    readonly property real gap: 3
+                    readonly property real pitch: grid.dot + grid.gap
+                    readonly property int cols: Math.max(1, Math.floor((grid.width + grid.gap) / grid.pitch))
+                    // Capped, so one milestone on its own reads as a band rather than a wall of dots
+                    readonly property int rows: Math.max(1, Math.min(8, Math.floor((grid.height + grid.gap) / grid.pitch)))
+                    readonly property int total: grid.cols * grid.rows
+                    readonly property real filled: (field.info?.fraction ?? 0) * grid.total
+
+                    Layout.fillWidth: true
+                    Layout.fillHeight: true
+                    Layout.minimumHeight: grid.dot
+
+                    Grid {
+                        // Centred on the spare fraction of a dot either side, so the field sits square in its tile
+                        x: (grid.width - (grid.cols * grid.pitch - grid.gap)) / 2
+                        y: (grid.height - (grid.rows * grid.pitch - grid.gap)) / 2
+                        columns: grid.cols
+                        spacing: grid.gap
+
+                        Repeater {
+                            model: grid.total
+
+                            StyledRect {
+                                required property int index
+
+                                // The dot now being filled shows how far into its share time has got
+                                readonly property real fill: Math.max(0, Math.min(1, grid.filled - index))
+
+                                implicitWidth: grid.dot
+                                implicitHeight: grid.dot
+                                radius: Tokens.rounding.full
+                                color: fill >= 1 ? field.fg : fill > 0 ? Qt.alpha(field.fg, 0.25 + 0.5 * fill) : Qt.alpha(Colours.palette.m3outlineVariant, 0.55)
+                            }
+                        }
+                    }
+                }
+
+                StyledText {
+                    Layout.fillWidth: true
+                    elide: Text.ElideRight
+                    text: field.info?.status ?? ""
+                    color: field.info?.rest ? Colours.palette.m3secondary : field.info?.done ? Colours.palette.m3tertiary : Colours.palette.m3outline
                     font: Tokens.font.label.small
                 }
             }

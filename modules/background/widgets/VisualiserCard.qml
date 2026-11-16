@@ -28,6 +28,9 @@ WidgetCard {
     // and below that line, the same way the notch's now-playing pill draws it, rather than growing
     // from the bottom edge
     readonly property bool mirrored: visualiser.variant === "mirror"
+    // The wide styles (VisualiserWide.qml, VisualiserWave.qml) draw the whole card without the header: on
+    // a card four cells tall the spectrum wants all the height it can get
+    readonly property string style: ["wide", "wave"].includes(visualiser.variant) ? visualiser.variant : ""
     // Levels are sampled from cava at the shared decorative rate instead of bound straight to
     // it, so a burst of analyser updates can't rebuild the whole row
     property var levels: []
@@ -42,8 +45,8 @@ WidgetCard {
         return Math.max(0.5, available / visualiser.barCount * 0.28);
     }
 
-    title: Tr.tr("Visualiser")
-    icon: "graphic_eq"
+    title: visualiser.style === "" ? Tr.tr("Visualiser") : ""
+    icon: visualiser.style === "" ? "graphic_eq" : ""
 
     // Cava, and the PipeWire capture behind it, only runs while something references it
     ServiceRef {
@@ -55,7 +58,7 @@ WidgetCard {
         // decorative rate. The painted bars smooth themselves, and holding each reading for two or three
         // frames made the mirrored variant step at the analyser's rate under an easing that runs every
         // frame: the bars visibly ticked rather than flowed, next to a row that moved continuously
-        interval: visualiser.mirrored ? 16 : PowerSaving.frameMs
+        interval: visualiser.mirrored || visualiser.style === "wide" ? 16 : PowerSaving.frameMs
         repeat: true
         triggeredOnStart: true
         running: visualiser.visible && !PowerSaving.pauseVisualisers
@@ -78,6 +81,7 @@ WidgetCard {
         Layout.fillWidth: true
         Layout.fillHeight: true
         Layout.minimumHeight: 80
+        visible: visualiser.style === ""
 
         // The mirrored variant is the shell's own painted spectrum (see
         // plugin/src/Caelestia/Components/visualiserbars.hpp), told to centre on the middle line and
@@ -144,6 +148,33 @@ WidgetCard {
                     }
                 }
             }
+        }
+    }
+
+    Loader {
+        Layout.fillWidth: true
+        Layout.fillHeight: true
+        active: visualiser.style !== ""
+        visible: active
+
+        sourceComponent: visualiser.style === "wide" ? wideStyle : waveStyle
+    }
+
+    Component {
+        id: wideStyle
+
+        VisualiserWide {
+            levels: visualiser.levels
+            barCount: visualiser.barCount
+        }
+    }
+
+    Component {
+        id: waveStyle
+
+        VisualiserWave {
+            levels: visualiser.levels
+            barCount: visualiser.barCount
         }
     }
 }

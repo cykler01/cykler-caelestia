@@ -21,6 +21,10 @@ WidgetCard {
 
     readonly property int position: photo.files.findIndex(f => f.path === photo.current)
 
+    // The print and the shape (PhotoFramed.qml, PhotoShaped.qml) are the picture and nothing else, so they
+    // go without the header
+    readonly property string style: ["framed", "shaped"].includes(photo.variant) ? photo.variant : ""
+
     function pick(): void {
         if (photo.files.length === 0) {
             photo.current = "";
@@ -40,8 +44,8 @@ WidgetCard {
         photo.current = photo.files[(i + delta + n) % n].path;
     }
 
-    title: Tr.tr("Pictures")
-    icon: "photo"
+    title: photo.style === "" ? Tr.tr("Pictures") : ""
+    icon: photo.style === "" ? "photo" : ""
 
     // A random photo to start with, and another whenever the one showing is no longer there
     Component.onCompleted: photo.pick()
@@ -68,6 +72,7 @@ WidgetCard {
         Layout.fillWidth: true
         Layout.fillHeight: true
         Layout.minimumHeight: 100
+        visible: photo.style === ""
 
         // How much the picture has to shrink to fit the area, so the rounded frame can be cut to
         // the picture rather than to the area
@@ -121,6 +126,35 @@ WidgetCard {
             color: Colours.palette.m3outline
             font: Tokens.font.label.medium
             wrapMode: Text.Wrap
+        }
+    }
+
+    Loader {
+        Layout.fillWidth: true
+        Layout.fillHeight: true
+        active: photo.style !== ""
+        visible: active
+
+        sourceComponent: photo.style === "framed" ? framedStyle : shapedStyle
+    }
+
+    Component {
+        id: framedStyle
+
+        PhotoFramed {
+            entry: photo.position >= 0 ? photo.files[photo.position] : null
+            count: photo.files.length
+            onStep: delta => photo.step(delta)
+        }
+    }
+
+    Component {
+        id: shapedStyle
+
+        PhotoShaped {
+            entry: photo.position >= 0 ? photo.files[photo.position] : null
+            count: photo.files.length
+            onStep: delta => photo.step(delta)
         }
     }
 }

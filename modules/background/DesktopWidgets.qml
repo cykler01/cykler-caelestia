@@ -58,7 +58,8 @@ Item {
         // into copies of them: entries.values hands out the config nodes themselves, and copying those into plain
         // objects loses every property the layout needs
         const heights = entries.map(e => WidgetCatalog.heightFor(e.id, e.type));
-        return WidgetGrid.place(entries, gridCols, gridRows, widgetConfig.columns, widgetConfig.position, heights);
+        const widths = entries.map(e => WidgetCatalog.widthFor(e.id, e.type));
+        return WidgetGrid.place(entries, gridCols, gridRows, widgetConfig.columns, widgetConfig.position, heights, widths);
     }
 
     // The cards on screen, in entry order. Derived rather than kept in step by hand: adding, removing or turning
@@ -314,6 +315,67 @@ Item {
             DelegateChoice {
                 roleValue: "todo"
                 delegate: TodoCard {
+                    gridHost: root
+                }
+            }
+            DelegateChoice {
+                roleValue: "glance"
+                delegate: GlanceCard {
+                    gridHost: root
+                }
+            }
+            DelegateChoice {
+                roleValue: "search"
+                delegate: SearchCard {
+                    gridHost: root
+                    onKeyboardWanted: wanted => root.wantsKeyboard = wanted
+                }
+            }
+            DelegateChoice {
+                roleValue: "sun"
+                delegate: SunCard {
+                    gridHost: root
+                }
+            }
+            DelegateChoice {
+                roleValue: "palette"
+                delegate: PaletteCard {
+                    gridHost: root
+                }
+            }
+            DelegateChoice {
+                roleValue: "shortcuts"
+                delegate: ShortcutsCard {
+                    gridHost: root
+                }
+            }
+            DelegateChoice {
+                roleValue: "toggles"
+                delegate: TogglesCard {
+                    gridHost: root
+                }
+            }
+            DelegateChoice {
+                roleValue: "timer"
+                delegate: TimersCard {
+                    gridHost: root
+                }
+            }
+            DelegateChoice {
+                roleValue: "games"
+                delegate: GamesCard {
+                    gridHost: root
+                }
+            }
+            DelegateChoice {
+                roleValue: "thermal"
+                delegate: ThermalCard {
+                    gridHost: root
+                }
+            }
+            DelegateChoice {
+                roleValue: "phone"
+                delegate: PhoneCard {
                     gridHost: root
                 }
             }

@@ -4,17 +4,23 @@ import QtQuick
 import QtQuick.Layouts
 import Caelestia.Config
 import Caelestia.I18n
+import Caelestia.Services
 import qs.components
 import qs.components.controls
 import qs.services
 import qs.modules.background
 
 // --- System resources: rings, bars or a line graph, showing three readings or two. Which readings each style
-// shows is picked in the settings ---
+// shows is picked in the settings. The tiles and the compact strip always show the same four: processor,
+// graphics, memory and storage ---
 WidgetCard {
     id: sys
 
-    readonly property string style: sys.variant.startsWith("bars") ? "bars" : sys.variant.startsWith("line") ? "line" : "rings"
+    readonly property string style: {
+        if (sys.variant === "tiles" || sys.variant === "compact")
+            return sys.variant;
+        return sys.variant.startsWith("bars") ? "bars" : sys.variant.startsWith("line") ? "line" : "rings";
+    }
     readonly property bool basic: sys.variant.endsWith("basic")
 
     // Which readings this style shows, as picked in Settings > Panels > Widgets > System. The two-reading
@@ -35,8 +41,87 @@ WidgetCard {
     readonly property var readings: WidgetData.readings
     readonly property var histories: WidgetData.histories
 
-    title: Tr.tr("System")
+    // --- The fixed four (tiles, compact strip) ---
+    readonly property bool fixedFour: sys.style === "tiles" || sys.style === "compact"
+    readonly property bool hasGpu: Gpu.type !== GpuType.None
+    // WidgetData only samples the graphics card when one of the configurable styles is set to show it, which
+    // these two cannot count on. When nothing else has asked for it, the card references and samples it itself
+    readonly property bool ownGpu: sys.fixedFour && sys.hasGpu && !WidgetData.wantsGpu
+    property var gpuHistory: []
+    readonly property real gpuValue: WidgetData.wantsGpu ? WidgetData.valueFor("gpu") : WidgetData.finite(Gpu.percentage)
+    readonly property real gpuTemp: WidgetData.wantsGpu ? WidgetData.gpuTemperature : WidgetData.finite(Gpu.temperature)
+
+    // One reading of the four, as the tiles and the strip draw it. A function rather than a list of
+    // objects, so a new sample updates the delegates in place instead of rebuilding them every few seconds
+    function fixedReading(key: string): var {
+        if (key === "gpu")
+            return {
+                label: "GPU",
+                icon: "videogame_asset",
+                value: sys.hasGpu ? sys.gpuValue : 0,
+                history: WidgetData.wantsGpu ? WidgetData.historyFor("gpu") : sys.gpuHistory,
+                detail: !sys.hasGpu ? Tr.tr("No graphics card") : sys.gpuTemp > 0 ? Units.formatSensorTemp(sys.gpuTemp) : (Gpu.name || ""),
+                colour: Colours.palette.m3tertiary,
+                graph: true
+            };
+        if (key === "ram")
+            return {
+                label: "RAM",
+                icon: "memory_alt",
+                value: WidgetData.valueFor("ram"),
+                history: WidgetData.historyFor("ram"),
+                detail: Memory.total > 0 ? Units.formatKibUsage(Memory.used, Memory.total) : "",
+                colour: Colours.palette.m3secondary,
+                graph: true
+            };
+        if (key === "disk") {
+            const disk = Storage.primaryDisk;
+            return {
+                label: Tr.tr("Disk"),
+                icon: "hard_drive",
+                value: WidgetData.valueFor("disk"),
+                history: [],
+                detail: disk ? Units.formatKibUsage(disk.used, disk.total) : "",
+                colour: Colours.palette.m3primary,
+                // A disk fills over weeks, not seconds, so a graph of it would be a flat line: it gets a bar
+                graph: false
+            };
+        }
+        return {
+            label: "CPU",
+            icon: "memory",
+            value: WidgetData.valueFor("cpu"),
+            history: WidgetData.historyFor("cpu"),
+            detail: WidgetData.temperature > 0 ? Units.formatSensorTemp(WidgetData.temperature) : "",
+            colour: Colours.palette.m3primary,
+            graph: true
+        };
+    }
+
+    title: sys.style === "compact" ? "" : Tr.tr("System")
     icon: "monitoring"
+
+    ServiceRef {
+        service: sys.ownGpu ? Gpu : null
+    }
+
+    // The used and total amounts the tiles write out are read off these directly; WidgetData keeps only the
+    // fractions
+    ServiceRef {
+        service: sys.fixedFour ? Memory : null
+    }
+
+    ServiceRef {
+        service: sys.fixedFour ? Storage : null
+    }
+
+    Timer {
+        interval: WidgetData.sampleInterval
+        running: sys.ownGpu
+        repeat: true
+        triggeredOnStart: true
+        onTriggered: sys.gpuHistory = WidgetData.push(sys.gpuHistory, WidgetData.finite(Gpu.percentage))
+    }
 
     RowLayout {
         Layout.fillWidth: true
@@ -96,6 +181,167 @@ WidgetCard {
                     colour: sys.slotColours[i] ?? Colours.palette.m3primary
                 }))
     }
+
+    // Tiles: the four readings in a two by two grid, each with its last minute drawn under the figure
+    GridLayout {
+        Layout.fillWidth: true
+        Layout.fillHeight: true
+        visible: sys.style === "tiles"
+        columns: 2
+        rowSpacing: Tokens.spacing.small
+        columnSpacing: Tokens.spacing.small
+        uniformCellWidths: true
+        uniformCellHeights: true
+
+        Repeater {
+            model: sys.style === "tiles" ? ["cpu", "gpu", "ram", "disk"] : []
+
+            Tile {}
+        }
+    }
+
+    // Compact: the four side by side in one short strip, a figure and a sliver of bar each
+    RowLayout {
+        Layout.fillWidth: true
+        Layout.fillHeight: true
+        visible: sys.style === "compact"
+        spacing: Tokens.spacing.medium
+        uniformCellSizes: true
+
+        Repeater {
+            model: sys.style === "compact" ? ["cpu", "gpu", "ram", "disk"] : []
+
+            StripReading {}
+        }
+    }
+
+component Tile: StyledRect {
+    id: tile
+
+    required property string modelData
+    readonly property var info: sys.fixedReading(modelData)
+
+    Layout.fillWidth: true
+    Layout.fillHeight: true
+    radius: Tokens.rounding.large
+    color: Qt.alpha(Colours.palette.m3surfaceContainerHigh, 0.85)
+
+    ColumnLayout {
+        anchors.fill: parent
+        anchors.leftMargin: Tokens.padding.medium
+        anchors.rightMargin: Tokens.padding.medium
+        anchors.topMargin: Tokens.padding.small
+        anchors.bottomMargin: Tokens.padding.small
+        spacing: 0
+
+        RowLayout {
+            Layout.fillWidth: true
+            spacing: Tokens.spacing.extraSmall
+
+            MaterialIcon {
+                text: tile.info.icon
+                color: tile.info.colour
+                fontStyle: Tokens.font.icon.small
+            }
+
+            StyledText {
+                Layout.fillWidth: true
+                elide: Text.ElideRight
+                text: tile.info.label
+                color: Colours.palette.m3onSurfaceVariant
+                font: Tokens.font.label.small
+            }
+
+            StyledText {
+                text: `${Math.round(Math.max(0, Math.min(1, tile.info.value)) * 100)}%`
+                color: Colours.palette.m3onSurface
+                font: Tokens.font.title.builders.small.weight(Font.DemiBold).build()
+            }
+        }
+
+        SystemSparkline {
+            Layout.fillWidth: true
+            Layout.fillHeight: true
+            Layout.minimumHeight: 12
+            visible: tile.info.graph
+            values: tile.info.history
+            colour: tile.info.colour
+            lineWidth: 1.5
+        }
+
+        Item {
+            Layout.fillWidth: true
+            Layout.fillHeight: true
+            visible: !tile.info.graph
+
+            StyledRect {
+                anchors.left: parent.left
+                anchors.right: parent.right
+                anchors.verticalCenter: parent.verticalCenter
+                implicitHeight: 8
+                radius: Tokens.rounding.full
+                color: Colours.palette.m3surfaceContainerHighest
+
+                StyledRect {
+                    width: Math.max(height, parent.width * Math.max(0, Math.min(1, tile.info.value)))
+                    height: parent.height
+                    radius: Tokens.rounding.full
+                    color: tile.info.colour
+                }
+            }
+        }
+
+        StyledText {
+            Layout.fillWidth: true
+            elide: Text.ElideRight
+            text: tile.info.detail
+            color: Colours.palette.m3outline
+            font: Tokens.font.label.small
+        }
+    }
+}
+
+component StripReading: ColumnLayout {
+    id: strip
+
+    required property string modelData
+    readonly property var info: sys.fixedReading(modelData)
+
+    Layout.fillWidth: true
+    Layout.alignment: Qt.AlignVCenter
+    spacing: Tokens.spacing.extraSmall
+
+    RowLayout {
+        Layout.fillWidth: true
+        spacing: Tokens.spacing.extraSmall
+
+        MaterialIcon {
+            text: strip.info.icon
+            color: strip.info.colour
+            fontStyle: Tokens.font.icon.small
+        }
+
+        StyledText {
+            text: `${Math.round(Math.max(0, Math.min(1, strip.info.value)) * 100)}%`
+            color: Colours.palette.m3onSurface
+            font: Tokens.font.label.builders.large.weight(Font.DemiBold).build()
+        }
+    }
+
+    StyledRect {
+        Layout.fillWidth: true
+        implicitHeight: 4
+        radius: Tokens.rounding.full
+        color: Colours.palette.m3surfaceContainerHighest
+
+        StyledRect {
+            width: Math.max(height, parent.width * Math.max(0, Math.min(1, strip.info.value)))
+            height: parent.height
+            radius: Tokens.rounding.full
+            color: strip.info.colour
+        }
+    }
+}
 
 component Meter: ColumnLayout {
     id: meter

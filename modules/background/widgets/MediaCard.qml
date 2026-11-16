@@ -30,6 +30,10 @@ WidgetCard {
     // The cover variant puts the art across the top of the card with the name and controls under it, rather
     // than the art being a thumbnail beside the text
     readonly property bool cover: media.variant === "cover"
+    // The newer styles each draw the whole card themselves (see the Media*.qml files beside this one),
+    // so the two original layouts below only show for the variants they were written for
+    readonly property string style: ["strip", "pill", "disc", "art"].includes(media.variant) ? media.variant : ""
+    readonly property bool classic: media.style === ""
 
     // Minutes:seconds, growing to hours:minutes:seconds for a long track
     function lengthStr(length: real): string {
@@ -47,8 +51,21 @@ WidgetCard {
 
     // Always drawn, even with nothing to show: hiding the card left a grid cell that nothing painted,
     // which is what made it look broken while rearranging
-    title: Tr.tr("Now playing")
-    icon: "music_note"
+    // The newer styles carry no header: a strip or a pill has no room for one, and the disc and the
+    // art are the picture first
+    title: media.classic ? Tr.tr("Now playing") : ""
+    icon: media.classic ? "music_note" : ""
+    // The pill is a capsule all the way round, and the art runs to the card's edges
+    radius: media.style === "pill" ? height / 2 : Tokens.rounding.extraLarge
+    padding: {
+        if (media.style === "art")
+            return 0;
+        if (media.style === "pill")
+            return Tokens.padding.small;
+        if (media.style === "strip")
+            return Tokens.padding.medium;
+        return Tokens.padding.largeIncreased;
+    }
 
     Timer {
         running: media.source.isPlaying
@@ -64,7 +81,7 @@ WidgetCard {
         Layout.fillWidth: true
         Layout.fillHeight: true
         Layout.minimumHeight: 96
-        visible: !media.source.available
+        visible: !media.source.available && media.classic
         spacing: Tokens.spacing.small
 
         StyledRect {
@@ -104,7 +121,7 @@ WidgetCard {
 
     RowLayout {
         Layout.fillWidth: true
-        visible: media.source.available && !media.cover
+        visible: media.source.available && media.classic && !media.cover
         spacing: Tokens.spacing.medium
 
         ClipRect {
@@ -178,7 +195,7 @@ WidgetCard {
     ColumnLayout {
         Layout.fillWidth: true
         Layout.topMargin: Tokens.spacing.extraSmall
-        visible: media.source.available && !media.cover
+        visible: media.source.available && media.classic && !media.cover
         spacing: Tokens.spacing.extraSmall
 
         StyledProgressBar {
@@ -211,7 +228,7 @@ WidgetCard {
     ColumnLayout {
         Layout.fillWidth: true
         Layout.fillHeight: true
-        visible: media.source.available && media.cover
+        visible: media.source.available && media.classic && media.cover
         spacing: Tokens.spacing.small
 
         // The art takes the top of the card, growing into whatever height the card was placed at
@@ -284,6 +301,65 @@ WidgetCard {
             Layout.fillWidth: true
             implicitHeight: 4
             value: media.barValue
+        }
+    }
+
+    Loader {
+        Layout.fillWidth: true
+        Layout.fillHeight: true
+        active: !media.classic
+        visible: active
+
+        sourceComponent: {
+            switch (media.style) {
+            case "strip":
+                return stripStyle;
+            case "pill":
+                return pillStyle;
+            case "disc":
+                return discStyle;
+            case "art":
+                return artStyle;
+            default:
+                return null;
+            }
+        }
+    }
+
+    Component {
+        id: stripStyle
+
+        MediaStrip {
+            source: media.source
+            progress: media.barValue
+        }
+    }
+
+    Component {
+        id: pillStyle
+
+        MediaPill {
+            source: media.source
+            progress: media.barValue
+        }
+    }
+
+    Component {
+        id: discStyle
+
+        MediaDisc {
+            source: media.source
+            progress: media.barValue
+        }
+    }
+
+    Component {
+        id: artStyle
+
+        MediaArt {
+            source: media.source
+            progress: media.barValue
+            radius: media.radius
         }
     }
 }

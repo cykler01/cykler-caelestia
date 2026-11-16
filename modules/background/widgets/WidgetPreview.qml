@@ -23,9 +23,10 @@ Item {
 
     // Cells, taken from the catalog so a preview is the shape the card will actually be
     readonly property int cells: WidgetCatalog.heightFor(root.kind, root.variant)
+    readonly property int widthCells: WidgetCatalog.widthFor(root.kind, root.variant)
 
-    // The size the card is built at before scaling: what it would get in a single grid column
-    readonly property real cardWidth: WidgetGrid.cardCells * WidgetGrid.unit - WidgetGrid.gap
+    // The size the card is built at before scaling: exactly what it gets on the desktop
+    readonly property real cardWidth: root.widthCells * WidgetGrid.unit - WidgetGrid.gap
     readonly property real cardHeight: root.cells * WidgetGrid.unit - WidgetGrid.gap
 
     readonly property real scaleFactor: Math.min(width / root.cardWidth, height / root.cardHeight)
@@ -93,6 +94,26 @@ Item {
                 return progressCard;
             case "todo":
                 return todoCard;
+            case "glance":
+                return glanceCard;
+            case "search":
+                return searchCard;
+            case "sun":
+                return sunCard;
+            case "palette":
+                return paletteCard;
+            case "shortcuts":
+                return shortcutsCard;
+            case "toggles":
+                return togglesCard;
+            case "timer":
+                return timerCard;
+            case "games":
+                return gamesCard;
+            case "thermal":
+                return thermalCard;
+            case "phone":
+                return phoneCard;
             default:
                 return null;
             }
@@ -294,6 +315,106 @@ Item {
         id: todoCard
 
         TodoCard {
+            variant: root.variant
+            widgetId: root.kind
+            entryIndex: -1
+        }
+    }
+
+    Component {
+        id: glanceCard
+
+        GlanceCard {
+            variant: root.variant
+            widgetId: root.kind
+            entryIndex: -1
+        }
+    }
+
+    Component {
+        id: searchCard
+
+        SearchCard {
+            variant: root.variant
+            widgetId: root.kind
+            entryIndex: -1
+        }
+    }
+
+    Component {
+        id: sunCard
+
+        SunCard {
+            variant: root.variant
+            widgetId: root.kind
+            entryIndex: -1
+        }
+    }
+
+    Component {
+        id: paletteCard
+
+        PaletteCard {
+            variant: root.variant
+            widgetId: root.kind
+            entryIndex: -1
+        }
+    }
+
+    Component {
+        id: shortcutsCard
+
+        ShortcutsCard {
+            variant: root.variant
+            widgetId: root.kind
+            entryIndex: -1
+        }
+    }
+
+    Component {
+        id: togglesCard
+
+        TogglesCard {
+            variant: root.variant
+            widgetId: root.kind
+            entryIndex: -1
+        }
+    }
+
+    Component {
+        id: timerCard
+
+        TimersCard {
+            variant: root.variant
+            widgetId: root.kind
+            entryIndex: -1
+        }
+    }
+
+    Component {
+        id: gamesCard
+
+        GamesCard {
+            variant: root.variant
+            widgetId: root.kind
+            entryIndex: -1
+        }
+    }
+
+    Component {
+        id: thermalCard
+
+        ThermalCard {
+            variant: root.variant
+            widgetId: root.kind
+            entryIndex: -1
+        }
+    }
+
+    Component {
+        id: phoneCard
+
+        PhoneCard {
             variant: root.variant
             widgetId: root.kind
             entryIndex: -1

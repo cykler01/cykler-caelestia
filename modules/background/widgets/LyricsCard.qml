@@ -48,8 +48,14 @@ WidgetCard {
     // The line being sung, or -1 before the first one and while a track's lyrics haven't started
     readonly property int currentLine: Lyrics.hasLyrics ? Lyrics.indexForTime(lyrics.clock.position) : -1
 
-    title: Tr.tr("Lyrics")
-    icon: "lyrics"
+    // The wide styles (LyricsLineView.qml, LyricsHighlightView.qml) draw their own context in place of the
+    // header, since a card two cells tall has no room for one
+    readonly property string style: ["line", "highlight"].includes(lyrics.variant) ? lyrics.variant : ""
+    readonly property bool classic: lyrics.style === ""
+
+    title: lyrics.classic ? Tr.tr("Lyrics") : ""
+    icon: lyrics.classic ? "lyrics" : ""
+    padding: lyrics.style === "line" ? Tokens.padding.medium : lyrics.style === "highlight" ? Tokens.padding.large : Tokens.padding.largeIncreased
 
     // MPRIS positions only move when asked, so without this the line would never advance. Paused playback
     // holds still, which costs nothing while the desktop is sitting there
@@ -64,7 +70,7 @@ WidgetCard {
     // Which song the lines belong to, since the card sits away from the player
     StyledText {
         Layout.fillWidth: true
-        visible: lyrics.source.available
+        visible: lyrics.source.available && lyrics.classic
         elide: Text.ElideRight
         text: lyrics.source.artist !== "" ? `${lyrics.source.title} · ${lyrics.source.artist}` : lyrics.source.title
         color: Colours.palette.m3onSurfaceVariant
@@ -75,6 +81,7 @@ WidgetCard {
         Layout.fillWidth: true
         Layout.fillHeight: true
         Layout.minimumHeight: 64
+        visible: lyrics.classic
 
         StyledText {
             anchors.centerIn: parent
@@ -162,6 +169,35 @@ WidgetCard {
                     }
                 }
             }
+        }
+    }
+
+    Loader {
+        Layout.fillWidth: true
+        Layout.fillHeight: true
+        active: !lyrics.classic
+        visible: active
+
+        sourceComponent: lyrics.style === "line" ? lineStyle : highlightStyle
+    }
+
+    Component {
+        id: lineStyle
+
+        LyricsLineView {
+            source: lyrics.source
+            position: lyrics.clock.position
+            currentLine: lyrics.currentLine
+        }
+    }
+
+    Component {
+        id: highlightStyle
+
+        LyricsHighlightView {
+            source: lyrics.source
+            position: lyrics.clock.position
+            currentLine: lyrics.currentLine
         }
     }
 }

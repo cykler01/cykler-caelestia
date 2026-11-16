@@ -6,7 +6,9 @@
 const unit = 40;
 // Space left between a card and the edge of its footprint, so neighbours never touch
 const gap = 8;
-// Every card is the same width; the height depends on what it shows, and comes from WidgetCatalog.qml
+// The usual card width, and the lane the default columns are laid out in. A variant can ask for more or
+// less (a wide visualiser, a narrow pill) through its own `width` in WidgetCatalog.qml; the height always
+// comes from there
 const cardCells = 8;
 // Distance from the screen edge, and between the default columns, in cells
 const margin = 2;
@@ -31,24 +33,36 @@ const heights = {
     stocks: 7,
     portfolio: 8,
     progress: 7,
-    todo: 5
+    todo: 5,
+    glance: 2,
+    search: 2,
+    sun: 5,
+    palette: 5,
+    shortcuts: 6,
+    toggles: 6,
+    timer: 6,
+    games: 6,
+    thermal: 4,
+    phone: 4
 };
 
 function heightOf(id) {
     return heights[id] ?? 5;
 }
 
-// Where each widget sits, parallel to `entries` ([{ id, enabled, col, row, right }]); `col` counts from the right edge
+// Where each widget sits, parallel to `entries` ([{ id, enabled, col, row, right }]), each `widths[i]` cells wide
+// (cardCells when not given); `col` counts from the right edge
 // when `right` is set, so the result is in the screen's own columns whatever its width. Widgets that have been placed keep
 // their cell (kept on screen). Any other widget, and any placed one whose cell another has taken since (say it was
 // turned off, something moved in, and it was turned back on), flows into the first free space in `columns` columns
 // from the `position` corner, so no two widgets ever overlap.
-function place(entries, gridCols, gridRows, columns, position, heights) {
+function place(entries, gridCols, gridRows, columns, position, heights, widths) {
     const out = entries.map((e, i) => {
         const placed = e.col >= 0 && e.row >= 0;
         // The card's variant decides how many cells it takes; the widget itself is the fallback
         const h = heights?.[i] > 0 ? heights[i] : heightOf(e.id);
-        const col = e.right ? gridCols - cardCells - e.col : e.col;
+        const w = Math.min(gridCols, widths?.[i] > 0 ? widths[i] : cardCells);
+        const col = e.right ? gridCols - w - e.col : e.col;
         return {
             id: e.id,
             type: e.type ?? "",
@@ -56,9 +70,9 @@ function place(entries, gridCols, gridRows, columns, position, heights) {
             index: i,
             enabled: e.enabled,
             placed: placed,
-            w: cardCells,
+            w: w,
             h: h,
-            col: placed ? Math.max(0, Math.min(col, gridCols - cardCells)) : 0,
+            col: placed ? Math.max(0, Math.min(col, gridCols - w)) : 0,
             row: placed ? Math.max(0, Math.min(e.row, gridRows - h)) : 0
         };
     });
@@ -93,7 +107,9 @@ function place(entries, gridCols, gridRows, columns, position, heights) {
             order.push(right ? -i : ncols - 1 + i);
 
         for (const c of order) {
-            const col = x0 + c * cardCells;
+            // A card wider or narrower than the lane keeps to the lane's outer edge, so a column of
+            // mixed widths still lines up against the side of the screen it is anchored to
+            const col = x0 + c * cardCells + (right ? cardCells - p.w : 0);
             if (col < 0 || col + p.w > gridCols)
                 continue;
             const row = freeRow(taken, col, p.w, p.h, gridRows, bottom);
