@@ -22,13 +22,15 @@ WidgetCard {
     readonly property bool lineView: gh.variant.endsWith("line")
     // The stats variants show the stars and followers under the calendar, on top of the days themselves
     readonly property bool stats: gh.variant.endsWith("-stats")
-    // Whether the stars and followers are shown at all: under the calendar in the stats variants, and over
-    // the record in the streak one
-    readonly property bool wantsProfile: gh.stats || gh.streakView
     // The two variants drawn from the whole year rather than the last thirty days
     readonly property bool yearView: gh.variant === "year"
     readonly property bool streakView: gh.variant === "streak"
     readonly property bool longView: gh.yearView || gh.streakView
+    // The week at a glance: squares and a line for the last seven days with the streak, today's commits and the
+    // profile counts under them, all on the smallest card
+    readonly property bool overview: gh.variant === "overview"
+    // Whether the stars and followers are shown at all
+    readonly property bool wantsProfile: gh.stats || gh.overview
 
     // The last 30 days, oldest first, so today is the last square. The week is the tail of it, which is what
     // lets the variant be switched without asking GitHub again. The days are held in services/WidgetData.qml
@@ -131,6 +133,28 @@ WidgetCard {
         return out;
     }
 
+    // The run of days with something up to today, for the overview. Read from the year once it is in, since a
+    // run can be longer than the thirty days the squares are drawn from; those days stand in until then. A day
+    // with nothing yet doesn't break the run until it is over, the same as the streak variant
+    readonly property int currentStreak: {
+        if (!gh.overview)
+            return 0;
+
+        const days = yearData.days.length > 0 ? yearData.days : gh.days;
+        let i = days.length - 1;
+        if (i >= 0 && days[i].count === 0)
+            i--;
+        let run = 0;
+        while (i >= 0 && days[i].count > 0) {
+            run++;
+            i--;
+        }
+        return run;
+    }
+
+    // Commits so far today: the last of the days, which is today
+    readonly property int today: gh.days.length > 0 ? gh.days[gh.days.length - 1].count : 0
+
     // The square under the pointer as a readable day, or null
     readonly property var hoveredDay: {
         const day = gh.hovered >= 0 && gh.hovered < gh.shown.length ? gh.shown[gh.hovered] : null;
@@ -203,7 +227,7 @@ WidgetCard {
 
         Layout.fillWidth: true
         implicitHeight: cell
-        visible: gh.days.length > 0 && !gh.monthView && !gh.lineView && !gh.longView
+        visible: gh.days.length > 0 && !gh.monthView && !gh.lineView && !gh.longView && !gh.overview
 
         Repeater {
             model: gh.shown
@@ -331,12 +355,140 @@ WidgetCard {
         }
     }
 
+    // Overview: the week twice over, as squares and as a line beside them, with the four figures worth
+    // glancing at under it. The squares are sized to leave the line about as much width as they take
+    RowLayout {
+        Layout.fillWidth: true
+        visible: gh.overview && gh.days.length > 0
+        spacing: Tokens.spacing.medium
+
+        Row {
+            id: weekSquares
+
+            readonly property real cell: 18
+
+            spacing: 4
+
+            Repeater {
+                model: gh.overview ? gh.shown : []
+
+                StyledRect {
+                    required property var modelData
+                    required property int index
+
+                    width: weekSquares.cell
+                    height: weekSquares.cell
+                    radius: Math.min(Tokens.rounding.small, weekSquares.cell / 3)
+                    color: gh.levelColour(modelData.level)
+                    // Today, outlined so the end of the week is obvious
+                    border.width: index === gh.shown.length - 1 ? 1 : 0
+                    border.color: Colours.palette.m3primary
+                }
+            }
+        }
+
+        Canvas {
+            id: weekLine
+
+            Layout.fillWidth: true
+            implicitHeight: weekSquares.cell
+
+            onPaint: {
+                const ctx = getContext("2d");
+                ctx.clearRect(0, 0, width, height);
+                const days = gh.shown;
+                if (days.length < 2)
+                    return;
+
+                // Inset by the dot's radius so neither end, nor a peak, is clipped
+                const pad = 3;
+                const step = (width - pad * 2) / (days.length - 1);
+                const yFor = count => gh.peak > 0 ? height - pad - (count / gh.peak) * (height - pad * 2) : height - pad;
+
+                ctx.beginPath();
+                ctx.lineWidth = 2;
+                ctx.lineJoin = "round";
+                ctx.lineCap = "round";
+                ctx.strokeStyle = Colours.palette.m3primary;
+                days.forEach((day, i) => {
+                    if (i === 0)
+                        ctx.moveTo(pad, yFor(day.count));
+                    else
+                        ctx.lineTo(pad + i * step, yFor(day.count));
+                });
+                ctx.stroke();
+
+                ctx.fillStyle = Colours.palette.m3primary;
+                ctx.beginPath();
+                ctx.arc(width - pad, yFor(days[days.length - 1].count), pad, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+            onWidthChanged: requestPaint()
+            onHeightChanged: requestPaint()
+            onVisibleChanged: {
+                if (visible)
+                    requestPaint();
+            }
+
+            Connections {
+                function onShownChanged(): void {
+                    weekLine.requestPaint();
+                }
+                function onPeakChanged(): void {
+                    weekLine.requestPaint();
+                }
+
+                target: gh
+            }
+        }
+    }
+
+    RowLayout {
+        Layout.fillWidth: true
+        visible: gh.overview && gh.days.length > 0
+        // Each sized to what it says, with the spare width shared out between them rather than four equal
+        // quarters: "followers" is the longest label by some way and was the one cut short
+        spacing: 0
+
+        Figure {
+            icon: "local_fire_department"
+            iconColour: gh.currentStreak > 0 ? Colours.palette.m3tertiary : Colours.palette.m3outline
+            value: String(gh.currentStreak)
+            label: Tr.tr("streak")
+        }
+
+        Gap {}
+
+        Figure {
+            icon: "commit"
+            value: String(gh.today)
+            label: Tr.tr("today")
+        }
+
+        Gap {}
+
+        Figure {
+            icon: "star"
+            value: gh.compact(gh.profile?.stars)
+            label: Tr.tr("stars")
+        }
+
+        Gap {}
+
+        Figure {
+            icon: "group"
+            value: gh.compact(gh.profile?.followers)
+            label: Tr.tr("followers")
+        }
+    }
+
     // The card's last line: the commit total (or the day under the pointer), and in the stats variants the
     // profile counts on the same line in front of it rather than on a row of their own, which leaves that
     // line of height to the calendar
     RowLayout {
         Layout.fillWidth: true
-        visible: gh.days.length > 0 && !gh.longView
+        visible: gh.days.length > 0 && !gh.longView && !gh.overview
         spacing: Tokens.spacing.medium
 
         Stat {
@@ -376,15 +528,20 @@ WidgetCard {
             if (gh.longView)
                 yearData.refresh(true);
             WidgetData.requestGithub(gh.user, true);
+            if (gh.overview)
+                yearData.refresh(true);
             if (gh.wantsProfile)
                 WidgetData.requestGithubStats(gh.user, true);
         }
     }
 
+    // Only data, but still an item in the card's column: hidden, so the column leaves it out rather than
+    // putting a gap in for it, which every other style would pay for in height
     ContributionsYear {
         id: yearData
 
-        user: gh.longView ? gh.user : ""
+        visible: false
+        user: gh.longView || gh.overview ? gh.user : ""
     }
 
     // Year: every day of the last year as a week-by-day calendar, with the months marked along the top.
@@ -534,8 +691,8 @@ WidgetCard {
         }
     }
 
-    // Streak: how many days running there has been something, big, with the profile counts, the record and
-    // the year's total beside it and the last week under those to show where the run stands
+    // Streak: how many days running there has been something, big, with the record and the year's total
+    // beside it and the last week under those to show where the run stands
     ColumnLayout {
         Layout.fillWidth: true
         Layout.fillHeight: true
@@ -576,38 +733,15 @@ WidgetCard {
                     color: Colours.palette.m3onSurfaceVariant
                     font: Tokens.font.label.medium
                 }
-
             }
 
             Item {
                 Layout.fillWidth: true
             }
 
-            // Packed close: with the profile counts on top there are four rows here, and the card is only
-            // four squares tall
             ColumnLayout {
                 Layout.alignment: Qt.AlignVCenter
-                spacing: 0
-
-                // The profile's stars and followers over the record, so the column fills the card's height
-                // instead of leaving a gap above it
-                RowLayout {
-                    Layout.alignment: Qt.AlignRight
-                    // The line boxes below carry their own leading, which is room enough between the rows
-                    Layout.bottomMargin: -Tokens.spacing.extraSmall
-                    visible: gh.profile !== null
-                    spacing: Tokens.spacing.medium
-
-                    Stat {
-                        icon: "star"
-                        value: gh.compact(gh.profile?.stars)
-                    }
-
-                    Stat {
-                        icon: "group"
-                        value: gh.compact(gh.profile?.followers)
-                    }
-                }
+                spacing: Tokens.spacing.small
 
                 StreakStat {
                     label: Tr.tr("Longest")
@@ -622,7 +756,6 @@ WidgetCard {
                 // The last seven days under the figures, today on the right and outlined
                 RowLayout {
                     Layout.fillWidth: true
-                    Layout.topMargin: 2
                     spacing: gh.gap
 
                     Repeater {
@@ -643,7 +776,6 @@ WidgetCard {
                         }
                     }
                 }
-
             }
         }
     }
@@ -669,6 +801,47 @@ WidgetCard {
             text: streakStat.value
             color: Colours.palette.m3onSurface
             font: Tokens.font.title.small
+        }
+    }
+
+    // The give between the overview's figures, so they spread to both edges of the card
+    component Gap: Item {
+        Layout.fillWidth: true
+        Layout.minimumWidth: Tokens.spacing.small
+    }
+
+    // One of the overview's four figures: the number beside its icon, and what it counts under them
+    component Figure: ColumnLayout {
+        id: figure
+
+        property string icon
+        property color iconColour: Colours.palette.m3primary
+        property string value
+        property string label
+
+        spacing: 0
+
+        RowLayout {
+            spacing: Tokens.spacing.extraSmall
+
+            MaterialIcon {
+                text: figure.icon
+                fill: 1
+                color: figure.iconColour
+                fontStyle: Tokens.font.icon.small
+            }
+
+            StyledText {
+                text: figure.value
+                color: Colours.palette.m3onSurface
+                font: Tokens.font.title.builders.small.weight(Font.DemiBold).build()
+            }
+        }
+
+        StyledText {
+            text: figure.label
+            color: Colours.palette.m3outline
+            font: Tokens.font.label.small
         }
     }
 

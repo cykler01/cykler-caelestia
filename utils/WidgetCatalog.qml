@@ -453,7 +453,12 @@ Singleton {
                 {
                     id: "streak",
                     name: Tr.tr("Streak"),
-                    height: 5
+                    height: 4
+                },
+                {
+                    id: "overview",
+                    name: Tr.tr("Week overview · streak and stats"),
+                    height: 4
                 }
             ]
         },
@@ -548,7 +553,7 @@ Singleton {
                     id: "card",
                     name: Tr.tr("Card"),
                     height: 3,
-                    width: 10
+                    width: 8
                 }
             ]
         },
