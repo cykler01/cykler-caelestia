@@ -40,6 +40,15 @@ QtObject {
             path: [],
             title: Tr.tr("Wallpaper & style"),
             section: Tr.tr("Windows"),
+            label: Tr.tr("Window corner radius"),
+            subtext: Tr.tr("Radius of every window's corners, in pixels; the border around the desktop follows it"),
+            keywords: "corner radius rounded corners window rounding"
+        },
+        {
+            page: "wallpaper",
+            path: [],
+            title: Tr.tr("Wallpaper & style"),
+            section: Tr.tr("Windows"),
             label: Tr.tr("Window opacity")
         },
 
@@ -856,6 +865,23 @@ QtObject {
             section: Tr.tr("Quick toggles"),
             label: Tr.tr("VPN"),
             subtext: Tr.tr("Connect or disconnect the VPN")
+        },
+        {
+            page: "panels",
+            path: [5],
+            title: Tr.tr("Utilities"),
+            section: Tr.tr("Desktop text"),
+            label: Tr.tr("Random text"),
+            subtext: Tr.tr("Show a random line along the bottom of the screen"),
+            keywords: "quote random bottom screen line text"
+        },
+        {
+            page: "panels",
+            path: [5],
+            title: Tr.tr("Utilities"),
+            section: Tr.tr("Desktop text"),
+            label: Tr.tr("Texts"),
+            subtext: Tr.tr("One per line; lines starting with # are skipped")
         },
 
         {

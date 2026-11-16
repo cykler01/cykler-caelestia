@@ -194,6 +194,92 @@ Singleton {
         return root.parseWeekly(value) !== null;
     }
 
+    // Minutes from midnight for an HH:mm clock. 24:00 is the end of the day rather than an
+    // error, since that is how "until the day is over" is written.
+    function clockMinutes(value: var): double {
+        const match = /^(\d{1,2}):(\d{2})$/.exec(String(value ?? "").trim());
+        if (!match)
+            return NaN;
+
+        const hour = Number(match[1]);
+        const minute = Number(match[2]);
+        if (minute < 0 || minute > 59 || hour < 0 || hour > 24 || (hour === 24 && minute !== 0))
+            return NaN;
+
+        return hour * 60 + minute;
+    }
+
+    function validClock(value: var): bool {
+        return Number.isFinite(root.clockMinutes(value));
+    }
+
+    // The hours of each cycle a repeating milestone actually counts. A day that runs 07:00 to
+    // 18:00 is only "on" for those eleven hours, and the rest of the cycle is the gap before the
+    // next one begins; without that the bar starts over minutes after it finishes and counts the
+    // whole evening towards tomorrow. Null when the milestone fills its cycle, as before.
+    //
+    // `start` is the beginning of the next repeat of the window and `period` one whole cycle, so
+    // the caller can step either way from a window that has already ended.
+    function activeWindow(entry: var, now: double): var {
+        const dailyPeriod = 86400000;
+        const weeklyPeriod = dailyPeriod * 7;
+        const date = new Date(now);
+        const midnight = new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime();
+
+        if (entry.mode === "day" || entry.mode === "daily") {
+            const startMinutes = root.clockMinutes(entry.start);
+            const endMinutes = root.clockMinutes(entry.end);
+
+            // A daily clock only names its end, so it only has a gap once a start is given; a day
+            // runs from midnight to midnight unless it was given a window
+            if (entry.mode === "daily" && (!Number.isFinite(startMinutes) || !Number.isFinite(endMinutes)))
+                return null;
+
+            const start = midnight + (Number.isFinite(startMinutes) ? startMinutes : 0) * 60000;
+            let end = midnight + (Number.isFinite(endMinutes) ? endMinutes : 1440) * 60000;
+            if (end <= start)
+                end += dailyPeriod;
+            if (end - start >= dailyPeriod)
+                return null;
+
+            return {
+                start: start,
+                end: end,
+                period: dailyPeriod
+            };
+        }
+
+        if (entry.mode === "week" || entry.mode === "weekly") {
+            const startWeekly = root.parseWeekly(entry.start);
+            const endWeekly = root.parseWeekly(entry.end);
+            if (entry.mode === "weekly" && (!startWeekly || !endWeekly))
+                return null;
+
+            const offset = (date.getDay() + 6) % 7;
+            const monday = new Date(date.getFullYear(), date.getMonth(), date.getDate() - offset).getTime();
+            // A weekday without a time starts that day, while it ends it
+            const startMinutes = startWeekly ? (startWeekly.hasTime ? startWeekly.hour * 60 + startWeekly.minute : 0) : 0;
+            const start = monday + (startWeekly ? startWeekly.weekday * dailyPeriod : 0) + startMinutes * 60000;
+            const end = monday + (endWeekly ? endWeekly.weekday * dailyPeriod + (endWeekly.hour * 60 + endWeekly.minute) * 60000 : weeklyPeriod);
+            if (end <= start)
+                return {
+                    start: start,
+                    end: end + weeklyPeriod,
+                    period: weeklyPeriod
+                };
+            if (end - start >= weeklyPeriod)
+                return null;
+
+            return {
+                start: start,
+                end: end,
+                period: weeklyPeriod
+            };
+        }
+
+        return null;
+    }
+
     function dailyBounds(entry: var, now: double): var {
         const clock = root.parseClock(entry.end || entry.start);
         if (!clock)
@@ -358,12 +444,41 @@ Singleton {
     }
 
     function resolve(entry: var, now: double): var {
+        const item = (fraction, rest, done, status) => {
+            const value = Math.max(0, Math.min(1, fraction));
+            return {
+                index: entry.index,
+                label: root.labelFor(entry),
+                mode: entry.mode,
+                fraction: value,
+                percent: Math.round(value * 100),
+                done: done,
+                rest: rest,
+                status: status,
+                target: entry.mode === "daily" || entry.mode === "weekly" || entry.mode === "date" || entry.mode === "yearly" || entry.mode === "interval" ? root.targetFor(entry, now) : ""
+            };
+        };
+
+        const active = root.activeWindow(entry, now);
+        if (active) {
+            // Which repeat of the window now falls in. Before today's start that is yesterday's,
+            // whose gap is the one still being counted down
+            const repeat = Math.floor((now - active.start) / active.period);
+            const start = active.start + repeat * active.period;
+            const end = active.end + repeat * active.period;
+
+            // Once the window is over the milestone stays complete until the next one begins,
+            // rather than counting the evening towards tomorrow straight away
+            if (now >= end)
+                return item((now - end) / (start + active.period - end), true, false, Tr.tr("Completed"));
+
+            return item((now - start) / (end - start), false, false, Tr.tr("%1 left").arg(root.duration(end - now)));
+        }
+
         const span = root.bounds(entry, now);
         if (!span)
             return null;
 
-        const total = span.end - span.start;
-        const fraction = Math.max(0, Math.min(1, (now - span.start) / total));
         const remaining = span.end - now;
         const before = span.start - now;
         let status;
@@ -374,16 +489,7 @@ Singleton {
         else
             status = Tr.tr("%1 left").arg(root.duration(remaining));
 
-        return {
-            index: entry.index,
-            label: root.labelFor(entry),
-            mode: entry.mode,
-            fraction: fraction,
-            percent: Math.round(fraction * 100),
-            done: remaining <= 0,
-            status: status,
-            target: entry.mode === "daily" || entry.mode === "weekly" || entry.mode === "date" || entry.mode === "yearly" || entry.mode === "interval" ? root.targetFor(entry, now) : ""
-        };
+        return item((now - span.start) / (span.end - span.start), false, remaining <= 0, status);
     }
 
     function evaluate(now: double): var {

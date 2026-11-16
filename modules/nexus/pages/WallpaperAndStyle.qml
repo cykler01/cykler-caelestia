@@ -158,8 +158,19 @@ PageBase {
             text: Tr.tr("Windows")
         }
 
-        SliderRow {
+        StepperRow {
             first: true
+            // SEARCH: corner radius rounded corners window rounding
+            label: Tr.tr("Window corner radius")
+            subtext: Tr.tr("Radius of every window's corners, in pixels; the border around the desktop follows it")
+            value: WindowSettings.rounding
+            from: 0
+            to: 40
+            stepSize: 1
+            onMoved: v => WindowSettings.setRounding(v)
+        }
+
+        SliderRow {
             last: true
             icon: "web_asset"
             label: Tr.tr("Window opacity")

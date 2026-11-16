@@ -144,7 +144,7 @@ Scope {
         if (settings.disableRounding === "disable")
             options["decoration:rounding"] = 0;
         else if (settings.disableRounding === "enable")
-            options["decoration:rounding"] = TokenConfig.appearance.rounding.medium;
+            options["decoration:rounding"] = WindowSettings.rounding;
 
         if (settings.disableShadows === "disable")
             options["decoration:shadow:enabled"] = 0;

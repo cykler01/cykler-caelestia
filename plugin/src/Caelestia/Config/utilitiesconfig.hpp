@@ -61,6 +61,13 @@ class UtilitiesVpn : public settings::ObjectNode {
     CONFIG_GLOBAL_PROPERTY(QString, selectedProvider, QString())
 };
 
+// NOTE(fork): a random line of text along the bottom of the screen, picked from assets/bottom-texts.txt
+class UtilitiesBottomText : public settings::ObjectNode {
+    CONFIG_NODE(UtilitiesBottomText, settings::ObjectNode)
+
+    CONFIG_GLOBAL_PROPERTY(bool, enabled, true)
+};
+
 class UtilitiesCards : public settings::ObjectNode {
     CONFIG_NODE(UtilitiesCards, settings::ObjectNode)
 
@@ -96,6 +103,7 @@ class UtilitiesConfig : public settings::ObjectNode {
     CONFIG_GLOBAL_SUBOBJECT(UtilitiesToasts, toasts)
     CONFIG_GLOBAL_SUBOBJECT(UtilitiesVpn, vpn)
     CONFIG_GLOBAL_SUBOBJECT(UtilitiesGameMode, gameMode)
+    CONFIG_GLOBAL_SUBOBJECT(UtilitiesBottomText, bottomText)
     CONFIG_LIST(EntryList, quickToggles,
         DEFAULT_ARG({
             LIST_ENTRY(wifi, true),
