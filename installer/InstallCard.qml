@@ -10,14 +10,10 @@ Item {
     // where the window is running, when that is not Hyprland
     property string elsewhere
 
-    signal leave(bool start)
-
     readonly property var ask: Install.ask
     readonly property bool asking: !!card.ask
 
-    opacity: card.shown ? 1 : 0
-    visible: opacity > 0.01
-    enabled: card.shown
+    signal leave(bool start)
 
     function dismiss(): void {
         if (Install.running)
@@ -25,6 +21,10 @@ Item {
         else
             card.leave(false);
     }
+
+    opacity: card.shown ? 1 : 0
+    visible: opacity > 0.01
+    enabled: card.shown
 
     Behavior on opacity {
         NumberAnimation {
@@ -69,7 +69,9 @@ Item {
             width: parent.width
             height: Theme.dp(6)
             radius: height / 2
-            color: Theme.bgSunken
+            // bgSunken is pure black in the dark scheme, darker than the panel
+            // behind it, so an empty track read as a hard black gash
+            color: Theme.alpha(Theme.outline, 0.4)
             visible: !Install.finished
 
             Rectangle {
@@ -107,10 +109,15 @@ Item {
             SecretField {
                 id: secret
 
-                width: parent.width
+                anchors.horizontalCenter: parent.horizontalCenter
+                maxWidth: Math.min(parent.width, Theme.dp(340))
                 visible: card.asking && card.ask.kind === "password"
                 failed: card.asking && card.ask.retry
                 onAccepted: (value) => Install.answer(value)
+                onVisibleChanged: {
+                    if (secret.visible)
+                        secret.focusInput();
+                }
             }
 
             Row {
@@ -128,14 +135,6 @@ Item {
                     variant: "tonal"
                     onClicked: Install.answer("n")
                 }
-            }
-
-            Button {
-                text: "Send"
-                variant: "filled"
-                icon: "arrow_forward"
-                visible: card.asking && card.ask.kind === "password"
-                onClicked: Install.answer(secret.take())
             }
         }
 
@@ -167,8 +166,12 @@ Item {
                     color: Theme.subtextDim
                     font.family: Theme.fontMono
                     font.pixelSize: Theme.fontBodySm
+                    // a pacman error puts what actually went wrong at the END of
+                    // the line, so eliding one line hid the only part worth
+                    // reading. Long lines wrap; a runaway one still stops at six
+                    wrapMode: Text.WrapAtWordBoundaryOrAnywhere
+                    maximumLineCount: 6
                     elide: Text.ElideRight
-                    maximumLineCount: 1
                 }
 
                 // follow the tail, the way a terminal does
@@ -209,6 +212,80 @@ Item {
             font.pixelSize: Theme.fontBodySm
             wrapMode: Text.WordWrap
             visible: Install.ok
+        }
+
+        // -- what to type once it is running -----------------------------
+        //
+        // every one of these is a real subcommand of the installed cli, taken
+        // from `caelestia --help` and `caelestia shell --help`
+        Column {
+            width: parent.width
+            spacing: Theme.dp(5)
+            visible: Install.ok
+
+            Text {
+                text: "From a terminal, after this:"
+                color: Theme.subtext
+                font.family: Theme.fontFamily
+                font.pixelSize: Theme.fontBodySm
+                font.variableAxes: Theme.axes(Theme.fontBodySm, 560, 0)
+            }
+
+            Item {
+                width: 1
+                height: Theme.dp(2)
+            }
+
+            Repeater {
+                model: [
+                    {
+                        "cmd": "caelestia shell -d",
+                        "what": "start it detached"
+                    },
+                    {
+                        "cmd": "caelestia shell -r",
+                        "what": "restart it after a change"
+                    },
+                    {
+                        "cmd": "caelestia shell -l",
+                        "what": "print its log"
+                    },
+                    {
+                        "cmd": "caelestia scheme list",
+                        "what": "the colour schemes it ships with"
+                    },
+                    {
+                        "cmd": "caelestia -h",
+                        "what": "everything else the cli does"
+                    }
+                ]
+
+                Row {
+                    id: hint
+
+                    required property var modelData
+
+                    width: parent.width
+                    spacing: Theme.dp(8)
+
+                    Text {
+                        width: Theme.dp(150)
+                        text: hint.modelData.cmd
+                        color: Theme.accent
+                        font.family: Theme.fontMono
+                        font.pixelSize: Theme.fontBodySm
+                        elide: Text.ElideRight
+                    }
+
+                    Text {
+                        text: hint.modelData.what
+                        color: Theme.subtextDim
+                        font.family: Theme.fontFamily
+                        font.pixelSize: Theme.fontBodySm
+                        elide: Text.ElideRight
+                    }
+                }
+            }
         }
 
         Item {

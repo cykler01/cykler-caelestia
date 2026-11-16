@@ -61,6 +61,7 @@ PAGES: dict[str, list[str]] = {
     "power": ["BatteryPage"],
     "language": ["LanguageAndRegion", "WeatherLocation"],
     "updates": ["UpdatesPage"],
+    "plugins": ["PluginsPage"],
     "about": ["AboutPage"],
 }
 
