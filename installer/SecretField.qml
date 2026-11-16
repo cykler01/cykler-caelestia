@@ -22,6 +22,10 @@ Rectangle {
 
     readonly property int dotSize: Theme.dp(11)
     readonly property int dotGap: Theme.dp(7)
+    // The last attempt was wrong, but what is being typed NOW is not. The red
+    // clears the moment a key lands, so a fresh password is not dressed up as
+    // the failure it is replacing; the line above the field keeps saying so
+    readonly property bool showFailed: field.failed && input.text.length === 0
     readonly property int pad: Theme.dp(6)
     readonly property real sideSize: field.implicitHeight - field.pad * 2
 
@@ -59,10 +63,10 @@ Rectangle {
 
         Icon {
             anchors.centerIn: parent
-            name: field.reveal ? "visibility" : field.failed ? "lock_open" : "lock"
+            name: field.reveal ? "visibility" : field.showFailed ? "lock_open" : "lock"
             size: Theme.dp(20)
             fill: field.reveal ? 1 : 0
-            color: field.failed ? Theme.error : Theme.subtext
+            color: field.showFailed ? Theme.error : Theme.subtext
         }
 
         MouseArea {
@@ -92,7 +96,7 @@ Rectangle {
 
             anchors.centerIn: parent
             text: field.placeholder
-            color: field.failed ? Theme.error : Theme.subtextDim
+            color: field.showFailed ? Theme.error : Theme.subtextDim
             font.family: Theme.fontFamily
             font.pixelSize: Theme.fontBodyMd
             opacity: input.text.length === 0 ? 1 : 0
@@ -137,7 +141,7 @@ Rectangle {
                     width: field.dotSize
                     height: field.dotSize
                     radius: width / 2
-                    color: field.failed ? Theme.error : Theme.text
+                    color: Theme.text
 
                     Component.onCompleted: pop.start()
 
