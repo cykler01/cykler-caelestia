@@ -195,6 +195,13 @@ confirm() {
 
 SRC="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
+# Never from inside the window. runner.py runs this on a pty, so -t 1 is true
+# there and the check below would happily open a second installer on top of the
+# one already driving it -- and then exec away from the runner watching us
+if [[ ${CYKLER_INSTALLER:-0} == 1 ]]; then
+    WITH_GUI=0
+fi
+
 if [[ -z "$WITH_GUI" ]]; then
     WITH_GUI=0
     # a window is only worth offering where one can actually open, and where the
