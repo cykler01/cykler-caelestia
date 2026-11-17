@@ -4,7 +4,9 @@
 
 A personal fork of [caelestia-dots/shell](https://github.com/caelestia-dots/shell) with the features we wanted on top of it.
 
-https://github.com/user-attachments/assets/35d5068b-dca0-414d-b933-bd5a9d548262
+https://github.com/user-attachments/assets/83bc3015-1b8b-4b44-988c-f8a59c1dafeb
+
+**[▶ Watch the full showcase](https://cykler.dev/projects/caelestia)**
 
 ![GitHub last commit](https://img.shields.io/github/last-commit/cykler01/cykler-caelestia?style=flat-square&labelColor=101418&color=9ccbfb)
 ![GitHub release](https://img.shields.io/github/v/release/cykler01/cykler-caelestia?style=flat-square&labelColor=101418&color=9ccbfb)
