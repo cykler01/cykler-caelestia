@@ -29,12 +29,16 @@ Item {
     readonly property real cardWidth: root.widthCells * WidgetGrid.unit - WidgetGrid.gap
     readonly property real cardHeight: root.cells * WidgetGrid.unit - WidgetGrid.gap
 
-    readonly property real scaleFactor: Math.min(width / root.cardWidth, height / root.cardHeight)
+    // NOTE(fork): never above 1. A card narrower than the tile it is shown in used to be blown up to
+    // fill it, which is both a lie about the size it will be on the desktop and a soft, scaled-up
+    // picture of text that was laid out at the real size. Given room it is drawn at exactly its own
+    // size instead, and only ever scaled down to fit a tile too small for it
+    readonly property real scaleFactor: Math.min(1, Math.min(width / root.cardWidth, height / root.cardHeight))
 
     // So a caller only has to pick a width: the height then keeps the card's real proportions, and a
     // tall widget reads as taller than a short one in the picker just as it will on the desktop
     implicitWidth: root.cardWidth
-    implicitHeight: width > 0 ? root.cardHeight * (width / root.cardWidth) : root.cardHeight
+    implicitHeight: width > 0 ? root.cardHeight * Math.min(1, width / root.cardWidth) : root.cardHeight
 
     clip: true
 

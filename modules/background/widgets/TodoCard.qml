@@ -5,6 +5,7 @@ import QtQuick.Layouts
 import Caelestia.Config
 import Caelestia.I18n
 import qs.components
+import qs.components.containers
 import qs.services
 import qs.modules.background
 import qs.modules.launcher.services
@@ -32,12 +33,13 @@ WidgetCard {
         const today = new Date().toDateString();
         const open = Todo.tasks.filter(t => !t.done);
         const list = todo.mode === "today" ? open.filter(t => t.deadline && new Date(t.deadline).toDateString() === today) : open;
-        // Soonest deadline first, then the ones with none in the order they were added
+        // Soonest deadline first, then the ones with none in the order they were added. Not cut down to
+        // the first few any more: the list scrolls, so a long one is reachable rather than invisible
         return [...list].sort((a, b) => {
             const da = a.deadline ? new Date(a.deadline).getTime() : Number.POSITIVE_INFINITY;
             const db = b.deadline ? new Date(b.deadline).getTime() : Number.POSITIVE_INFINITY;
             return da - db;
-        }).slice(0, 6);
+        });
     }
 
     // A task with no deadline (or one that can't be read) sorts after every dated one, keeping the order
@@ -89,48 +91,79 @@ WidgetCard {
         font: Tokens.font.label.medium
     }
 
-    Repeater {
-        model: todo.focusView ? [] : todo.shown
+    // The tasks, in a list of their own that scrolls rather than a run of rows in the card's column.
+    //
+    // NOTE(fork): laid straight into the column, a seventh task made the card taller than the cell the
+    // catalog gives it, and WidgetCard rounds a card up to fit its content -- so it grew down over
+    // whatever was placed under it, and the rows past the plate read through the next card. The card
+    // keeps its footprint now and the list takes the scrolling instead
+    Item {
+        id: list
 
-        RowLayout {
-            id: taskRow
+        readonly property int rowHeight: 24
+        readonly property int rowSpacing: Tokens.spacing.small
 
-            required property var modelData
+        Layout.fillWidth: true
+        Layout.fillHeight: true
+        Layout.minimumHeight: 0
+        // Three rows is all the card asks for, which keeps its natural height inside the cell it is
+        // given; the rest of that cell comes back through fillHeight and shows as many rows as it fits
+        implicitHeight: Math.min(rows.contentHeight, list.rowHeight * 3 + list.rowSpacing * 2)
+        visible: !todo.focusView && todo.shown.length > 0
 
-            Layout.fillWidth: true
-            spacing: Tokens.spacing.small
+        VerticalFadeListView {
+            id: rows
 
-            Item {
-                Layout.preferredWidth: 20
-                Layout.preferredHeight: 20
+            anchors.fill: parent
+            clip: true
+            spacing: list.rowSpacing
+            model: todo.shown
+            // A preview is a still of the card in the Add-widget grid, and does not take the scroll
+            interactive: !todo.preview
 
-                MaterialIcon {
-                    anchors.centerIn: parent
-                    text: "radio_button_unchecked"
+            delegate: RowLayout {
+                id: taskRow
+
+                required property var modelData
+
+                width: rows.width
+                height: list.rowHeight
+                spacing: Tokens.spacing.small
+
+                Item {
+                    Layout.preferredWidth: 20
+                    Layout.fillHeight: true
+
+                    MaterialIcon {
+                        anchors.centerIn: parent
+                        text: "radio_button_unchecked"
+                        color: Colours.palette.m3outline
+                        fontStyle: Tokens.font.icon.small
+                    }
+
+                    MouseArea {
+                        anchors.fill: parent
+                        cursorShape: Qt.PointingHandCursor
+                        enabled: !todo.preview
+                        onClicked: Todo.toggleDone(taskRow.modelData.id)
+                    }
+                }
+
+                StyledText {
+                    Layout.fillWidth: true
+                    Layout.minimumWidth: 0
+                    text: taskRow.modelData.text
+                    elide: Text.ElideRight
+                    color: Colours.palette.m3onSurface
+                    font: Tokens.font.body.small
+                }
+
+                StyledText {
+                    visible: text !== ""
+                    text: todo.deadlineText(taskRow.modelData)
                     color: Colours.palette.m3outline
-                    fontStyle: Tokens.font.icon.small
+                    font: Tokens.font.label.small
                 }
-
-                MouseArea {
-                    anchors.fill: parent
-                    cursorShape: Qt.PointingHandCursor
-                    onClicked: Todo.toggleDone(taskRow.modelData.id)
-                }
-            }
-
-            StyledText {
-                Layout.fillWidth: true
-                text: taskRow.modelData.text
-                elide: Text.ElideRight
-                color: Colours.palette.m3onSurface
-                font: Tokens.font.body.small
-            }
-
-            StyledText {
-                visible: text !== ""
-                text: todo.deadlineText(taskRow.modelData)
-                color: Colours.palette.m3outline
-                font: Tokens.font.label.small
             }
         }
     }

@@ -45,6 +45,9 @@ Item {
     property bool wantsKeyboard
     // The widget picker is open over the desktop, from the button in the rearrange bar
     property bool addingWidget
+    // The entry whose style is being changed, from the brush on its card, or -1. The same picker
+    // does both jobs: adding one of every style there is, or swapping the style of one already out
+    property int stylingIndex: -1
 
     readonly property var widgetConfig: GlobalConfig.background.desktopWidgets
     readonly property int gridCols: Math.floor(width / WidgetGrid.unit)
@@ -161,12 +164,14 @@ Item {
     onEditModeChanged: {
         if (editMode)
             forceActiveFocus();
-        else
+        else {
             root.addingWidget = false;
+            root.stylingIndex = -1;
+        }
     }
 
     // The picker takes the keyboard for itself while it is up, for its own Escape
-    focus: editMode && !root.addingWidget
+    focus: editMode && !root.addingWidget && root.stylingIndex < 0
 
     Keys.onEscapePressed: {
         if (screenState)
@@ -440,12 +445,21 @@ Item {
 
             required property var modelData
 
+            // NOTE(fork): the handle rides along with the card it belongs to. It used to sit at the
+            // cell the layout has on file, so the moment a card was picked up the card went with the
+            // pointer and its cross stayed behind on the old cell - a cross for a card that was no
+            // longer under it. The card reads the same two numbers for its own position while held
+            // (see WidgetCard.qml), so both move as one thing
+            readonly property bool held: root.heldIndex === modelData.index
+
             enabled: root.editMode
             opacity: reveal.progress
             visible: modelData.enabled && reveal.progress > 0
-            z: 3
-            x: modelData.col * WidgetGrid.unit
-            y: modelData.row * WidgetGrid.unit
+            // Over the card being dragged, which lifts itself above the rest, so the cross stays in
+            // sight on the card it belongs to rather than passing under it
+            z: handle.held ? 5 : 3
+            x: handle.held ? root.pointer.x - root.grab.x : modelData.col * WidgetGrid.unit
+            y: handle.held ? root.pointer.y - root.grab.y : modelData.row * WidgetGrid.unit
             width: modelData.w * WidgetGrid.unit - WidgetGrid.gap
             height: modelData.h * WidgetGrid.unit - WidgetGrid.gap
 
@@ -468,36 +482,33 @@ Item {
                 onCanceled: root.endDrag()
             }
 
-            // NOTE(fork): taking a widget off the desktop from the desktop itself, rather than going
-            // back through the settings to turn it off. Declared after the press that fills the card
-            // so the cross is what the pointer hits, and it writes the same removal the settings page
-            // does, so the rest of the layout closes up behind it. Drawn in the error colour, since it
-            // is the one thing here that throws something away, and inset far enough that the circle
-            // sits inside the card's corner curve instead of cutting across it
-            StyledRect {
-                id: remove
-
+            // NOTE(fork): what can be done to a card from the desktop itself, rather than going back
+            // through the settings for it: take it off, and change which style of it is showing.
+            // Declared after the press that fills the card so these are what the pointer hits, and
+            // both write exactly what the settings page writes, so the rest of the layout closes up
+            // or re-flows behind them. Inset far enough that the circles sit inside the card's corner
+            // curve instead of cutting across it
+            Row {
                 anchors.top: parent.top
                 anchors.left: parent.left
                 anchors.margins: Tokens.padding.medium
-                implicitWidth: removeLabel.implicitHeight + Tokens.padding.extraSmall * 2
-                implicitHeight: implicitWidth
-                radius: Tokens.rounding.full
-                color: Colours.palette.m3error
+                spacing: Tokens.spacing.extraSmall
 
-                MaterialIcon {
-                    id: removeLabel
-
-                    anchors.centerIn: parent
-                    text: "close"
-                    color: Colours.palette.m3onError
-                    fontStyle: Tokens.font.icon.small
+                // The one thing here that throws something away, so it wears the error colour
+                HandleButton {
+                    icon: "close"
+                    fill: Colours.palette.m3error
+                    onFill: Colours.palette.m3onError
+                    onActivated: root.widgetConfig.entries.remove(handle.modelData.index)
                 }
 
-                StateLayer {
-                    radius: remove.radius
-                    color: Colours.palette.m3onError
-                    onClicked: root.widgetConfig.entries.remove(handle.modelData.index)
+                // Only where there is another style to change to
+                HandleButton {
+                    icon: "style"
+                    fill: Colours.palette.m3secondaryContainer
+                    onFill: Colours.palette.m3onSecondaryContainer
+                    visible: WidgetCatalog.typesFor(handle.modelData.id).length > 1
+                    onActivated: root.stylingIndex = handle.modelData.index
                 }
             }
         }
@@ -549,12 +560,53 @@ Item {
     // Only built while it is open: the tiles are live widgets, and an idle picker should not be
     // running a forecast and a CPU reading behind the desktop
     Loader {
+        id: picker
+
+        readonly property var styling: root.stylingIndex >= 0 ? root.placementOf(root.stylingIndex) : null
+
         anchors.fill: parent
         z: 6
-        active: root.editMode && root.addingWidget
+        active: root.editMode && (root.addingWidget || root.stylingIndex >= 0)
 
         sourceComponent: AddWidgetSheet {
-            onClosed: root.addingWidget = false
+            entryIndex: root.stylingIndex
+            entryKind: picker.styling?.id ?? ""
+            entryType: picker.styling?.type ?? ""
+            onClosed: {
+                root.addingWidget = false;
+                root.stylingIndex = -1;
+            }
+        }
+    }
+
+    // One round button on a card's handle, for the things that can be done to the card itself
+    component HandleButton: StyledRect {
+        id: button
+
+        required property string icon
+        required property color fill
+        required property color onFill
+
+        signal activated
+
+        implicitWidth: buttonLabel.implicitHeight + Tokens.padding.extraSmall * 2
+        implicitHeight: implicitWidth
+        radius: Tokens.rounding.full
+        color: button.fill
+
+        MaterialIcon {
+            id: buttonLabel
+
+            anchors.centerIn: parent
+            text: button.icon
+            color: button.onFill
+            fontStyle: Tokens.font.icon.small
+        }
+
+        StateLayer {
+            radius: button.radius
+            color: button.onFill
+            onClicked: button.activated()
         }
     }
 

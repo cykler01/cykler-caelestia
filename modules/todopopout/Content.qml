@@ -341,14 +341,13 @@ Item {
 
                 // Positioners have no "remove" transition of their own (only add/move/populate),
                 // so a deleted task just disappears; the others glide into its old spot via "move"
-                add: Transition {
-                    Anim {
-                        property: "opacity"
-                        from: 0
-                        to: 1
-                        type: Anim.FastEffects
-                    }
-                }
+                //
+                // NOTE(fork): a row's fade-in is the row's own animation, not an `add` transition
+                // here. The positioner cancels a running add transition when the list changes
+                // again under it, and a cancelled transition leaves the properties it was driving
+                // wherever they had got to - so a row caught mid-fade stayed parked at half
+                // opacity, looking greyed out, with nothing to ever put it back. A value source on
+                // the delegate always lands on its end value instead
 
                 Repeater {
                     id: taskRepeater
@@ -382,6 +381,14 @@ Item {
                         // repaint, which is what left rows looking darker/greyed out until the
                         // list changed again - see ContentWindow.qml for the same fix elsewhere
                         layer.enabled: true
+
+                        // The row fades itself in (see the positioner's note above): a value source
+                        // runs to its end whatever the list does meanwhile
+                        Anim on opacity {
+                            from: 0
+                            to: 1
+                            type: Anim.FastEffects
+                        }
 
                         // Opening the rename field or the scheduling editor grows the row rather
                         // than snapping to its new height; the "move" transition above then
