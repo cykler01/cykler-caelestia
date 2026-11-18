@@ -54,10 +54,20 @@ done
 
 # another file in the same directory naming "qs" would fight this one, and
 # ananicy does not define which of two rules for one name wins. The shipped
-# defaults are not a conflict: outranking those is the whole point.
+# defaults are not a conflict: outranking those is the whole point. Neither is a
+# file whose "qs" rule is identical to ours - both agree, so whichever wins, the
+# result is the same.
+qs_rule() { grep -h '"name"[[:space:]]*:[[:space:]]*"qs"' "$1" 2>/dev/null | tr -s '[:space:]' ' '; }
+
 conflicting_rules() {
-    grep -rl '"name"[[:space:]]*:[[:space:]]*"qs"' "$ANANICY_D" 2>/dev/null \
-        | grep -v "/$RULE_NAME\$" | grep -v '/00-default/' || true
+    local ours f
+    ours=$(qs_rule "$SRC/$RULE_NAME")
+    while IFS= read -r f; do
+        [[ -n $f ]] || continue
+        [[ $(qs_rule "$f") == "$ours" ]] && continue
+        echo "$f"
+    done < <(grep -rl '"name"[[:space:]]*:[[:space:]]*"qs"' "$ANANICY_D" 2>/dev/null \
+        | grep -v "/$RULE_NAME\$" | grep -v '/00-default/' || true)
 }
 
 # a failed restart is not fatal either way: the rule is a file on disk, and
