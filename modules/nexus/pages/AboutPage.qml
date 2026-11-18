@@ -25,7 +25,8 @@ PageBase {
     property bool dbgDamage: false
 
     function hyprDebug(key: string, on: bool): void {
-        dbgProc.command = ["hyprctl", "keyword", key, on ? "true" : "false"];
+        // Hyprland's config is Lua now, so `hyprctl keyword` is gone; eval takes the same table hl.config does
+        dbgProc.command = ["hyprctl", "eval", `hl.config({debug={${key}=${on}}})`];
         dbgProc.running = true;
     }
 
@@ -190,7 +191,7 @@ PageBase {
             checked: root.dbgOverlay
             onToggled: {
                 root.dbgOverlay = checked;
-                root.hyprDebug("debug:overlay", checked);
+                root.hyprDebug("overlay", checked);
             }
         }
 
@@ -201,7 +202,7 @@ PageBase {
             checked: root.dbgDamage
             onToggled: {
                 root.dbgDamage = checked;
-                root.hyprDebug("debug:damage_blink", checked);
+                root.hyprDebug("damage_blink", checked);
             }
         }
 
