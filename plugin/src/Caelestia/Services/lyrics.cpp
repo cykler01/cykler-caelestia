@@ -317,6 +317,11 @@ void Lyrics::clearTrack() {
     clearCandidates();
     clearLines();
     setLoading(false);
+
+    if (m_selected.isValid()) {
+        m_selected = {};
+        emit selectedCandidateChanged();
+    }
 }
 
 void Lyrics::refresh() {
@@ -442,6 +447,14 @@ void Lyrics::doLoad() {
     setLoading(true);
     clearLines();
     clearCandidates();
+
+    // Forget the last selection: a reload of the same track restores the same saved candidate,
+    // and setSelectedCandidate ignores a value equal to the current one, which would leave the
+    // lines hidden and loading on forever.
+    if (m_selected.isValid()) {
+        m_selected = {};
+        emit selectedCandidateChanged();
+    }
 
     // The offset belongs to the track, not to whichever source answers, so it is restored here
     // rather than down in the fallback: a word-timed track needs the same correction the
