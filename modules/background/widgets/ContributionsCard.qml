@@ -380,9 +380,20 @@ WidgetCard {
                     height: weekSquares.cell
                     radius: Math.min(Tokens.rounding.small, weekSquares.cell / 3)
                     color: gh.levelColour(modelData.level)
-                    // Today, outlined so the end of the week is obvious
-                    border.width: index === gh.shown.length - 1 ? 1 : 0
+                    // Today, outlined so the end of the week is obvious, and the square under the pointer the
+                    // same way the other square views mark it
+                    border.width: index === gh.shown.length - 1 || gh.hovered === index ? 1 : 0
                     border.color: Colours.palette.m3primary
+
+                    // The "today" figure below reads this day while it is hovered
+                    HoverHandler {
+                        onHoveredChanged: {
+                            if (hovered)
+                                gh.hovered = index;
+                            else if (gh.hovered === index)
+                                gh.hovered = -1;
+                        }
+                    }
                 }
             }
         }
@@ -460,10 +471,11 @@ WidgetCard {
 
         Gap {}
 
+        // Today's commits, or the hovered square's day: the overview has no footer line to show it in
         Figure {
             icon: "commit"
-            value: String(gh.today)
-            label: Tr.tr("today")
+            value: String(gh.hoveredDay ? gh.hoveredDay.count : gh.today)
+            label: gh.hoveredDay ? gh.hoveredDay.date : Tr.tr("today")
         }
 
         Gap {}
