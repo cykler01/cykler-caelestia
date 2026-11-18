@@ -60,7 +60,7 @@ addon_summary() {
 # what it writes that the shell's own install would not
 addon_paths() {
     case "$1" in
-        login-screen) echo "/usr/share/sddm/themes/cykler-caelestia, /etc/sddm.conf.d" ;;
+        login-screen) echo "/usr/share/sddm/themes/cykler-caelestia, /etc/sddm.conf.d, /etc/systemd/system/caelestia-sddm-net.{service,timer}" ;;
         *) echo "" ;;
     esac
 }

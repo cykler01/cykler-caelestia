@@ -1,6 +1,13 @@
 import QtQuick
 
-// the ways out, each destructive one asking once before it takes them
+// the ways out, each destructive one asking once before it takes them.
+//
+// NOTE(fork): the first cut grew each button into its own label, which moved
+// every button beside it and shifted the whole bar under the pointer -- a
+// hover that could knock itself off the thing being hovered. the bar is one
+// fixed size now: the buttons never move, and the one label floats above it,
+// sliding from button to button. the question, when there is one, is asked in
+// that same place rather than by widening the bar
 Rectangle {
     id: bar
 
@@ -14,6 +21,9 @@ Rectangle {
         }
         return null;
     }
+    // the action under the pointer, and where its middle is, in bar coords
+    property var hovered: null
+    property real hoverCentre: 0
 
     function choose(a) {
         if (a.confirm) {
@@ -30,7 +40,16 @@ Rectangle {
     height: Theme.dp(60)
     radius: Theme.dp(999)
     color: Theme.card
-    width: (1 - bar.morph) * (actions.implicitWidth + Theme.dp(24)) + bar.morph * (confirm.implicitWidth + Theme.dp(28))
+    // the resting size is the whole bar's size: only a question that cannot
+    // fit inside it is allowed to stretch it, and only while it is asked
+    width: Math.max(actions.implicitWidth + Theme.dp(24), bar.pending !== "" ? confirm.implicitWidth + Theme.dp(16) : 0)
+    // the greeter dims and disables this while the field has the screen; a
+    // question left hanging there is withdrawn
+    onEnabledChanged: {
+        if (!bar.enabled)
+            bar.pending = "";
+
+    }
 
     // a question nobody answers is a question withdrawn
     Timer {
@@ -49,8 +68,18 @@ Rectangle {
 
     }
 
-    // a button that opens into its own label rather than floating a tooltip
-    // over the wallpaper. the glyph never moves; the pill grows past it
+    Behavior on width {
+        NumberAnimation {
+            duration: bar.morphMs
+            easing.type: Easing.Bezier
+            easing.bezierCurve: Theme.easeEmphasizedDecel
+        }
+
+    }
+
+    // a round button that stays exactly where it is. the glyph lights and the
+    // state layer fills under it; the name of the thing is said by the label
+    // above the bar
     component PowerButton: Item {
         id: pb
 
@@ -59,22 +88,18 @@ Rectangle {
         readonly property bool danger: pb.action.id === "shutdown"
         readonly property color tone: pb.danger ? Theme.error : Theme.text
         readonly property color rest: pb.danger ? Theme.alpha(Theme.error, 0.85) : Theme.subtext
-        readonly property real shut: Theme.dp(48)
-        readonly property real full: Theme.dp(48) + label.implicitWidth + Theme.dp(16)
-        readonly property real openK: Math.max(0, Math.min(1, (pb.width - pb.shut) / Math.max(1, pb.full - pb.shut)))
 
-        width: pb.hot ? pb.full : pb.shut
+        width: Theme.dp(48)
         height: Theme.dp(48)
-        clip: true
         scale: tap.pressed ? 0.92 : 1
 
-        Behavior on width {
-            NumberAnimation {
-                duration: bar.morphMs
-                easing.type: Easing.Bezier
-                easing.bezierCurve: Theme.easeEmphasizedDecel
+        onHotChanged: {
+            if (pb.hot) {
+                bar.hovered = pb.action;
+                bar.hoverCentre = pb.mapToItem(bar, pb.width / 2, 0).x;
+            } else if (bar.hovered === pb.action) {
+                bar.hovered = null;
             }
-
         }
 
         Behavior on scale {
@@ -88,33 +113,32 @@ Rectangle {
         Rectangle {
             anchors.fill: parent
             radius: Theme.dp(999)
-            color: pb.danger ? Theme.alpha(Theme.error, 0.18) : Theme.alpha(Theme.text, 0.12)
-            opacity: Math.min(1, pb.openK * 2.6)
+            color: pb.danger ? Theme.error : Theme.text
+            opacity: tap.pressed ? (pb.danger ? 0.24 : Theme.statePressed + 0.04) : (pb.hot ? (pb.danger ? 0.18 : 0.12) : 0)
+
+            Behavior on opacity {
+                NumberAnimation {
+                    duration: Theme.ms(140)
+                    easing.type: Easing.OutCubic
+                }
+
+            }
+
         }
 
         Glyph {
-            id: mark
-
-            x: Theme.dp(14)
-            anchors.verticalCenter: parent.verticalCenter
+            anchors.centerIn: parent
             name: pb.action.glyph
             size: Theme.dp(21)
-            color: Theme._mix(pb.rest, pb.tone, Math.min(1, pb.openK * 2.6))
-        }
+            color: pb.hot ? pb.tone : pb.rest
 
-        Text {
-            id: label
+            Behavior on color {
+                ColorAnimation {
+                    duration: Theme.ms(140)
+                }
 
-            anchors.left: mark.right
-            anchors.leftMargin: Theme.dp(11)
-            anchors.verticalCenter: parent.verticalCenter
-            text: pb.action.label
-            color: pb.tone
-            font.family: Theme.fontFamily
-            font.pixelSize: Theme.fontLabelLg
-            font.variableAxes: Theme.axes(Theme.fontLabelLg, 520, 0)
-            font.weight: Font.Medium
-            opacity: Math.max(0, Math.min(1, (pb.openK - 0.12) / 0.5))
+            }
+
         }
 
         HoverHandler {
@@ -137,7 +161,7 @@ Rectangle {
         id: actions
 
         anchors.centerIn: parent
-        spacing: Theme.dp(2)
+        spacing: Theme.dp(4)
         opacity: Math.max(0, 1 - bar.morph * 2.5)
         visible: opacity > 0.01
 
@@ -158,35 +182,30 @@ Rectangle {
         id: confirm
 
         anchors.centerIn: parent
-        spacing: Theme.dp(10)
+        spacing: Theme.dp(8)
         opacity: Math.max(0, (bar.morph - 0.45) / 0.55)
         visible: opacity > 0.01
 
-        Text {
-            anchors.verticalCenter: parent.verticalCenter
-            leftPadding: Theme.dp(10)
-            rightPadding: Theme.dp(4)
-            text: bar.pendingAction ? bar.pendingAction.label + "?" : ""
-            color: Theme.text
-            font.family: Theme.fontFamily
-            font.pixelSize: Theme.fontBodyMd
-            font.variableAxes: Theme.axes(Theme.fontBodyMd, 520, 0)
-            font.weight: Font.Medium
-        }
-
         Rectangle {
             anchors.verticalCenter: parent.verticalCenter
-            width: cancelText.implicitWidth + Theme.dp(28)
-            height: Theme.dp(40)
+            width: cancelText.implicitWidth + Theme.dp(32)
+            height: Theme.dp(44)
             radius: Theme.dp(999)
-            color: cancelHover.hovered ? Theme.alpha(Theme.text, Theme.stateHover) : "transparent"
+            color: Theme.alpha(Theme.text, cancelTap.pressed ? Theme.statePressed + 0.04 : (cancelHover.hovered ? 0.12 : 0.06))
+
+            Behavior on color {
+                ColorAnimation {
+                    duration: Theme.ms(140)
+                }
+
+            }
 
             Text {
                 id: cancelText
 
                 anchors.centerIn: parent
                 text: "Cancel"
-                color: Theme.subtext
+                color: Theme.text
                 font.family: Theme.fontFamily
                 font.pixelSize: Theme.fontLabelLg
                 font.variableAxes: Theme.axes(Theme.fontLabelLg, 520, 0)
@@ -201,6 +220,8 @@ Rectangle {
             }
 
             TapHandler {
+                id: cancelTap
+
                 onTapped: bar.pending = ""
             }
 
@@ -208,8 +229,8 @@ Rectangle {
 
         Rectangle {
             anchors.verticalCenter: parent.verticalCenter
-            width: goText.implicitWidth + Theme.dp(32)
-            height: Theme.dp(40)
+            width: goRow.implicitWidth + Theme.dp(34)
+            height: Theme.dp(44)
             radius: Theme.dp(999)
             color: goHover.hovered ? Theme.errorHover : Theme.error
             scale: goTap.pressed ? 0.94 : 1
@@ -222,16 +243,29 @@ Rectangle {
 
             }
 
-            Text {
-                id: goText
+            Row {
+                id: goRow
 
                 anchors.centerIn: parent
-                text: bar.pendingAction ? bar.pendingAction.label : ""
-                color: Theme.fgError
-                font.family: Theme.fontFamily
-                font.pixelSize: Theme.fontLabelLg
-                font.variableAxes: Theme.axes(Theme.fontLabelLg, 520, 0)
-                font.weight: Font.Medium
+                spacing: Theme.dp(8)
+
+                Glyph {
+                    anchors.verticalCenter: parent.verticalCenter
+                    name: bar.pendingAction ? bar.pendingAction.glyph : "power"
+                    size: Theme.dp(19)
+                    color: Theme.fgError
+                }
+
+                Text {
+                    anchors.verticalCenter: parent.verticalCenter
+                    text: bar.pendingAction ? bar.pendingAction.label : ""
+                    color: Theme.fgError
+                    font.family: Theme.fontFamily
+                    font.pixelSize: Theme.fontLabelLg
+                    font.variableAxes: Theme.axes(Theme.fontLabelLg, 520, 0)
+                    font.weight: Font.Medium
+                }
+
             }
 
             HoverHandler {
@@ -249,6 +283,84 @@ Rectangle {
                     bar.pending = "";
                     Lock.runPower(id);
                 }
+            }
+
+        }
+
+    }
+
+    // the one label, floating over the bar rather than inside it: it slides
+    // from button to button while the pointer walks the row, and stands in the
+    // middle to ask about the one that needs asking
+    Rectangle {
+        id: tip
+
+        readonly property bool asking: bar.pending !== ""
+        readonly property var action: tip.asking ? bar.pendingAction : bar.hovered
+        readonly property string label: tip.action ? tip.action.label + (tip.asking ? "?" : "") : ""
+        readonly property bool on: tip.label !== "" && bar.enabled
+        // what it last said, kept while it fades out so the pill does not
+        // empty itself on the way
+        property string held: ""
+        property bool heldDanger: false
+        readonly property color tone: tip.heldDanger ? Theme.error : Theme.text
+
+        onLabelChanged: {
+            if (tip.label === "")
+                return ;
+
+            tip.held = tip.label;
+            tip.heldDanger = tip.action.id === "shutdown";
+        }
+        width: tipText.implicitWidth + Theme.dp(26)
+        height: Theme.dp(32)
+        radius: Theme.dp(999)
+        color: Theme.card
+        y: -height - Theme.dp(10)
+        // centred on what is hovered, kept inside the bar's own width, and in
+        // the middle of it while a question stands
+        x: tip.asking ? (bar.width - tip.width) / 2 : Math.max(0, Math.min(bar.width - tip.width, bar.hoverCentre - tip.width / 2))
+        opacity: tip.on ? 1 : 0
+        scale: 0.94 + 0.06 * opacity
+        visible: opacity > 0.01
+
+        // while it is out of sight it jumps to wherever it is next needed; the
+        // slide is only for a walk from one button to the next
+        Behavior on x {
+            enabled: tip.opacity > 0.2
+
+            NumberAnimation {
+                duration: Theme.ms(260)
+                easing.type: Easing.Bezier
+                easing.bezierCurve: Theme.easeEmphasizedDecel
+            }
+
+        }
+
+        Behavior on opacity {
+            NumberAnimation {
+                duration: Theme.ms(150)
+                easing.type: Easing.OutCubic
+            }
+
+        }
+
+        Text {
+            id: tipText
+
+            anchors.centerIn: parent
+            text: tip.held
+            color: tip.tone
+            font.family: Theme.fontFamily
+            font.pixelSize: Theme.fontLabelLg
+            font.variableAxes: Theme.axes(Theme.fontLabelLg, 520, 0)
+            font.weight: Font.Medium
+
+            Behavior on color {
+                ColorAnimation {
+                    duration: Theme.ms(140)
+                }
+
             }
 
         }

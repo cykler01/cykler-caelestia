@@ -1,10 +1,11 @@
 #!/usr/bin/env bash
-# install-theme.sh [dest] [--fingerprint | --no-fingerprint] [--current] —
-# installs cykler-caelestia's sddm theme. needs root: install.sh runs it through
-# sudo, and running it by hand updates the theme alone. --fingerprint lets the
-# login screen take a fingerprint (two lines in /etc/pam.d/sddm),
-# --no-fingerprint takes them out; without either, pam is left as it is.
-# --current also makes it the theme sddm shows.
+# install-theme.sh [dest] [--fingerprint | --no-fingerprint] [--no-network]
+# [--current] — installs cykler-caelestia's sddm theme. needs root: install.sh
+# runs it through sudo, and running it by hand updates the theme alone.
+# --fingerprint lets the login screen take a fingerprint (two lines in
+# /etc/pam.d/sddm), --no-fingerprint takes them out; without either, pam is
+# left as it is. --no-network takes out the timer that tells the greeter which
+# wi-fi it is on. --current also makes it the theme sddm shows.
 #
 # root owns the theme. the one writable part is users/, sticky and
 # world-writable like /tmp, where each account's sync-sddm.sh keeps its own
@@ -15,11 +16,13 @@ set -euo pipefail
 SRC="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 DEST=/usr/share/sddm/themes/cykler-caelestia
 FINGER=""
+NETWORK=on
 CURRENT=0
 for arg in "$@"; do
     case $arg in
         --fingerprint) FINGER=on ;;
         --no-fingerprint) FINGER=off ;;
+        --no-network) NETWORK=off ;;
         --current) CURRENT=1 ;;
         *) DEST=$arg ;;
     esac
@@ -59,7 +62,7 @@ if ! grep -qs '^[[:space:]]*GreeterEnvironment=.' /etc/sddm.conf $(ls "$SDDM_CON
     printf '%s\n' \
         "# written by cykler-caelestia's install-theme.sh: the greeter decodes the live" \
         "# wallpaper in software rather than waking every GPU to look for a decoder," \
-        "# and reads the battery, network and bluetooth state for its chips" \
+        "# and reads the battery and the network state for its chips" \
         "[General]" \
         "GreeterEnvironment=QT_FFMPEG_DECODING_HW_DEVICE_TYPES=,QT_FFMPEG_ENCODING_HW_DEVICE_TYPES=,QML_XHR_ALLOW_FILE_READ=1" \
         > "$GREETER_CONF"
@@ -125,6 +128,62 @@ elif [[ $FINGER == on && -f "$PAM_SDDM" ]]; then
         ' "$PAM_SDDM" > "$PAM_SDDM.caelestia-tmp"
         cat "$PAM_SDDM.caelestia-tmp" > "$PAM_SDDM"
         rm -f "$PAM_SDDM.caelestia-tmp"
+    fi
+fi
+
+# ── what the greeter cannot read for itself ────────────────────────────────
+# the name of the wi-fi and the strength of the link are in neither sysfs nor
+# /proc, and a greeter may only read files. a root timer writes them into /run
+# every twenty seconds, where the chip picks them up; --no-network takes it
+# out again and the chip is left knowing only whether wi-fi is up at all
+NET_PROBE="$DEST/net-probe.sh"
+NET_UNIT="${CAELESTIA_SYSTEMD_DIR:-/etc/systemd/system}/caelestia-sddm-net.service"
+NET_TIMER="${CAELESTIA_SYSTEMD_DIR:-/etc/systemd/system}/caelestia-sddm-net.timer"
+if [[ $NETWORK == off ]]; then
+    rm -f "$NET_PROBE"
+    if command -v systemctl >/dev/null && [[ -e $NET_TIMER ]]; then
+        systemctl disable --now caelestia-sddm-net.timer >/dev/null 2>&1 || true
+        rm -f "$NET_UNIT" "$NET_TIMER"
+        systemctl daemon-reload || true
+    else
+        rm -f "$NET_UNIT" "$NET_TIMER"
+    fi
+    echo "install-theme.sh: the wi-fi name and signal are left out"
+else
+    install -Dm755 "$SRC/sddm/net-probe.sh" "$NET_PROBE"
+    if command -v systemctl >/dev/null; then
+        install -d -m755 "$(dirname "$NET_UNIT")"
+        printf '%s\n' \
+            "# written by cykler-caelestia's install-theme.sh" \
+            "[Unit]" \
+            "Description=Wi-Fi name and signal for the cykler-caelestia login screen" \
+            "ConditionPathExists=$NET_PROBE" \
+            "" \
+            "[Service]" \
+            "Type=oneshot" \
+            "RuntimeDirectory=caelestia-sddm" \
+            "RuntimeDirectoryMode=0755" \
+            "RuntimeDirectoryPreserve=yes" \
+            "ExecStart=$NET_PROBE /run/caelestia-sddm/net.conf" \
+            > "$NET_UNIT"
+        printf '%s\n' \
+            "# written by cykler-caelestia's install-theme.sh" \
+            "[Unit]" \
+            "Description=Keep the login screen's wi-fi chip current" \
+            "" \
+            "[Timer]" \
+            "OnBootSec=5s" \
+            "OnUnitActiveSec=20s" \
+            "AccuracySec=5s" \
+            "" \
+            "[Install]" \
+            "WantedBy=timers.target" \
+            > "$NET_TIMER"
+        chmod 644 "$NET_UNIT" "$NET_TIMER"
+        systemctl daemon-reload
+        systemctl enable --now caelestia-sddm-net.timer >/dev/null
+    else
+        echo "install-theme.sh: no systemctl here, so nothing will keep /run/caelestia-sddm/net.conf current -- the wi-fi chip will show only whether wi-fi is up" >&2
     fi
 fi
 

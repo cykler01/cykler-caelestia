@@ -1,15 +1,14 @@
 import QtQuick
 
 // who is being asked, the field they answer in, and the one line that tells
-// them how it went. picking another account or session turns the card over to
-// a sheet that pushes in from the side, then pushes back out again
+// them how it went. picking another account turns the card over to a sheet
+// that pushes in from the side, then pushes back out again; the session, a
+// list of two or three, opens as a menu standing on its own pill
 Rectangle {
     id: card
 
     // 0 the question, 1 a sheet laid over it
     property real k: Lock.sheet !== "" ? 1 : 0
-    // the sheet keeps its rows while it slides back out
-    property string shown: "users"
     // the ring only follows the keyboard, never the pointer
     property bool kbd: false
     readonly property string layoutShort: {
@@ -24,7 +23,7 @@ Rectangle {
         return t === undefined ? "" : String(t).substring(0, 6).toUpperCase();
     }
     readonly property bool hasStatus: Lock.statusText !== "" || card.layoutShort !== "" || keyboard.capsLock
-    readonly property int rows: card.shown === "users" ? Lock.accounts.length + 1 : Lock.sessions.length
+    readonly property int rows: Lock.accounts.length + 1
     readonly property int rowH: Theme.dp(60)
 
     function focusInput() {
@@ -44,24 +43,21 @@ Rectangle {
     }
 
     function activate(i) {
-        if (card.shown === "sessions")
-            Lock.pickSession(i);
-        else if (i >= Lock.accounts.length)
+        if (i >= Lock.accounts.length)
             Lock.pickOther();
         else
             Lock.pick(i);
     }
 
     function selectedRow() {
-        if (card.shown === "sessions")
-            return Lock.sessionIndex;
-
         return Lock.manual ? Lock.accounts.length : Lock.index;
     }
 
     radius: Theme.shapeXl
     color: Theme.card
-    clip: true
+    // only while a face is in motion through the side of the card: at rest the
+    // session menu is allowed to stand above the card's own edge
+    clip: card.k > 0.001
     // no Behavior: k is the one clock, and each face already eases its own
     // height, so easing the sum again would only put the card out of step
     implicitHeight: Theme.dp(48) + (1 - card.k) * face.implicitHeight + card.k * sheet.implicitHeight
@@ -81,7 +77,6 @@ Rectangle {
                 Qt.callLater(card.focusInput);
                 return ;
             }
-            card.shown = Lock.sheet;
             card.kbd = false;
             list.currentIndex = card.selectedRow();
             list.positionViewAtIndex(list.currentIndex, ListView.Contain);
@@ -100,6 +95,7 @@ Rectangle {
         anchors.fill: parent
         onClicked: {
             Lock.engage();
+            Lock.closeSessionMenu();
             card.focusInput();
         }
     }
@@ -563,6 +559,17 @@ Rectangle {
                             name: "expand"
                             size: Theme.dp(18)
                             color: Theme.subtext
+                            rotation: Lock.sessionMenu ? 180 : 0
+
+                            Behavior on rotation {
+                                NumberAnimation {
+                                    duration: Theme.ms(260)
+                                    easing.type: Easing.Bezier
+                                    easing.bezierCurve: Theme.easeEmphasizedDecel
+                                }
+
+                            }
+
                         }
 
                     }
@@ -576,7 +583,12 @@ Rectangle {
                     TapHandler {
                         id: sessionTap
 
-                        onTapped: Lock.openSheet("sessions")
+                        onTapped: {
+                            if (Lock.sessionMenu)
+                                Lock.closeSessionMenu();
+                            else
+                                Lock.openSessionMenu();
+                        }
                     }
 
                 }
@@ -618,7 +630,7 @@ Rectangle {
                     anchors.left: back.right
                     anchors.leftMargin: Theme.dp(6)
                     anchors.verticalCenter: parent.verticalCenter
-                    text: card.shown === "sessions" ? "Choose a session" : "Choose an account"
+                    text: "Choose an account"
                     color: Theme.text
                     font.family: Theme.fontFamily
                     font.pixelSize: Theme.fontTitleMd
@@ -665,20 +677,15 @@ Rectangle {
                     id: row
 
                     required property int index
-                    readonly property bool isUser: card.shown === "users"
-                    readonly property bool other: row.isUser && row.index >= Lock.accounts.length
-                    readonly property var acct: row.isUser && !row.other ? Lock.accounts[row.index] : null
-                    readonly property var sess: !row.isUser ? Lock.sessions[row.index] : null
+                    readonly property bool other: row.index >= Lock.accounts.length
+                    readonly property var acct: row.other ? null : Lock.accounts[row.index]
                     readonly property bool picked: card.selectedRow() === row.index
-                    readonly property string title: row.other ? "Other account" : (row.acct ? Lock.nameOf(row.acct) : (row.sess ? row.sess.name : ""))
+                    readonly property string title: row.other ? "Other account" : (row.acct ? Lock.nameOf(row.acct) : "")
                     readonly property string subtitle: {
                         if (row.other)
                             return "Sign in with a username";
 
-                        if (row.acct)
-                            return row.acct.name !== row.title ? row.acct.name : "";
-
-                        return row.sess ? row.sess.comment : "";
+                        return row.acct && row.acct.name !== row.title ? row.acct.name : "";
                     }
 
                     width: ListView.view.width
@@ -732,15 +739,15 @@ Rectangle {
 
                         Cookie {
                             anchors.fill: parent
-                            shape: row.other ? "cookie12" : "circle"
-                            color: row.picked && !row.other ? Theme.accentContainer : Theme.cardHigh
+                            shape: "cookie12"
+                            color: Theme.cardHigh
                             visible: !row.acct
 
                             Glyph {
                                 anchors.centerIn: parent
-                                name: row.other ? "personAdd" : "session"
+                                name: "personAdd"
                                 size: Theme.dp(20)
-                                color: row.picked && !row.other ? Theme.fgAccentContainer : Theme.subtext
+                                color: Theme.subtext
                             }
 
                         }
@@ -808,6 +815,218 @@ Rectangle {
                         onTapped: card.activate(row.index)
                     }
 
+                }
+
+            }
+
+        }
+
+    }
+
+    // ── the session menu ───────────────────────────────────────────────────
+    //
+    // NOTE(fork): a popout, not another face of the card. the session pill is
+    // the last thing in the question, so its top is a fixed distance up from
+    // the bottom of the card -- the menu stands on it and grows upward, over
+    // the card's own edge when the list is long enough to need it
+    Item {
+        id: pop
+
+        // 0 away, 1 standing open
+        property real k: Lock.sessionMenu ? 1 : 0
+        // the ring only follows the keyboard here too
+        property bool kbd: false
+        readonly property int rowH: Theme.dp(52)
+        readonly property int gap: Theme.dp(2)
+        // five and a half rows show there is more without a scrollbar
+        readonly property real listH: Math.min(Lock.sessions.length, 5.5) * (pop.rowH + pop.gap) - pop.gap
+        readonly property int padding: Theme.dp(8)
+
+        x: Theme.dp(24)
+        width: card.width - Theme.dp(48)
+        height: pop.listH + pop.padding * 2
+        y: card.height - Theme.dp(64) - Theme.dp(10) - pop.height
+        visible: pop.k > 0.001
+        enabled: Lock.sessionMenu
+        opacity: pop.k
+        scale: 0.96 + 0.04 * pop.k
+        transformOrigin: Item.Bottom
+
+        transform: Translate {
+            y: (1 - pop.k) * Theme.dp(10)
+        }
+
+        Behavior on k {
+            NumberAnimation {
+                duration: Theme.ms(300)
+                easing.type: Easing.Bezier
+                easing.bezierCurve: Theme.easeEmphasizedDecel
+            }
+
+        }
+
+        Connections {
+            function onSessionMenuChanged() {
+                if (!Lock.sessionMenu) {
+                    Qt.callLater(card.focusInput);
+                    return ;
+                }
+                pop.kbd = false;
+                menu.currentIndex = Lock.sessionIndex;
+                menu.positionViewAtIndex(menu.currentIndex, ListView.Contain);
+                menu.forceActiveFocus();
+            }
+
+            target: Lock
+        }
+
+        Rectangle {
+            anchors.fill: parent
+            radius: Theme.shapeLg
+            color: Theme.cardHigh
+            border.width: 1
+            border.color: Theme.alpha(Theme.outline, 0.8)
+        }
+
+        // the menu is its own surface: a press on it never reaches the card
+        // underneath, which would only shut it again
+        MouseArea {
+            anchors.fill: parent
+        }
+
+        ListView {
+            id: menu
+
+            anchors.fill: parent
+            anchors.margins: pop.padding
+            spacing: pop.gap
+            clip: true
+            model: Lock.sessions
+            boundsBehavior: Flickable.StopAtBounds
+            keyNavigationEnabled: true
+            Keys.onUpPressed: (event) => {
+                pop.kbd = true;
+                event.accepted = false;
+            }
+            Keys.onDownPressed: (event) => {
+                pop.kbd = true;
+                event.accepted = false;
+            }
+            Keys.onReturnPressed: Lock.pickSession(menu.currentIndex)
+            Keys.onEnterPressed: Lock.pickSession(menu.currentIndex)
+            Keys.onSpacePressed: Lock.pickSession(menu.currentIndex)
+            Keys.onEscapePressed: Lock.closeSessionMenu()
+            Keys.onPressed: (event) => {
+                if (event.key === Qt.Key_Backspace) {
+                    Lock.closeSessionMenu();
+                    event.accepted = true;
+                }
+            }
+
+            delegate: Item {
+                id: srow
+
+                required property int index
+                required property var modelData
+                readonly property bool picked: Lock.sessionIndex === srow.index
+
+                width: ListView.view.width
+                height: pop.rowH
+
+                Rectangle {
+                    anchors.fill: parent
+                    radius: Theme.shapeMd
+                    color: Theme.text
+                    opacity: srowTap.pressed ? Theme.statePressed : (srowHover.hovered ? Theme.stateHover : 0)
+
+                    Behavior on opacity {
+                        NumberAnimation {
+                            duration: Theme.ms(120)
+                        }
+
+                    }
+
+                }
+
+                Rectangle {
+                    anchors.fill: parent
+                    radius: Theme.shapeMd
+                    color: "transparent"
+                    border.width: 2
+                    border.color: Theme.accent
+                    visible: pop.kbd && srow.ListView.isCurrentItem
+                }
+
+                Glyph {
+                    id: slead
+
+                    anchors.left: parent.left
+                    anchors.leftMargin: Theme.dp(14)
+                    anchors.verticalCenter: parent.verticalCenter
+                    name: "session"
+                    size: Theme.dp(19)
+                    color: srow.picked ? Theme.accent : Theme.subtext
+                }
+
+                Column {
+                    anchors.left: slead.right
+                    anchors.leftMargin: Theme.dp(14)
+                    anchors.right: stick.left
+                    anchors.rightMargin: Theme.dp(10)
+                    anchors.verticalCenter: parent.verticalCenter
+                    spacing: Theme.dp(1)
+
+                    Text {
+                        width: parent.width
+                        text: srow.modelData.name
+                        elide: Text.ElideRight
+                        color: Theme.text
+                        font.family: Theme.fontFamily
+                        font.pixelSize: Theme.fontLabelLg
+                        font.variableAxes: Theme.axes(Theme.fontLabelLg, srow.picked ? 600 : 500, 0)
+                        font.weight: srow.picked ? Font.DemiBold : Font.Medium
+                    }
+
+                    Text {
+                        width: parent.width
+                        text: srow.modelData.comment
+                        elide: Text.ElideRight
+                        color: Theme.subtextDim
+                        font.family: Theme.fontFamily
+                        font.pixelSize: Theme.fontLabelSm
+                        font.variableAxes: Theme.axes(Theme.fontLabelSm, 420, 0)
+                        visible: srow.modelData.comment !== ""
+                    }
+
+                }
+
+                Glyph {
+                    id: stick
+
+                    anchors.right: parent.right
+                    anchors.rightMargin: Theme.dp(14)
+                    anchors.verticalCenter: parent.verticalCenter
+                    name: "check"
+                    size: Theme.dp(18)
+                    color: Theme.accent
+                    opacity: srow.picked ? 1 : 0
+                }
+
+                HoverHandler {
+                    id: srowHover
+
+                    cursorShape: Qt.PointingHandCursor
+                    onHoveredChanged: {
+                        if (srowHover.hovered)
+                            pop.kbd = false;
+
+                    }
+                }
+
+                TapHandler {
+                    id: srowTap
+
+                    onTapped: Lock.pickSession(srow.index)
                 }
 
             }

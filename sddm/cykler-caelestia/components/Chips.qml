@@ -1,12 +1,20 @@
 import QtQuick
 
-// the lock's glance chips: battery, network and bluetooth, read off sysfs,
-// the one place a greeter can see them. local reads need the greeter's
-// QML_XHR_ALLOW_FILE_READ=1 (install-theme.sh); without it the machine's name
-// stands in. the keymap joins when there is more than one. one connected
-// group like the lock's, round at its ends and tight in between
+// the lock's glance chips: the wi-fi it is on and what is left in the battery,
+// read off sysfs, the one place a greeter can see them. local reads need the
+// greeter's QML_XHR_ALLOW_FILE_READ=1 (install-theme.sh); without it the
+// machine's name stands in. the network's own name and its signal are not in
+// sysfs at all, so they come from /run/caelestia-sddm/net.conf, which
+// caelestia-sddm-net.timer keeps current; without that the chip knows only
+// that wi-fi is up. the keymap joins when there is more than one. one
+// connected group like the lock's, round at its ends and tight in between
 Row {
     id: chips
+
+    // where the net probe leaves what sysfs cannot say
+    readonly property string netState: "/run/caelestia-sddm/net.conf"
+    // a name older than this is from some other place, or some other day
+    readonly property int netStaleMs: 300000
 
     property bool readable: true
     property string batPath: ""
@@ -18,9 +26,11 @@ Row {
     property bool netKnown: false
     property bool ethernet: false
     property bool wifiUp: false
-    // -1 no adapter, 0 off, 1 on
-    property int btState: -1
-    readonly property bool sysShown: chips.hasBattery || chips.netKnown || chips.btState >= 0
+    // what the probe saw, when it is both there and recent
+    property string ssid: ""
+    // 0..1 of the link, or -1 for a link nobody has measured
+    property real signalLevel: -1
+    readonly property bool sysShown: chips.hasBattery || chips.netKnown
     // which chips show, in order, so each knows whether it closes the group
     readonly property var shown: {
         var s = [];
@@ -29,9 +39,6 @@ Row {
 
         if (chips.netKnown)
             s.push("net");
-
-        if (chips.btState >= 0)
-            s.push("bt");
 
         if (!chips.sysShown && sddm.hostName !== "")
             s.push("host");
@@ -53,6 +60,20 @@ Row {
             chips.readable = false;
             return "";
         }
+    }
+
+    // the probe's ini, by hand: a name may hold an = of its own, so only the
+    // first one separates
+    function readNet() {
+        var out = {};
+        for (const line of chips.read(chips.netState).split("\n")) {
+            const at = line.indexOf("=");
+            if (at <= 0 || line[0] === "#" || line[0] === "[")
+                continue;
+
+            out[line.substring(0, at).trim()] = line.substring(at + 1).trim();
+        }
+        return out;
     }
 
     function poll() {
@@ -85,7 +106,7 @@ Row {
             const mains = chips.acPath !== "" && chips.read(chips.acPath + "/online") === "1";
             chips.charging = st === "Charging" || st === "Full" || (st === "Not charging" && mains);
         }
-        var any = false, eth = false, wifi = false;
+        var any = false, eth = false, wifi = false, wlan = "";
         for (const line of chips.read("/proc/net/dev").split("\n").slice(2)) {
             const name = line.split(":")[0].trim();
             if (name === "" || name === "lo")
@@ -95,21 +116,34 @@ Row {
             if (chips.read("/sys/class/net/" + name + "/operstate") !== "up")
                 continue;
 
-            if (chips.read("/sys/class/net/" + name + "/uevent").indexOf("DEVTYPE=wlan") !== -1)
+            if (chips.read("/sys/class/net/" + name + "/uevent").indexOf("DEVTYPE=wlan") !== -1) {
                 wifi = true;
-            else if (/^(en|eth)/.test(name))
+                wlan = name;
+            } else if (/^(en|eth)/.test(name)) {
                 eth = true;
+            }
         }
         chips.netKnown = any;
         chips.ethernet = eth;
         chips.wifiUp = wifi;
-        var bt = -1;
-        for (var i = 0; i < 32; i++) {
-            if (chips.read("/sys/class/rfkill/rfkill" + i + "/type") === "bluetooth")
-                bt = Math.max(bt, chips.read("/sys/class/rfkill/rfkill" + i + "/state") === "1" ? 1 : 0);
 
+        // the name and the signal, if the probe is installed and has run lately
+        // for the interface sysfs says is actually up
+        var name = "", level = -1;
+        if (wifi) {
+            const n = chips.readNet();
+            const at = parseInt(n.at);
+            const fresh = !isNaN(at) && Date.now() - at * 1000 < chips.netStaleMs;
+            if (fresh && n.state === "up" && (n.iface === undefined || n.iface === "" || n.iface === wlan)) {
+                name = n.ssid || "";
+                const pct = parseInt(n.signal);
+                if (!isNaN(pct))
+                    level = Math.max(0, Math.min(100, pct)) / 100;
+
+            }
         }
-        chips.btState = bt;
+        chips.ssid = name;
+        chips.signalLevel = level;
     }
 
     readonly property var layouts: keyboard.layouts || []
@@ -136,7 +170,10 @@ Row {
         id: chip
 
         property string label: ""
+        property string trail: ""
         property string glyph: ""
+        // 0..1 fills the glyph from the bottom up, as a meter; -1 draws it whole
+        property real level: -1
         property color tone: Theme.subtext
         property bool interactive: false
         property bool lead: false
@@ -176,22 +213,79 @@ Row {
             anchors.centerIn: parent
             spacing: Theme.dp(9)
 
-            Glyph {
+            // the glyph, or the same glyph twice: a faint whole one with the
+            // measured part of it laid over the top. a layer, because clip
+            // alone does not hold a Shape in under the software renderer
+            Item {
+                id: mark
+
                 anchors.verticalCenter: parent.verticalCenter
-                name: chip.glyph
-                size: Theme.dp(18)
-                color: chip.tone
+                implicitWidth: Theme.dp(18)
+                implicitHeight: Theme.dp(18)
                 visible: chip.glyph !== ""
+
+                Glyph {
+                    anchors.fill: parent
+                    name: chip.glyph
+                    size: Theme.dp(18)
+                    color: chip.level >= 0 ? Theme.alpha(chip.tone, 0.3) : chip.tone
+                }
+
+                Item {
+                    anchors.left: parent.left
+                    anchors.right: parent.right
+                    anchors.bottom: parent.bottom
+                    // the dot at the foot of the arcs is the floor: an empty
+                    // meter is still a wi-fi symbol
+                    height: Math.round(parent.height * (0.3 + 0.7 * Math.max(0, Math.min(1, chip.level))))
+                    clip: true
+                    layer.enabled: true
+                    visible: chip.level >= 0
+
+                    Behavior on height {
+                        NumberAnimation {
+                            duration: Theme.ms(320)
+                            easing.type: Easing.Bezier
+                            easing.bezierCurve: Theme.easeEmphasizedDecel
+                        }
+
+                    }
+
+                    Glyph {
+                        anchors.bottom: parent.bottom
+                        width: mark.width
+                        height: mark.height
+                        name: chip.glyph
+                        size: Theme.dp(18)
+                        color: chip.tone
+                    }
+
+                }
+
             }
 
             Text {
                 anchors.verticalCenter: parent.verticalCenter
+                // a network may be named anything at all, so it elides
+                width: Math.min(implicitWidth, Theme.dp(170))
                 text: chip.label
+                elide: Text.ElideRight
                 color: Theme.text
                 font.family: Theme.fontFamily
                 font.pixelSize: Theme.fontLabelLg
                 font.variableAxes: Theme.axes(Theme.fontLabelLg, 520, 0)
                 font.weight: Font.Medium
+                visible: chip.label !== ""
+            }
+
+            Text {
+                anchors.verticalCenter: parent.verticalCenter
+                text: chip.trail
+                color: Theme.subtextDim
+                font.family: Theme.fontFamily
+                font.pixelSize: Theme.fontLabelLg
+                font.variableAxes: Theme.axes(Theme.fontLabelLg, 420, 0)
+                visible: chip.trail !== ""
             }
 
         }
@@ -229,24 +323,17 @@ Row {
         tone: chips.batteryLow ? Theme.error : (chips.charging ? Theme.success : Theme.subtext)
     }
 
-    // sysfs has no network name, so wi-fi is only ever "Wi-Fi"
+    // the wi-fi: its name where the probe can see it, and the arcs filled to
+    // the strength of the link. a machine on a cable says so instead
     Chip {
         lead: chips.shown[0] === "net"
         tail: chips.shown[chips.shown.length - 1] === "net"
         visible: chips.netKnown
-        glyph: chips.ethernet ? "ethernet" : (chips.wifiUp ? "wifi" : "wifiOff")
-        label: chips.ethernet ? "Ethernet" : (chips.wifiUp ? "Wi-Fi" : "Offline")
+        glyph: chips.wifiUp ? "signal" : (chips.ethernet ? "ethernet" : "wifiOff")
+        level: chips.wifiUp ? chips.signalLevel : -1
+        label: chips.wifiUp ? (chips.ssid !== "" ? chips.ssid : "Wi-Fi") : (chips.ethernet ? "Ethernet" : "Offline")
+        trail: chips.wifiUp && chips.signalLevel >= 0 ? Math.round(chips.signalLevel * 100) + "%" : ""
         tone: (chips.ethernet || chips.wifiUp) ? Theme.accent : Theme.subtextDim
-    }
-
-    // rfkill: whether the radio is on, not what is paired to it
-    Chip {
-        lead: chips.shown[0] === "bt"
-        tail: chips.shown[chips.shown.length - 1] === "bt"
-        visible: chips.btState >= 0
-        glyph: chips.btState === 1 ? "bluetooth" : "bluetoothOff"
-        label: chips.btState === 1 ? "Bluetooth on" : "Bluetooth off"
-        tone: Theme.subtextDim
     }
 
     Chip {

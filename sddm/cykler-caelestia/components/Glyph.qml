@@ -29,10 +29,11 @@ Item {
         "host": "computer",
         "keyboard": "keyboard",
         "wifi": "signal_wifi_4_bar",
+        // the arcs rather than the wedge: they fill from the dot up, so a
+        // clipped copy of them reads as the strength of the link
+        "signal": "wifi",
         "wifiOff": "signal_wifi_off",
         "ethernet": "lan",
-        "bluetooth": "bluetooth",
-        "bluetoothOff": "bluetooth_disabled",
         "batteryCharge": "battery_charging_full"
     })
     property string name: "lock"

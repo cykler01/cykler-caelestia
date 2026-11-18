@@ -68,6 +68,7 @@ QtObject {
         root.attempts = 0;
         root.reset();
         root.closeSheet();
+        root.closeSessionMenu();
         root.switched();
     }
 
@@ -83,7 +84,28 @@ QtObject {
             root.sessionIndex = i;
 
         root.listenSoon(500);
+        root.closeSessionMenu();
+    }
+
+    // ── the session popout ─────────────────────────────────────────────────
+    //
+    // NOTE(fork): picking a session used to turn the whole card over, the same
+    // sheet the accounts use. it is a list of two or three things on most
+    // machines, so it opens as a small menu over the card instead, and the
+    // card keeps the password in place behind it
+    property bool sessionMenu: false
+
+    function openSessionMenu() {
+        if (!root.acceptsInput)
+            return ;
+
+        root.engage();
         root.closeSheet();
+        root.sessionMenu = true;
+    }
+
+    function closeSessionMenu() {
+        root.sessionMenu = false;
     }
 
     // ── the card's sheets ──────────────────────────────────────────────────
@@ -95,6 +117,7 @@ QtObject {
             return ;
 
         root.engage();
+        root.closeSessionMenu();
         root.sheet = kind;
     }
 
@@ -147,6 +170,7 @@ QtObject {
             return ;
 
         root.closeSheet();
+        root.closeSessionMenu();
         root.message = "";
         if (text === "" && root.fingerprint) {
             root.listen();
@@ -195,6 +219,7 @@ QtObject {
     function disengage() {
         root.focused = false;
         root.closeSheet();
+        root.closeSessionMenu();
         idleBack.stop();
         if (root.phase === "failed")
             root.phase = "idle";
@@ -335,6 +360,7 @@ QtObject {
             if (!root.busy) {
                 root.focused = false;
                 root.closeSheet();
+                root.closeSessionMenu();
             }
         }
     }
