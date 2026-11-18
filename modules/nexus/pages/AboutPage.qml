@@ -18,6 +18,17 @@ PageBase {
     property string quickshellVersion
     property string cliVersion
 
+    // Hidden debug menu: tap the version under the logo 7 times to reveal it
+    property bool debugUnlocked: false
+    property int debugTaps: 0
+    property bool dbgOverlay: false
+    property bool dbgDamage: false
+
+    function hyprDebug(key: string, on: bool): void {
+        dbgProc.command = ["hyprctl", "keyword", key, on ? "true" : "false"];
+        dbgProc.running = true;
+    }
+
     title: Tr.tr("About")
 
     ColumnLayout {
@@ -46,6 +57,10 @@ PageBase {
                     root.cliVersion = m ? m[1] : "";
                 }
             }
+        }
+
+        Process {
+            id: dbgProc
         }
 
         // Hero
@@ -80,6 +95,23 @@ PageBase {
                     text: CUtils.version ? `v${CUtils.version}` : "…"
                     color: Colours.palette.m3onSurfaceVariant
                     font: Tokens.font.body.medium
+
+                    MouseArea {
+                        anchors.fill: parent
+                        anchors.margins: -Tokens.padding.medium
+                        onClicked: {
+                            tapReset.restart();
+                            if (!root.debugUnlocked && ++root.debugTaps >= 7)
+                                root.debugUnlocked = true;
+                        }
+                    }
+
+                    Timer {
+                        id: tapReset
+
+                        interval: 2000
+                        onTriggered: root.debugTaps = 0
+                    }
                 }
             }
         }
@@ -142,6 +174,47 @@ PageBase {
             last: true
             label: "Qt"
             value: CUtils.qtVersion || "…"
+        }
+
+        // Debug (hidden)
+        SectionHeader {
+            visible: root.debugUnlocked
+            text: Tr.tr("Debug")
+        }
+
+        ToggleRow {
+            visible: root.debugUnlocked
+            first: true
+            text: Tr.tr("FPS overlay")
+            subtext: Tr.tr("Hyprland's debug overlay with frame time and FPS")
+            checked: root.dbgOverlay
+            onToggled: {
+                root.dbgOverlay = checked;
+                root.hyprDebug("debug:overlay", checked);
+            }
+        }
+
+        ToggleRow {
+            visible: root.debugUnlocked
+            text: Tr.tr("Damage blink")
+            subtext: Tr.tr("Flash regions Hyprland redraws")
+            checked: root.dbgDamage
+            onToggled: {
+                root.dbgDamage = checked;
+                root.hyprDebug("debug:damage_blink", checked);
+            }
+        }
+
+        ToggleRow {
+            visible: root.debugUnlocked
+            last: true
+            text: Tr.tr("Hide debug menu")
+            subtext: Tr.tr("Lock this section again until the next 7 taps")
+            checked: false
+            onToggled: {
+                root.debugUnlocked = false;
+                root.debugTaps = 0;
+            }
         }
     }
 }
