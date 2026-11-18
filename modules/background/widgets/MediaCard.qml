@@ -201,14 +201,25 @@ WidgetCard {
         StyledProgressBar {
             Layout.fillWidth: true
             implicitHeight: 4
-            value: media.barValue
+            value: classicSeek.shown
+
+            SeekArea {
+                id: classicSeek
+
+                anchors.fill: parent
+                anchors.topMargin: -Tokens.spacing.small
+                anchors.bottomMargin: -Tokens.spacing.small
+                source: media.source
+                progress: media.barValue
+            }
         }
 
         RowLayout {
             Layout.fillWidth: true
 
             StyledText {
-                text: media.lengthStr(media.source.position)
+                // Where a drag or scroll would land while one is in progress
+                text: media.lengthStr(classicSeek.preview >= 0 ? classicSeek.preview * media.source.length : media.source.position)
                 color: Colours.palette.m3onSurfaceVariant
                 font: Tokens.font.label.small
             }
@@ -300,7 +311,17 @@ WidgetCard {
         StyledProgressBar {
             Layout.fillWidth: true
             implicitHeight: 4
-            value: media.barValue
+            value: coverSeek.shown
+
+            SeekArea {
+                id: coverSeek
+
+                anchors.fill: parent
+                anchors.topMargin: -Tokens.spacing.small
+                anchors.bottomMargin: -Tokens.spacing.small
+                source: media.source
+                progress: media.barValue
+            }
         }
     }
 

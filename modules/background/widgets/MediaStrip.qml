@@ -86,7 +86,17 @@ Item {
                     Layout.fillWidth: true
                     Layout.rightMargin: Tokens.spacing.small
                     implicitHeight: 4
-                    value: root.progress
+                    value: stripSeek.shown
+
+                    SeekArea {
+                        id: stripSeek
+
+                        anchors.fill: parent
+                        anchors.topMargin: -Tokens.spacing.small
+                        anchors.bottomMargin: -Tokens.spacing.small
+                        source: root.source
+                        progress: root.progress
+                    }
                 }
 
                 // Dropped on a narrow strip, where it would squeeze the position down to a stub

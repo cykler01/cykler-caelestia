@@ -79,7 +79,7 @@ Item {
             anchors.left: parent.left
             anchors.bottom: parent.bottom
             visible: root.source.available
-            width: parent.width * root.progress
+            width: parent.width * artSeek.shown
             height: 3
             color: Colours.palette.m3primary
         }
@@ -118,7 +118,10 @@ Item {
             StyledText {
                 Layout.fillWidth: true
                 elide: Text.ElideRight
-                text: root.source.length > 0 && root.source.length < 2147483647 ? `${root.timeStr(root.source.position)} / ${root.timeStr(root.source.length)}` : root.timeStr(root.source.position)
+                // Where a drag or scroll along the foot would land while one is in progress
+                readonly property real at: artSeek.preview >= 0 ? artSeek.preview * root.source.length : root.source.position
+
+                text: root.source.length > 0 && root.source.length < 2147483647 ? `${root.timeStr(at)} / ${root.timeStr(root.source.length)}` : root.timeStr(at)
                 color: Colours.palette.m3onSurfaceVariant
                 font: Tokens.font.label.small
             }
@@ -145,5 +148,18 @@ Item {
                 onClicked: root.source.next()
             }
         }
+    }
+
+    // The hairline is too thin to aim at, so the whole strip of card below the controls seeks. It stops
+    // where the controls' row begins, so it never takes a press meant for a button
+    SeekArea {
+        id: artSeek
+
+        anchors.left: parent.left
+        anchors.right: parent.right
+        anchors.bottom: parent.bottom
+        height: Tokens.padding.large - Tokens.spacing.extraSmall
+        source: root.source
+        progress: root.progress
     }
 }
