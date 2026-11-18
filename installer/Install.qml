@@ -75,13 +75,31 @@ Singleton {
             if (code !== 0)
                 return;
             events.path = root.dir + "/events.jsonl";
-            runner.command = ["python3", "-I", Qt.resolvedUrl("runner.py").toString().replace("file://", ""), "--src", root.src, "--dir", root.dir].concat(wipe.argsAfter);
+            // -- first: the flags past it are install.sh's, not the runner's
+            runner.command = ["python3", "-I", Qt.resolvedUrl("runner.py").toString().replace("file://", ""), "--src", root.src, "--dir", root.dir, "--"].concat(wipe.argsAfter);
             runner.running = true;
         }
     }
 
     Process {
         id: runner
+
+        stderr: StdioCollector {
+            id: runnerErr
+        }
+
+        // the runner writes its own exit event, so landing here with nothing
+        // said means it died before it could open the events file at all
+        onExited: (code) => {
+            if (root.finished || code === 0)
+                return;
+            const err = runnerErr.text.trim();
+            root.code = code;
+            root.live = "";
+            root.ask = null;
+            root.reason = err !== "" ? err.split("\n").pop() : "The install could not be started (exit " + code + ")";
+            root.finished = true;
+        }
     }
 
     // one json object a line, appended as the install talks

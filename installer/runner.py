@@ -7,7 +7,7 @@
 # the window follows <dir>/events.jsonl (one json object a line) and answers on
 # <dir>/answers, a fifo. the password goes into sudo once and is never kept.
 #
-#   runner.py --src <checkout> --dir <runtime dir> [install.sh flags...]
+#   runner.py --src <checkout> --dir <runtime dir> [-- install.sh flags...]
 
 import argparse
 import fcntl
@@ -392,12 +392,36 @@ class Run:
         self.log.close()
 
 
+# install.sh's own flags are flags too, so argparse must never see them: it
+# would die on the first --with it does not know, before a single event is
+# written and with nothing on screen to say why. everything after -- is the
+# install's, and without a -- the run's own options are taken off the front
+def split_argv(argv):
+    if "--" in argv:
+        i = argv.index("--")
+        return argv[:i], argv[i + 1:]
+    mine = []
+    i = 0
+    while i < len(argv):
+        a = argv[i]
+        if a in ("--src", "--dir"):
+            mine += argv[i:i + 2]
+            i += 2
+        elif a.startswith("--src=") or a.startswith("--dir=") or a in ("-h", "--help"):
+            mine.append(a)
+            i += 1
+        else:
+            break
+    return mine, argv[i:]
+
+
 def main():
-    p = argparse.ArgumentParser()
+    p = argparse.ArgumentParser(usage="%(prog)s --src <checkout> --dir <runtime dir> [-- install.sh flags...]")
     p.add_argument("--src", required=True, help="the checkout to install from")
     p.add_argument("--dir", required=True, help="runtime dir for events, answers and the log")
-    p.add_argument("install_args", nargs="*", help="flags handed to install.sh")
-    a = p.parse_args()
+    mine, rest = split_argv(sys.argv[1:])
+    a = p.parse_args(mine)
+    a.install_args = rest
     run = Run(a)
     run.spawn()
     try:
