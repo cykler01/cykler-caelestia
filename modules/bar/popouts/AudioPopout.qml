@@ -42,16 +42,36 @@ Item {
         Repeater {
             model: Audio.sinks
 
-            StyledRadioButton {
+            RowLayout {
                 id: control
 
                 required property PwNode modelData
+                readonly property bool isOutput: Audio.outputDevice?.id === control.modelData.id
 
                 Layout.fillWidth: true
-                ButtonGroup.group: sinks
-                checked: Audio.outputDevice?.id === modelData.id
-                onClicked: Audio.setAudioSink(modelData)
-                text: modelData.description
+                spacing: Tokens.spacing.extraSmall
+
+                StyledRadioButton {
+                    Layout.fillWidth: true
+                    ButtonGroup.group: sinks
+                    checked: control.isOutput
+                    onClicked: Audio.setAudioSink(control.modelData)
+                    text: control.modelData.description
+                }
+
+                // Also play here, alongside the output rather than instead of it: the device gets a
+                // loopback of whatever the output is playing (see services/AudioMirror.qml). Not
+                // offered on the output itself, which is already carrying the sound
+                IconButton {
+                    icon: "speaker_group"
+                    type: IconButton.Tonal
+                    isRound: true
+                    isToggle: true
+                    font: Tokens.font.icon.small
+                    visible: !control.isOutput
+                    checked: AudioMirror.isMirrored(control.modelData)
+                    onClicked: AudioMirror.toggle(control.modelData)
+                }
             }
         }
 

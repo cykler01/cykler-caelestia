@@ -2,6 +2,7 @@ pragma ComponentBehavior: Bound
 
 import QtQuick
 import QtQuick.Layouts
+import Quickshell.Services.Pipewire
 import Caelestia.Config
 import Caelestia.I18n
 import qs.components
@@ -45,6 +46,63 @@ PageBase {
             placeholderIcon: "speaker"
             placeholderText: Tr.trCtx("No output devices", "no audio outputs")
             onSelected: node => Audio.setAudioSink(node)
+        }
+
+        // Playing on more than one device at once. Each one switched on here gets a loopback of the
+        // output rather than taking it over, so the device above stays the output (see
+        // services/AudioMirror.qml)
+        SectionHeader {
+            // SEARCH: multiple outputs both speakers headphones at once mirror simultaneous
+            text: Tr.tr("Play on several devices")
+        }
+
+        StyledText {
+            Layout.fillWidth: true
+            Layout.leftMargin: Tokens.padding.largeIncreased
+            Layout.rightMargin: Tokens.padding.largeIncreased
+            Layout.bottomMargin: Tokens.spacing.small
+            wrapMode: Text.Wrap
+            text: Tr.tr("Anything playing on the output above is also sent to these, in step with it. They keep their own volume.")
+            color: Colours.palette.m3outline
+            font: Tokens.font.label.small
+        }
+
+        InfoRow {
+            first: true
+            last: true
+            visible: AudioMirror.available.length === 0
+            icon: "speaker"
+            label: Tr.tr("No other output devices")
+            subtext: Tr.tr("Plug in or connect another one and it shows up here")
+        }
+
+        Repeater {
+            model: AudioMirror.available
+
+            ToggleRow {
+                required property PwNode modelData
+                required property int index
+
+                first: index === 0
+                last: index === AudioMirror.available.length - 1
+                text: modelData.description || modelData.name
+                subtext: AudioMirror.isMirrored(modelData) ? Tr.tr("Also playing") : Tr.tr("Silent")
+                checked: AudioMirror.isMirrored(modelData)
+                onToggled: AudioMirror.setMirrored(modelData, checked)
+            }
+        }
+
+        // A device that was switched on and has since gone away keeps its place in the list, so say
+        // where it went rather than leaving the count looking wrong
+        StyledText {
+            Layout.fillWidth: true
+            Layout.topMargin: Tokens.spacing.extraSmall
+            Layout.leftMargin: Tokens.padding.small
+            visible: AudioMirror.waitingCount > 0
+            text: Tr.trN("%n device is switched on but not connected — it picks up again when it comes back", "%n devices are switched on but not connected — they pick up again when they come back", AudioMirror.waitingCount)
+            color: Colours.palette.m3outline
+            font: Tokens.font.label.small
+            wrapMode: Text.WordWrap
         }
 
         // Input
