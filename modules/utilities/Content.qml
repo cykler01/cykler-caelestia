@@ -46,6 +46,8 @@ Item {
             return Config.utilities.cards.phoneShare;
         case "quickToggles":
             return Config.utilities.cards.quickToggles;
+        case "appVolumes":
+            return Config.utilities.cards.appVolumes;
         }
         return false;
     }
@@ -77,6 +79,7 @@ Item {
 
                 readonly property string cardId: modelData.id
                 readonly property bool compact: modelData.size === "compact"
+                readonly property bool vertical: modelData.size === "vertical"
                 // What the card settles at rather than what it is passing through, where it has one
                 readonly property real cardHeight: item ? (item.nonAnimHeight ?? item.implicitHeight) : 0
 
@@ -85,14 +88,6 @@ Item {
                 visible: active
                 // The recorder's menu opens over the cards under it
                 z: cardId === "recorder" ? 1 : 0
-
-                // Only these two have a compact form
-                Binding {
-                    target: card.item
-                    property: "compact"
-                    value: card.compact
-                    when: card.item && (card.cardId === "keepAwake" || card.cardId === "recorder")
-                }
 
                 sourceComponent: {
                     switch (cardId) {
@@ -104,8 +99,26 @@ Item {
                         return phoneShareCard;
                     case "quickToggles":
                         return togglesCard;
+                    case "appVolumes":
+                        return appVolumesCard;
                     }
                     return null;
+                }
+
+                // Only these have a compact form
+                Binding {
+                    target: card.item
+                    property: "compact"
+                    value: card.compact
+                    when: card.item && (card.cardId === "keepAwake" || card.cardId === "recorder" || card.cardId === "appVolumes")
+                }
+
+                // The app volumes card also has a sideways layout of its own
+                Binding {
+                    target: card.item
+                    property: "vertical"
+                    value: card.vertical
+                    when: card.item && card.cardId === "appVolumes"
                 }
             }
         }
@@ -116,7 +129,6 @@ Item {
 
         IdleInhibit {
             objectName: "utilitiesKeepAwake"
-
         }
     }
 
@@ -138,6 +150,14 @@ Item {
             objectName: "utilitiesPhoneShare"
 
             screenState: root.screenState
+        }
+    }
+
+    Component {
+        id: appVolumesCard
+
+        AppVolumesCard {
+            objectName: "utilitiesAppVolumes"
         }
     }
 

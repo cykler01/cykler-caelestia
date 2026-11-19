@@ -84,9 +84,9 @@ CONFIG_LIST_TYPE(UtilitiesToggleEntry, UtilitiesToggleList)
 class UtilitiesCardEntry : public settings::ObjectNode {
     CONFIG_NODE(UtilitiesCardEntry, settings::ObjectNode)
 
-    // "keepAwake", "recorder", "phoneShare" or "quickToggles"
+    // "keepAwake", "recorder", "phoneShare", "quickToggles" or "appVolumes"
     CONFIG_PROPERTY(QString, id, {})
-    // "normal" or "compact", what compact drops is up to the card
+    // "normal", "compact" or "vertical", what the latter two drop or rearrange is up to the card
     CONFIG_PROPERTY(QString, size, u"normal"_s)
 };
 CONFIG_LIST_TYPE(UtilitiesCardEntry, UtilitiesCardList)
@@ -101,6 +101,7 @@ class UtilitiesCards : public settings::ObjectNode {
             vmap({ { u"id"_s, u"recorder"_s } }),
             vmap({ { u"id"_s, u"phoneShare"_s } }),
             vmap({ { u"id"_s, u"quickToggles"_s } }),
+            vmap({ { u"id"_s, u"appVolumes"_s } }),
         }))
     // How many columns the quick toggles are laid out in
     CONFIG_PROPERTY(int, toggleColumns, 4)
@@ -108,6 +109,7 @@ class UtilitiesCards : public settings::ObjectNode {
     CONFIG_PROPERTY(bool, recorder, true)
     CONFIG_PROPERTY(bool, quickToggles, true)
     CONFIG_PROPERTY(bool, phoneShare, false)
+    CONFIG_PROPERTY(bool, appVolumes, false)
 };
 
 class UtilitiesGameMode : public settings::ObjectNode {

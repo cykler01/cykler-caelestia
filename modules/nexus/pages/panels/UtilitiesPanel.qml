@@ -3,9 +3,9 @@ pragma ComponentBehavior: Bound
 import QtQuick.Layouts
 import Caelestia.Config
 import Caelestia.I18n
+import qs.components
 import qs.services
 import qs.utils
-import qs.components
 import qs.modules.nexus.common
 
 PageBase {
@@ -15,7 +15,8 @@ PageBase {
             keepAwake: Tr.tr("Keep awake"),
             recorder: Tr.tr("Screen recorder"),
             phoneShare: Tr.tr("Phone share"),
-            quickToggles: Tr.tr("Quick toggles")
+            quickToggles: Tr.tr("Quick toggles"),
+            appVolumes: Tr.tr("App volumes")
         })
     readonly property var toggleNames: ({
             wifi: Tr.tr("Wi-Fi"),
@@ -28,8 +29,9 @@ PageBase {
             dnd: Tr.tr("Do not disturb"),
             vpn: Tr.tr("VPN")
         })
-    // Only these two have a smaller form: Keep awake drops the line under its title and the "active since" chip, the
-    // recorder drops its list of recordings
+    // Only these have a smaller form: Keep awake drops the line under its title and the "active since" chip, the
+    // recorder drops its list of recordings, and app volumes folds its sliders away behind a caret or stands them
+    // upright
     readonly property var cardSizeOptions: {
         const sizes = [
             {
@@ -43,7 +45,11 @@ PageBase {
         ];
         return {
             keepAwake: sizes,
-            recorder: sizes
+            recorder: sizes,
+            appVolumes: [...sizes, {
+                    value: "vertical",
+                    label: Tr.trCtx("Vertical", "card size")
+                }]
         };
     }
 

@@ -2,14 +2,11 @@ pragma ComponentBehavior: Bound
 
 import QtQuick
 import QtQuick.Layouts
-import Quickshell.Services.Pipewire
 import Caelestia.Config
 import Caelestia.I18n
 import qs.components
 import qs.components.containers
-import qs.components.controls
 import qs.services
-import qs.utils
 
 // NOTE(fork): the media tab's per-app volume drawer, the sibling of the equalizer one: the same
 // panel under the player, but listing the streams that are playing right now with a slider for
@@ -86,59 +83,8 @@ ClipRect {
             spacing: Tokens.spacing.extraSmall
             model: Audio.streams
 
-            delegate: ColumnLayout {
-                id: stream
-
-                required property PwNode modelData
-
+            delegate: AppVolumeRow {
                 width: streams.width
-                height: implicitHeight
-                spacing: Tokens.spacing.extraSmall
-
-                RowLayout {
-                    Layout.fillWidth: true
-                    spacing: Tokens.spacing.small
-
-                    MaterialIcon {
-                        text: Icons.getVolumeIcon(stream.modelData?.audio?.volume ?? 0, stream.modelData?.audio?.muted ?? false)
-                        color: Colours.palette.m3onSurfaceVariant
-                        fontStyle: Tokens.font.icon.small
-                    }
-
-                    StyledText {
-                        Layout.fillWidth: true
-                        text: Audio.getStreamName(stream.modelData)
-                        font: Tokens.font.body.small
-                        elide: Text.ElideRight
-                    }
-
-                    StyledText {
-                        text: Strings.percentOne(stream.modelData?.audio?.volume ?? 0)
-                        color: Colours.palette.m3outline
-                        font: Tokens.font.label.small
-                    }
-                }
-
-                CustomMouseArea {
-                    function onWheel(event: WheelEvent): void {
-                        const step = GlobalConfig.services.audioIncrement;
-                        const volume = Audio.getStreamVolume(stream.modelData);
-                        Audio.setStreamVolume(stream.modelData, volume + (event.angleDelta.y > 0 ? step : -step));
-                    }
-
-                    Layout.fillWidth: true
-                    implicitHeight: Tokens.padding.medium * 2
-
-                    StyledSlider {
-                        anchors.left: parent.left
-                        anchors.right: parent.right
-                        anchors.verticalCenter: parent.verticalCenter
-                        implicitHeight: parent.implicitHeight
-                        radius: Tokens.rounding.small
-                        value: stream.modelData?.audio?.volume ?? 0
-                        onInteraction: v => Audio.setStreamVolume(stream.modelData, v)
-                    }
-                }
             }
         }
     }

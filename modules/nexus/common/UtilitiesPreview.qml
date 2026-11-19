@@ -38,12 +38,17 @@ Item {
             keepAwake: "coffee",
             recorder: "screen_record",
             phoneShare: "smartphone",
-            quickToggles: "toggle_on"
+            quickToggles: "toggle_on",
+            appVolumes: "tune"
         })
     // Toggles drawn as switched on, so the drawing shows both looks
     readonly property var drawnOn: ["wifi", "bluetooth"]
-    // The cards that have a compact form
-    readonly property var compactable: ["keepAwake", "recorder"]
+    // The sizes each card offers, in the order its size button steps through them
+    readonly property var cardSizes: ({
+            keepAwake: ["normal", "compact"],
+            recorder: ["normal", "compact"],
+            appVolumes: ["normal", "compact", "vertical"]
+        })
 
     readonly property int columns: Math.max(1, Config.utilities.cards.toggleColumns)
     readonly property real framePad: Tokens.padding.large
@@ -138,6 +143,10 @@ Item {
             return compact ? 68 : 152;
         case "quickToggles":
             return togglesHeight;
+        case "appVolumes":
+            if (card.size === "vertical")
+                return root.innerPad * 2 + root.headerHeight + root.rowGap * 2 + 120;
+            return compact ? root.innerPad * 2 + root.rowHeight : root.innerPad * 2 + root.headerHeight + root.rowGap * 2 + root.rowHeight * 2;
         }
         return 68;
     }
@@ -176,6 +185,23 @@ Item {
         const i = entryIndex(GlobalConfig.utilities.cards.order, id);
         if (i >= 0)
             GlobalConfig.utilities.cards.order.at(i).size = size;
+    }
+
+    function sizeLabel(size: string): string {
+        switch (size) {
+        case "compact":
+            return Tr.trCtx("Compact", "card size");
+        case "vertical":
+            return Tr.trCtx("Vertical", "card size");
+        }
+        return Tr.trCtx("Normal", "card size");
+    }
+
+    // Steps a card through the sizes it offers, so the preview button reaches every one of them
+    function cycleCardSize(id: string): void {
+        const sizes = root.cardSizes[id] ?? ["normal", "compact"];
+        const current = root.cardWork.find(c => c.id === id)?.size ?? "normal";
+        root.setCardSize(id, sizes[(sizes.indexOf(current) + 1) % sizes.length]);
     }
 
     function setToggleOn(id: string, on: bool): void {
@@ -453,6 +479,8 @@ Item {
                     return phoneDrawing;
                 case "quickToggles":
                     return togglesDrawing;
+                case "appVolumes":
+                    return appVolumesDrawing;
                 }
                 return null;
             }
@@ -518,7 +546,7 @@ Item {
             }
 
             StyledRect {
-                visible: root.compactable.includes(card.cid)
+                visible: root.cardSizes[card.cid] !== undefined
                 implicitWidth: sizeLabel.implicitWidth + Tokens.padding.large * 2
                 implicitHeight: 28
                 radius: Tokens.rounding.full
@@ -528,13 +556,13 @@ Item {
                     id: sizeLabel
 
                     anchors.centerIn: parent
-                    text: card.compact ? Tr.trCtx("Compact", "card size") : Tr.trCtx("Normal", "card size")
+                    text: root.sizeLabel(card.work.size)
                     color: Colours.palette.m3onSecondaryContainer
                     font: Tokens.font.label.medium
                 }
 
                 StateLayer {
-                    onClicked: root.setCardSize(card.cid, card.compact ? "normal" : "compact")
+                    onClicked: root.cycleCardSize(card.cid)
                 }
             }
 
@@ -770,6 +798,112 @@ Item {
                         text: Tr.tr("Send files to your phone")
                         color: Colours.palette.m3onSurfaceVariant
                         font: Tokens.font.body.small
+                    }
+                }
+            }
+        }
+
+        Component {
+            id: appVolumesDrawing
+
+            Item {
+                StyledText {
+                    x: root.innerPad
+                    y: root.innerPad
+                    height: root.headerHeight
+                    verticalAlignment: Text.AlignVCenter
+                    text: root.cardNames.appVolumes
+                    font: Tokens.font.body.medium
+                }
+
+                MaterialIcon {
+                    anchors.top: parent.top
+                    anchors.right: parent.right
+                    anchors.margins: root.innerPad
+                    visible: card.compact
+                    text: "unfold_more"
+                    color: Colours.palette.m3onSurfaceVariant
+                    fontStyle: Tokens.font.icon.medium
+                }
+
+                Row {
+                    visible: card.work.size === "vertical"
+                    x: root.innerPad
+                    y: root.innerPad + root.headerHeight + root.rowGap
+                    width: parent.width - root.innerPad * 2
+                    height: 120
+                    spacing: root.rowGap
+
+                    Repeater {
+                        model: 4
+
+                        Item {
+                            required property int index
+
+                            width: (parent.width - parent.spacing * 3) / 4
+                            height: parent.height
+
+                            StyledRect {
+                                anchors.horizontalCenter: parent.horizontalCenter
+                                anchors.top: parent.top
+                                anchors.bottom: parent.bottom
+                                anchors.topMargin: 8
+                                anchors.bottomMargin: 8
+                                width: 4
+                                radius: Tokens.rounding.full
+                                color: Colours.palette.m3surfaceContainerHighest
+
+                                StyledRect {
+                                    anchors.bottom: parent.bottom
+                                    width: parent.width
+                                    height: parent.height * [0.35, 0.7, 0.5, 0.85][index]
+                                    radius: parent.radius
+                                    color: Colours.palette.m3primary
+                                }
+                            }
+                        }
+                    }
+                }
+
+                Column {
+                    visible: !card.compact && card.work.size !== "vertical"
+                    anchors.left: parent.left
+                    anchors.right: parent.right
+                    anchors.top: parent.top
+                    anchors.margins: root.innerPad
+                    anchors.topMargin: root.innerPad + root.headerHeight + root.rowGap
+                    spacing: root.rowGap
+
+                    Repeater {
+                        model: 2
+
+                        Column {
+                            required property int index
+
+                            width: parent.width
+                            spacing: Tokens.spacing.small
+
+                            StyledRect {
+                                width: parent.width * 0.4
+                                implicitHeight: 10
+                                radius: Tokens.rounding.full
+                                color: Colours.palette.m3surfaceContainerHighest
+                            }
+
+                            StyledRect {
+                                width: parent.width
+                                implicitHeight: 4
+                                radius: Tokens.rounding.full
+                                color: Colours.palette.m3surfaceContainerHighest
+
+                                StyledRect {
+                                    width: parent.width * (index === 0 ? 0.55 : 0.8)
+                                    implicitHeight: parent.implicitHeight
+                                    radius: parent.radius
+                                    color: Colours.palette.m3primary
+                                }
+                            }
+                        }
                     }
                 }
             }
