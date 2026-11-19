@@ -188,6 +188,59 @@ incoming, and can pull, rebuild, install and restart the shell for you.
 
 </details>
 
+<details>
+<summary><h2>Troubleshooting</h2></summary>
+
+### The shell fails to start with `Type ... unavailable` or `Cannot assign to non-existent property`
+
+For example, `caelestia shell -d` stops with a chain like this:
+
+```
+ERROR: Failed to load configuration
+ERROR:   caused by @shell.qml[73:5]: Type Drawers unavailable
+...
+ERROR:   caused by @modules/nexus/NavPane.qml[30:9]: Cannot assign to non-existent property "clearIcon"
+```
+
+The installed QML files in `/etc/xdg/quickshell/caelestia` don't match this repo. This usually
+happens when files from an earlier install (a previous build of this fork, upstream, or the
+`caelestia-shell` AUR package) are still there: `cmake --install` only copies files over and never
+deletes the old ones, and neither `install.sh` nor `update.sh` clears the folder. A leftover or
+outdated file can then be loaded in place of the current one.
+
+To check, run this from the repo folder. `Only in /etc/xdg/...` lines are leftover files, and `differ`
+lines are outdated ones:
+
+```sh
+for d in assets components daemons modules services utils; do
+  diff -rq "$d" "/etc/xdg/quickshell/caelestia/$d"
+done
+```
+
+To fix it, remove the installed folder and install again. This only deletes the installed copy, not
+your clone of the repo, so back up anything you edited directly inside it first:
+
+```sh
+# if you have the AUR package, remove it first - it conflicts with this fork
+sudo pacman -Rns caelestia-shell caelestia-shell-git
+
+sudo rm -rf /etc/xdg/quickshell/caelestia
+
+cd cykler-caelestia
+git pull
+rm -rf build
+cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/
+cmake --build build
+sudo cmake --install build
+
+caelestia shell -d
+```
+
+If you installed with a different `INSTALL_QSCONFDIR`, use that folder instead of
+`/etc/xdg/quickshell/caelestia`.
+
+</details>
+
 ## Credits
 
 This fork is only worth anything because of the people below.
