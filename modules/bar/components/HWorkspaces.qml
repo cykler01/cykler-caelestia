@@ -145,8 +145,16 @@ StyledRect {
                     anchors.fill: parent
                     cursorShape: Qt.PointingHandCursor
                     onClicked: {
-                        if (Hypr.activeWsId !== cell.ws)
-                            Hypr.focusWorkspace(cell.ws);
+                        // This bar's own screen, not whichever one has the focus (see Workspaces.qml)
+                        const name = root.monitor?.name;
+                        const focusedHere = !name || Hypr.focusedMonitor?.name === name;
+                        if (root.activeWsId !== cell.ws) {
+                            if (name && Config.bar.workspaces.perMonitor)
+                                Hypr.focusWorkspaceOnMonitor(cell.ws, name);
+                            else
+                                Hypr.focusWorkspace(cell.ws);
+                        } else if (!focusedHere)
+                            Hypr.focusMonitor(name);
                         else if (Config.bar.workspaces.specialWorkspaces)
                             Hypr.toggleSpecial("special");
                     }

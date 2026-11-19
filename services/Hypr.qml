@@ -49,6 +49,18 @@ Singleton {
         dispatch(usingLua ? `hl.dsp.focus({ workspace = "${ws}" })` : `workspace ${ws}`);
     }
 
+    // Shows a workspace on a given monitor rather than wherever it already is: with one bar per monitor, a click on a
+    // workspace in a bar belongs to that bar's screen. Plain focusWorkspace would send the focus off to whichever monitor
+    // holds the workspace, so on the second screen a click on another monitor's workspace seemed to do nothing
+    function focusWorkspaceOnMonitor(ws: var, monitorName: string): void {
+        dispatch(usingLua ? `hl.dsp.focus({ monitor = "${monitorName}" })` : `focusmonitor ${monitorName}`);
+        dispatch(usingLua ? `hl.dsp.focus({ workspace = "${ws}", on_current_monitor = true })` : `focusworkspaceoncurrentmonitor ${ws}`);
+    }
+
+    function focusMonitor(monitorName: string): void {
+        dispatch(usingLua ? `hl.dsp.focus({ monitor = "${monitorName}" })` : `focusmonitor ${monitorName}`);
+    }
+
     function toggleSpecial(name: string): void {
         dispatch(usingLua ? `hl.dsp.workspace.toggle_special("${name}")` : `togglespecialworkspace ${name}`);
     }
@@ -199,6 +211,27 @@ Singleton {
     onUsingLuaChanged: reloadDynamicConfs()
     Component.onCompleted: reloadDynamicConfs()
 
+    // Whether a screen of the shell has no monitor of Hyprland's tracked for it. That happens when a display is plugged in
+    // while the shell is running and its add is missed: nothing then knows which workspace the screen is on, so the notch
+    // takes the screen for an empty desktop and the bar's workspaces have nothing to click. Reads the monitor list itself
+    // (not monitorFor) so it is re-worked out when the list changes
+    readonly property bool untrackedScreen: Quickshell.screens.some(s => !Hyprland.monitors.values.some(m => m.name === s.name))
+    property int resyncAttempts
+
+    onUntrackedScreenChanged: resyncAttempts = 0
+
+    Timer {
+        interval: 800
+        repeat: true
+        running: root.untrackedScreen && root.resyncAttempts < 15
+        onTriggered: {
+            root.resyncAttempts++;
+            Hyprland.refreshMonitors();
+            Hyprland.refreshWorkspaces();
+            Hyprland.refreshToplevels();
+        }
+    }
+
     Connections {
         function onRawEvent(event: HyprlandEvent): void {
             const n = event.name;
@@ -216,7 +249,10 @@ Singleton {
                 Hyprland.refreshToplevels();
                 Hyprland.refreshWorkspaces();
             } else if (n.includes("mon")) {
+                // A screen coming or going moves workspaces and windows about as well as adding a monitor
                 Hyprland.refreshMonitors();
+                Hyprland.refreshWorkspaces();
+                Hyprland.refreshToplevels();
             } else if (n.includes("workspace")) {
                 Hyprland.refreshWorkspaces();
             } else if (n.includes("window") || n.includes("group") || ["pin", "fullscreen", "changefloatingmode", "minimize"].includes(n)) {

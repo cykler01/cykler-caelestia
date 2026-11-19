@@ -21,7 +21,7 @@ ClipRect {
     // strip, no dimming, no toggle on click - so the setting is honoured in one place
     readonly property bool specialEnabled: Config.bar.workspaces.specialWorkspaces
     readonly property bool onSpecial: root.specialEnabled && monitor?.lastIpcObject.specialWorkspace?.name !== ""
-    readonly property int activeWsId: monitor.activeWorkspace?.id ?? 1
+    readonly property int activeWsId: monitor?.activeWorkspace?.id ?? 1
     readonly property int activeWsIdx: workspaceIndex(activeWsId)
     readonly property int shown: Math.max(1, Config.bar.workspaces.shown)
     // NOTE(fork): the pointer over the strip trades the marks for the workspace numbers, and the
@@ -204,8 +204,18 @@ ClipRect {
                 const ws = item?.ws;
                 if (!ws)
                     return;
-                if (Hypr.activeWsId !== ws)
-                    Hypr.focusWorkspace(ws);
+
+                // The workspace belongs to this bar's screen, not to whichever one has the focus: switching on the focused
+                // monitor from a bar on the other one went to the wrong place, or nowhere when it was already showing
+                const name = root.monitor?.name;
+                const focusedHere = !name || Hypr.focusedMonitor?.name === name;
+                if (root.activeWsId !== ws) {
+                    if (name && Config.bar.workspaces.perMonitor)
+                        Hypr.focusWorkspaceOnMonitor(ws, name);
+                    else
+                        Hypr.focusWorkspace(ws);
+                } else if (!focusedHere)
+                    Hypr.focusMonitor(name);
                 else if (root.specialEnabled)
                     Hypr.toggleSpecial("special");
             }
