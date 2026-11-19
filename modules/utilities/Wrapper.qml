@@ -77,8 +77,10 @@ Item {
         anchors.left: parent.left
         anchors.margins: Tokens.padding.large
 
+        // Built once and kept alive: tearing it down on close meant every open re-instantiated
+        // the cards asynchronously, so they popped in one by one instead of being there instantly
         asynchronous: true
-        active: root.shouldBeActive || root.visible
+        active: true
 
         sourceComponent: Content {
             // The content itself keeps its normal (unmirrored) layout
