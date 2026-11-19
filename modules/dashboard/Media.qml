@@ -22,6 +22,8 @@ Item {
     property bool useLocal
     // Whether the user opened the equalizer drawer under the player
     property bool eqToggled
+    // Whether the user opened the per-app volume drawer under the player
+    property bool appVolumesToggled
 
     readonly property MediaSource localSource: MediaSource {
         local: true
@@ -36,12 +38,21 @@ Item {
     // The equalizer is an opt-in service (Settings > Audio), so the tab only offers it - and only
     // keeps it open - while that option is on
     readonly property bool eqOpen: root.eqToggled && Equalizer.enabled
+    // Per-app volumes need no switch of their own: there is always something to list once an app
+    // is playing
+    readonly property bool appVolumesOpen: root.appVolumesToggled
+    // The drawers stack rather than replacing one another, so opening one while the other is
+    // open leaves both in place
+    readonly property int openDrawers: (root.eqOpen ? 1 : 0) + (root.appVolumesOpen ? 1 : 0)
     // The tab grows by the drawer, rather than the drawer eating into the player
-    readonly property bool drawerOpen: root.eqOpen
+    readonly property bool drawerOpen: root.openDrawers > 0
+    // Height of one drawer
+    readonly property real drawerPanelHeight: 320
     // How much the drawer adds to the tab (and so to the dashboard) while it is open
-    readonly property real drawerHeight: 320
-    // Breathing room between the player and the drawer, on top of the layout's own spacing, so
-    // the drawer opens clear of the controls instead of on top of them
+    readonly property real drawerHeight: root.openDrawers * root.drawerPanelHeight + Math.max(0, root.openDrawers - 1) * root.drawerGap
+    // Breathing room between the player and the drawer, and between the drawers themselves, on
+    // top of the layout's own spacing, so the drawer opens clear of the controls instead of on
+    // top of them
     readonly property real drawerGap: Tokens.spacing.large
     // Room the fixed tab height leaves for the player, and the height the player actually needs.
     // A track with a volume row, or the placeholder, is taller than that room; the tab grows to
@@ -143,6 +154,14 @@ Item {
                         isToggle: true
                         checked: root.eqOpen
                         onClicked: root.eqToggled = !root.eqToggled
+                    }
+
+                    IconButton {
+                        icon: "tune"
+                        type: root.appVolumesOpen ? IconButton.Filled : IconButton.Tonal
+                        isToggle: true
+                        checked: root.appVolumesOpen
+                        onClicked: root.appVolumesToggled = !root.appVolumesToggled
                     }
 
                     // Sits just right of the drawer toggles rather than out at the right hand end,
@@ -326,14 +345,56 @@ Item {
                 Anim {}
             }
 
-            EqualizerPanel {
+            ColumnLayout {
                 anchors.fill: parent
-                opacity: root.eqOpen ? 1 : 0
-                enabled: root.eqOpen
+                spacing: 0
 
-                Behavior on opacity {
-                    Anim {
-                        type: Anim.DefaultEffects
+                Item {
+                    Layout.fillWidth: true
+                    Layout.preferredHeight: root.eqOpen ? root.drawerPanelHeight : 0
+                    clip: true
+
+                    Behavior on Layout.preferredHeight {
+                        Anim {}
+                    }
+
+                    EqualizerPanel {
+                        anchors.fill: parent
+                        opacity: root.eqOpen ? 1 : 0
+                        enabled: root.eqOpen
+
+                        Behavior on opacity {
+                            Anim {
+                                type: Anim.DefaultEffects
+                            }
+                        }
+                    }
+                }
+
+                Item {
+                    Layout.fillWidth: true
+                    Layout.topMargin: root.eqOpen && root.appVolumesOpen ? root.drawerGap : 0
+                    Layout.preferredHeight: root.appVolumesOpen ? root.drawerPanelHeight : 0
+                    clip: true
+
+                    Behavior on Layout.topMargin {
+                        Anim {}
+                    }
+
+                    Behavior on Layout.preferredHeight {
+                        Anim {}
+                    }
+
+                    AppVolumesPanel {
+                        anchors.fill: parent
+                        opacity: root.appVolumesOpen ? 1 : 0
+                        enabled: root.appVolumesOpen
+
+                        Behavior on opacity {
+                            Anim {
+                                type: Anim.DefaultEffects
+                            }
+                        }
                     }
                 }
             }
