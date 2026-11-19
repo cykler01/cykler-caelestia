@@ -62,6 +62,10 @@ Item {
             switch (root.kind) {
             case "calendar":
                 return calendarCard;
+            case "day":
+                return dayCard;
+            case "events":
+                return eventsCard;
             case "clock":
                 return clockCard;
             case "weather":
@@ -139,6 +143,26 @@ Item {
         id: calendarCard
 
         CalendarCard {
+            variant: root.variant
+            widgetId: root.kind
+            entryIndex: -1
+        }
+    }
+
+    Component {
+        id: dayCard
+
+        DayCard {
+            variant: root.variant
+            widgetId: root.kind
+            entryIndex: -1
+        }
+    }
+
+    Component {
+        id: eventsCard
+
+        EventsCard {
             variant: root.variant
             widgetId: root.kind
             entryIndex: -1

@@ -60,7 +60,7 @@ class LockConfig : public settings::ObjectNode {
         }))
     // Which widgets show in the side columns, in what order, which column, and how much
     // vertical room each gets (ids: weather, fetch, media, resources, battery, notifs, network,
-    // audio - the last two are opt-in via the editor's add button, not in the defaults)
+    // audio, events, day - the last four are opt-in via the editor's add button, not in the defaults)
     CONFIG_LIST(LockWidgetList, widgets,
         DEFAULT_ARG({
             vmap({ { u"id"_s, u"weather"_s }, { u"column"_s, u"left"_s }, { u"weight"_s, 1.0 } }),

@@ -308,6 +308,24 @@ QtObject {
             page: "panels",
             path: [1],
             title: Tr.tr("Dashboard"),
+            section: Tr.tr("General"),
+            label: Tr.tr("Calendar events"),
+            subtext: Tr.tr("Read GNOME Calendar for the calendar card and the event widgets"),
+            keywords: "gnome calendar events agenda evolution appointments"
+        },
+        {
+            page: "panels",
+            path: [1],
+            title: Tr.tr("Dashboard"),
+            section: Tr.tr("Event types"),
+            label: Tr.tr("Event types"),
+            subtext: Tr.tr("Regular, special and rare events, per calendar"),
+            keywords: "calendar regular special rare birthdays holidays lessons routine colour green blue grey"
+        },
+        {
+            page: "panels",
+            path: [1],
+            title: Tr.tr("Dashboard"),
             section: Tr.tr("Widgets"),
             label: Tr.tr("Widgets"),
             subtext: Tr.tr("Reorder, resize and show or hide the cards on the Dashboard tab")

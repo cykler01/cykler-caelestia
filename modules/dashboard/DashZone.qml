@@ -40,7 +40,7 @@ Item {
 
     // Ids this page knows how to render - anything else in the config (a card removed from the
     // code, say) is skipped rather than falling through the DelegateChooser below
-    readonly property var knownIds: ["weather", "clock", "profile", "calendar", "resources", "media"]
+    readonly property var knownIds: ["weather", "clock", "profile", "calendar", "events", "day", "resources", "media"]
 
     // Every entry's enabled/zone is read here so this is worked out again whenever one changes,
     // the same trick the lock screen's WidgetColumn uses
@@ -240,6 +240,43 @@ Item {
 
                             screenState: zone.screenState
                         }
+                    }
+                }
+
+                DelegateChoice {
+                    roleValue: "day"
+
+                    delegate: Card {
+                        required property var modelData
+
+                        cardId: "day"
+                        cardHeight: Math.max(Tokens.sizes.dashboard.homeProfileMinHeight, day.implicitHeight)
+
+                        Layout.fillWidth: true
+                        Layout.preferredWidth: Tokens.sizes.dashboard.calendarWidth
+
+                        Day {
+                            id: day
+                        }
+                    }
+                }
+
+                DelegateChoice {
+                    roleValue: "events"
+
+                    // No height of its own: it lists as many events as the row or column it is
+                    // in has room for, and only asks for enough to show a couple
+                    delegate: Card {
+                        required property var modelData
+
+                        cardId: "events"
+                        cardHeight: Tokens.sizes.dashboard.homeResourcesMinHeight
+
+                        Layout.fillWidth: true
+                        Layout.preferredWidth: Tokens.sizes.dashboard.calendarWidth
+                        clip: true
+
+                        Events {}
                     }
                 }
 

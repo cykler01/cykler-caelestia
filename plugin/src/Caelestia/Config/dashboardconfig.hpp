@@ -65,12 +65,22 @@ class DashboardConfig : public settings::ObjectNode {
     // Analogue dial instead of the digital readout in the home page's clock card
     // (modules/dashboard/dash/DateTime.qml)
     CONFIG_PROPERTY(bool, analogueClock, false)
+    // Reads GNOME Calendar's events (services/CalendarEvents.qml): the days that have some are
+    // marked on the home page's calendar card, and the event widgets on the desktop, the home
+    // page and the lock screen list them. Off, none of them read anything
+    CONFIG_GLOBAL_PROPERTY(bool, calendarEvents, true)
+    // Which kind each calendar's events count as, as "<calendar uid>=<kind>" entries, kind being
+    // regular, special or rare. A calendar with no entry is sorted event by event: repeating
+    // daily to monthly is regular, yearly (and the birthdays calendar) rare, one-offs special.
+    // Settings > Panels > Dashboard > Event types writes it. A ';'-separated string rather than a
+    // list: a QStringList here crashes the settings loader on the subobject that follows it
+    CONFIG_GLOBAL_PROPERTY(QString, calendarTypes, u""_s)
 
     CONFIG_GLOBAL_PROPERTY(int, mediaUpdateInterval, 500)
     CONFIG_GLOBAL_PROPERTY(int, resourceUpdateInterval, 1000)
     CONFIG_PROPERTY(int, dragThreshold, 50)
     // Which cards the home page shows, where, and in what order (ids: weather, clock, profile,
-    // calendar, resources, media). The defaults are the fixed layout this page had before it
+    // calendar, resources, media, and events and day - opt-in through the editor's add button). The defaults are the fixed layout this page had before it
     // became arrangeable. Settings > Panels > Dashboard > Widgets writes it
     // (modules/nexus/pages/panels/DashWidgetsPanel.qml)
     CONFIG_LIST(DashWidgetList, widgets,

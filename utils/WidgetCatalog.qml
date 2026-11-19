@@ -41,6 +41,46 @@ Singleton {
             ]
         },
         {
+            id: "day",
+            name: Tr.tr("Day progress"),
+            icon: "timelapse",
+            types: [
+                {
+                    id: "timeline",
+                    name: Tr.tr("Timeline"),
+                    height: 5
+                },
+                {
+                    id: "compact",
+                    name: Tr.tr("Slim strip"),
+                    height: 3
+                }
+            ]
+        },
+        {
+            id: "events",
+            name: Tr.tr("Calendar events"),
+            icon: "event",
+            types: [
+                {
+                    id: "upcoming",
+                    name: Tr.tr("Coming up"),
+                    height: 6
+                },
+                {
+                    id: "today",
+                    name: Tr.tr("Today's events"),
+                    height: 5
+                },
+                {
+                    id: "next",
+                    name: Tr.tr("Next event · countdown"),
+                    height: 4,
+                    width: 6
+                }
+            ]
+        },
+        {
             id: "clock",
             name: Tr.tr("Clock"),
             icon: "schedule",

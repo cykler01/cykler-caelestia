@@ -20,7 +20,9 @@ PageBase {
             battery: Tr.tr("Battery"),
             notifs: Tr.tr("Notifications"),
             network: Tr.tr("Network"),
-            audio: Tr.tr("Volume")
+            audio: Tr.tr("Volume"),
+            events: Tr.tr("Calendar events"),
+            day: Tr.tr("Day progress")
         })
 
     readonly property var widgetIcons: ({
@@ -31,7 +33,9 @@ PageBase {
             battery: "bolt",
             notifs: "notifications",
             network: "wifi",
-            audio: "volume_up"
+            audio: "volume_up",
+            events: "event",
+            day: "timelapse"
         })
 
     // Mirrors the C++ defaults in lockconfig.hpp, for the reset button below

@@ -9,6 +9,7 @@ import Caelestia.I18n
 import qs.components
 import qs.components.controls
 import qs.components.effects
+import qs.components.misc
 import qs.services
 
 CustomMouseArea {
@@ -26,6 +27,11 @@ CustomMouseArea {
     property real animTranslate
     property real animOpacity: 1
 
+    // Days with special and rare events are marked in their kind's colour, when GNOME Calendar's store is
+    // there to read them from (services/CalendarEvents.qml). The events themselves are listed by
+    // the event widgets rather than here, which keeps this card the height it always was
+    readonly property bool showEvents: CalendarEvents.enabled && CalendarEvents.available
+
     function onWheel(event: WheelEvent): void {
         if (event.angleDelta.y > 0)
             screenState.dashboardDate = new Date(nonAnimCurrYear, nonAnimCurrMonth - 1, 1);
@@ -39,6 +45,15 @@ CustomMouseArea {
 
     acceptedButtons: Qt.MiddleButton
     onClicked: root.screenState.dashboardDate = new Date()
+
+    onNonAnimCurrMonthChanged: CalendarEvents.focusMonth(nonAnimCurrYear, nonAnimCurrMonth)
+    onNonAnimCurrYearChanged: CalendarEvents.focusMonth(nonAnimCurrYear, nonAnimCurrMonth)
+    Component.onCompleted: CalendarEvents.focusMonth(nonAnimCurrYear, nonAnimCurrMonth)
+
+    // Keeps the event reader running only while a calendar card is around to show what it reads
+    Ref {
+        service: CalendarEvents
+    }
 
     Anim {
         id: trOutAnim
@@ -120,7 +135,7 @@ CustomMouseArea {
                     color: Colours.palette.m3primary
                     radius: pressed ? Tokens.rounding.small : height / 2
                     disabled: {
-                        const now = new Date();
+                        const now = Time.date;
                         return root.nonAnimCurrMonth === now.getMonth() && root.nonAnimCurrYear === now.getFullYear();
                     }
                     onClicked: root.screenState.dashboardDate = new Date()
@@ -198,13 +213,38 @@ CustomMouseArea {
 
                     required property var model
 
-                    implicitWidth: implicitHeight
-                    implicitHeight: text.implicitHeight + Tokens.padding.small
+                    // Special and rare only: the routine stays off the calendar
+                    readonly property var dayEvents: root.showEvents ? CalendarEvents.shownOn(model.date) : []
+                    readonly property bool inMonth: model.month === grid.month
+                    // The square the number sits in, which today's shape is sized off. The dots
+                    // for the day's events sit in its bottom padding, so marking events costs the
+                    // grid no height
+                    readonly property real baseSize: text.implicitHeight + Tokens.padding.small
+                    readonly property real dotSize: 3
+                    readonly property bool hasDots: !model.today && dayEvents.length > 0
+
+                    implicitWidth: baseSize
+                    implicitHeight: baseSize
+
+                    // A wash in the colour of the day's events - blue for a special one, green for
+                    // a birthday or holiday - so the days that matter read at a glance. Today has its own shape instead, and anything drawn under that is
+                    // recoloured along with the number
+                    StyledRect {
+                        anchors.centerIn: parent
+                        implicitWidth: Math.min(parent.width, dayItem.baseSize + 4)
+                        implicitHeight: dayItem.baseSize + 2
+
+                        visible: !dayItem.model.today && dayItem.dayEvents.length > 0
+                        radius: Tokens.rounding.small
+                        color: Qt.alpha(CalendarEvents.dayColour(dayItem.model.date) ?? "transparent", dayItem.inMonth ? 0.22 : 0.08)
+                    }
 
                     StyledText {
                         id: text
 
-                        anchors.centerIn: parent
+                        anchors.horizontalCenter: parent.horizontalCenter
+                        // Nudged up to make room for the dots under it
+                        y: (dayItem.baseSize - height) / 2 - (dayItem.hasDots ? 2 : 0)
 
                         horizontalAlignment: Text.AlignHCenter
                         text: grid.locale.toString(dayItem.model.day)
@@ -215,8 +255,45 @@ CustomMouseArea {
 
                             return Colours.palette.m3onSurfaceVariant;
                         }
-                        opacity: dayItem.model.today || dayItem.model.month === grid.month ? 1 : 0.4
+                        opacity: dayItem.model.today || dayItem.inMonth ? 1 : 0.4
                         font: Tokens.font.body.small
+                    }
+
+                    // One dot per event, up to three, each in its kind's colour. Today's count
+                    // goes on a badge beside its shape instead (see todayBadge)
+                    Row {
+                        anchors.horizontalCenter: parent.horizontalCenter
+                        anchors.bottom: parent.bottom
+                        anchors.bottomMargin: 1
+
+                        visible: dayItem.hasDots
+                        opacity: dayItem.inMonth ? 1 : 0.4
+                        spacing: 2
+
+                        Repeater {
+                            model: dayItem.dayEvents.slice(0, 3)
+
+                            StyledRect {
+                                required property var modelData
+
+                                implicitWidth: dayItem.dotSize
+                                implicitHeight: dayItem.dotSize
+                                radius: dayItem.dotSize / 2
+                                color: CalendarEvents.colourOf(modelData)
+                            }
+                        }
+                    }
+
+                    // A day opens in GNOME Calendar
+                    StateLayer {
+                        anchors.fill: undefined
+                        anchors.centerIn: parent
+                        implicitWidth: Math.min(parent.width, dayItem.baseSize + 4)
+                        implicitHeight: dayItem.baseSize + 2
+
+                        visible: root.showEvents
+                        radius: Tokens.rounding.small
+                        onClicked: CalendarEvents.openDate(dayItem.model.date)
                     }
                 }
             }
@@ -235,7 +312,9 @@ CustomMouseArea {
                 x: today ? today.x + (today.width - implicitWidth) / 2 : 0
                 y: today ? today.y - Tokens.padding.extraSmall - 1 : 0
 
-                implicitSize: today ? Math.max(today.implicitWidth, today.implicitHeight) + Tokens.padding.extraSmall * 2 : 0
+                // qmllint disable missing-property
+                implicitSize: today ? today.baseSize + Tokens.padding.extraSmall * 2 : 0
+                // qmllint enable missing-property
                 shape: MaterialShape.Sunny
 
                 clip: true
@@ -253,6 +332,34 @@ CustomMouseArea {
                     source: grid
                     sourceColor: Colours.palette.m3onSurface
                     colorizationColor: Colours.palette.m3onPrimary
+                }
+            }
+
+            // Today's special and rare events as a count on the corner of its shape
+            StyledRect {
+                id: todayBadge
+
+                readonly property var events: root.showEvents && todayIndicator.todayItem ? CalendarEvents.today : []
+
+                x: todayIndicator.x + todayIndicator.width - width + 3
+                y: todayIndicator.y - 3
+                implicitWidth: Math.max(implicitHeight, badgeText.implicitWidth + 6)
+                implicitHeight: badgeText.implicitHeight + 2
+
+                visible: events.length > 0
+                opacity: todayIndicator.opacity
+                radius: height / 2
+                color: CalendarEvents.dayColour(Time.date) ?? "transparent"
+                border.width: 1.5
+                border.color: Colours.palette.m3surfaceContainer
+
+                StyledText {
+                    id: badgeText
+
+                    anchors.centerIn: parent
+                    text: todayBadge.events.length > 9 ? "9+" : todayBadge.events.length
+                    color: Colours.on(todayBadge.color)
+                    font: Tokens.font.label.builders.small.size(7).weight(Font.Bold).build()
                 }
             }
         }

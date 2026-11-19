@@ -73,6 +73,7 @@ FEATURES=(
     "sensors|Sensors & power|Temperatures, fan readings and power profiles|lm_sensors power-profiles-daemon|"
     "network|Network|The network widget, its list and its controls|networkmanager|"
     "web|Weather & tiles|Fetches the weather and the desktop tiles|curl jq|"
+    "calendar|Calendar events|Marks the days with GNOME Calendar events on the dashboard|gnome-calendar evolution-data-server python-gobject|"
     "desktop|Desktop links|Opening links, and notifications from scripts|xdg-utils libnotify|"
     "shells|Script shells|The shells the bundled scripts are written in|fish bash|"
     "fonts|Extra fonts|Rubik and Cascadia Code Nerd Font|  |ttf-rubik-vf ttf-cascadia-code-nerd"

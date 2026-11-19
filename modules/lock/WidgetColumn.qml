@@ -39,7 +39,7 @@ ColumnLayout {
     // Ids of the widgets whose size is fixed to their natural content height rather than a
     // weight share - their weights are ignored. Audio and network read live service state whose
     // card height doesn't depend on it, so they size naturally too
-    readonly property var autoSized: ["fetch", "resources", "battery", "network", "audio"]
+    readonly property var autoSized: ["fetch", "resources", "battery", "network", "audio", "events", "day"]
 
     // Every delegate's modelData is its config entry, so visible delegates are counted from
     // the actual children rather than `items` - an invisible one (battery on a desktop, say)
@@ -202,6 +202,33 @@ ColumnLayout {
                     Layout.fillWidth: true
                     Layout.preferredHeight: audioWidget.implicitHeight
                     Layout.minimumHeight: audioWidget.implicitHeight
+                }
+            }
+
+            DelegateChoice {
+                roleValue: "day"
+                delegate: DayCard {
+                    id: dayWidget
+
+                    required property var modelData
+
+                    Layout.fillWidth: true
+                    Layout.preferredHeight: dayWidget.implicitHeight
+                    Layout.minimumHeight: dayWidget.implicitHeight
+                }
+            }
+
+            DelegateChoice {
+                roleValue: "events"
+                delegate: EventsCard {
+                    id: eventsWidget
+
+                    required property var modelData
+
+                    Layout.fillWidth: true
+                    // Fixed natural height, as above for Fetch: a few rows at most
+                    Layout.preferredHeight: eventsWidget.implicitHeight
+                    Layout.minimumHeight: eventsWidget.implicitHeight
                 }
             }
 
