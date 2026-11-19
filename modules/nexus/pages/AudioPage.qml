@@ -29,14 +29,16 @@ PageBase {
             label: Tr.trCtx("Output", "audio output")
             valueLabel: Strings.percentOne(value)
             value: Audio.volume
-            enabled: !Audio.muted
             onMoved: v => Audio.setVolume(v)
         }
 
         ToggleRow {
             text: Tr.trCtx("Muted", "audio output muted")
-            checked: Audio.muted
-            onToggled: Audio.setStreamMuted(Audio.sink, checked)
+            checked: Audio.silent
+            onToggled: {
+                if (checked !== Audio.silent)
+                    Audio.toggleMuted();
+            }
         }
 
         AudioDeviceList {

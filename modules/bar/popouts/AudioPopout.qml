@@ -97,7 +97,7 @@ Item {
 
         StyledText {
             Layout.topMargin: Tokens.spacing.medium
-            text: Audio.muted ? Tr.tr("Volume (muted)") : Tr.tr("Volume (%1%)").arg(Math.round(Audio.volume * 100))
+            text: Audio.silent ? Tr.tr("Volume (muted)") : Tr.tr("Volume (%1%)").arg(Math.round(Audio.volume * 100))
             font: Tokens.font.body.builders.medium.weight(Font.Medium).build()
         }
 

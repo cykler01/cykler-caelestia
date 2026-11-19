@@ -31,7 +31,7 @@ WidgetCard {
         case "bluetooth":
             return Bluetooth.defaultAdapter?.enabled ?? false;
         case "sound":
-            return !Audio.muted;
+            return !Audio.silent;
         case "mic":
             return !Audio.sourceMuted;
         case "dnd":

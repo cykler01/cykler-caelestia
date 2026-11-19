@@ -34,6 +34,11 @@ Singleton {
 
     readonly property bool muted: !!sink?.audio?.muted
     readonly property real volume: sink?.audio?.volume ?? 0
+    // Output counts as muted when it is turned all the way down as well as when the sink itself is muted: muting
+    // here is a volume of 0 (see toggleMuted), but something else may still mute the sink
+    readonly property bool silent: muted || volume <= 0
+    // The level toggleMuted takes the volume back to
+    property real volumeBeforeMute: 0
 
     readonly property bool sourceMuted: !!source?.audio?.muted
     readonly property real sourceVolume: source?.audio?.volume ?? 0
@@ -51,9 +56,21 @@ Singleton {
         }
     }
 
+    // Mute is the volume at 0 rather than the sink's mute flag, so the slider shows it and moving the slider
+    // is enough to undo it. Unmuting goes back to the level it was muted from, or half if there is none
     function toggleMuted(): void {
-        if (sink?.ready && sink?.audio)
-            sink.audio.muted = !sink.audio.muted;
+        if (!(sink?.ready && sink?.audio))
+            return;
+
+        const audio = sink.audio;
+        if (audio.muted || audio.volume <= 0) {
+            audio.muted = false;
+            if (audio.volume <= 0)
+                audio.volume = Math.min(GlobalConfig.services.maxVolume, root.volumeBeforeMute > 0 ? root.volumeBeforeMute : 0.5);
+        } else {
+            root.volumeBeforeMute = audio.volume;
+            audio.volume = 0;
+        }
     }
 
     // Keybind/scroll-wheel steps, as opposed to setVolume above: these shouldn't un-mute, since
