@@ -4,7 +4,10 @@ import QtQuick
 import QtQuick.Layouts
 import Caelestia.Config
 import Caelestia.I18n
+import qs.components
 import qs.components.controls
+import qs.components.misc
+import qs.services
 import qs.modules.nexus
 import qs.modules.nexus.common
 
@@ -79,11 +82,19 @@ PageBase {
         }
 
         ToggleRow {
-            last: true
             text: Tr.tr("Show clock seconds")
             subtext: Tr.tr("Display seconds for the clock in the main panel")
             checked: Config.dashboard.showClockSeconds
             onToggled: GlobalConfig.dashboard.showClockSeconds = checked
+        }
+
+        ToggleRow {
+            // SEARCH: gnome calendar events agenda evolution appointments
+            last: true
+            text: Tr.tr("Calendar events")
+            subtext: Tr.tr("Read GNOME Calendar for the calendar card and the event widgets")
+            checked: GlobalConfig.dashboard.calendarEvents
+            onToggled: GlobalConfig.dashboard.calendarEvents = checked
         }
 
         // Profile picture
@@ -95,6 +106,41 @@ PageBase {
             first: true
             rootParent: root.flickable
             profileConfig: GlobalConfig.dashboard
+        }
+
+        // Event kinds, one row per calendar
+        SectionHeader {
+            visible: GlobalConfig.dashboard.calendarEvents
+            text: Tr.tr("Event types")
+        }
+
+        StyledText {
+            Layout.fillWidth: true
+            Layout.bottomMargin: Tokens.spacing.small
+            visible: GlobalConfig.dashboard.calendarEvents
+            text: CalendarEvents.available ? Tr.tr("Regular events (lessons, the weekly routine) stay off the calendar and only show on day progress, in grey. Special one-offs are blue, rare ones like birthdays and holidays green. Left automatic, a calendar's events are sorted by how often each repeats.") : Tr.tr("Install evolution-data-server to read GNOME Calendar's calendars.")
+            color: Colours.palette.m3outline
+            font: Tokens.font.label.small
+            wrapMode: Text.WordWrap
+        }
+
+        Repeater {
+            model: GlobalConfig.dashboard.calendarEvents ? Object.keys(CalendarEvents.calendars).sort((a, b) => CalendarEvents.calendars[a].name.localeCompare(CalendarEvents.calendars[b].name)) : []
+
+            CalendarKindRow {
+                required property string modelData
+                required property int index
+
+                first: index === 0
+                last: index === Object.keys(CalendarEvents.calendars).length - 1
+                calendarUid: modelData
+                calendarName: CalendarEvents.calendars[modelData].name
+            }
+        }
+
+        // Starts the calendar reader while this page is open, so the calendars above are listed
+        Ref {
+            service: CalendarEvents
         }
 
         // Home page widgets
