@@ -71,7 +71,7 @@ void ButtonRow::relayout() {
 
     qreal reservedWidth = 0;
     qreal unreservedWidth = 0;
-    int fillWidthCount = 0;
+    qreal totalWeight = 0;
     qreal maxHeight = 0;
     for (const auto* child : validChildren) {
         maxHeight = qMax(maxHeight, child->implicitHeight());
@@ -81,22 +81,23 @@ void ButtonRow::relayout() {
             continue;
 
         if (prop.toBool()) {
-            fillWidthCount++;
+            totalWeight += fillWeight(child);
             unreservedWidth += child->implicitWidth();
         } else {
             reservedWidth += child->implicitWidth();
         }
     }
 
-    if (fillWidthCount == 0)
-        fillWidthCount = 1; // Avoid divide by 0
+    if (totalWeight <= 0)
+        totalWeight = 1; // Avoid divide by 0
 
-    const auto widthPerItem = (width() - totalSpacing - reservedWidth) / static_cast<qreal>(fillWidthCount);
+    const auto widthPerWeight = (width() - totalSpacing - reservedWidth) / totalWeight;
 
     QList<qreal> baseWidths;
     baseWidths.reserve(nChildren);
     for (const auto* child : validChildren)
-        baseWidths.append(child->property("fillWidth").toBool() ? widthPerItem : child->implicitWidth());
+        baseWidths.append(
+            child->property("fillWidth").toBool() ? widthPerWeight * fillWeight(child) : child->implicitWidth());
 
     qreal accX = 0;
     for (int i = 0; i < nChildren; ++i) {
@@ -123,6 +124,15 @@ void ButtonRow::relayout() {
 
     setImplicitWidth(reservedWidth + unreservedWidth + totalSpacing);
     setImplicitHeight(maxHeight);
+}
+
+// How many shares of the free width a filling child takes. Children without the property take one
+qreal ButtonRow::fillWeight(const QQuickItem* item) {
+    const auto prop = item->property("fillWeight");
+    if (!prop.isValid())
+        return 1.0;
+    const auto weight = prop.toReal();
+    return weight > 0 ? weight : 1.0;
 }
 
 qreal ButtonRow::getMorphExpansion(const QQuickItem* item) {

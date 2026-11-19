@@ -14,10 +14,16 @@ ListView {
 
     property alias values: valuesModel.values
     property bool first
+    // Whether a row has a delete button. Off for a list of things that are all always there, which are only shown or hidden
+    property bool removable: true
+    // Sizes a row can be set to, as { value, label } in the order a press on the row's size button steps through. Empty
+    // gives no size button
+    property var sizeOptions: []
 
     signal itemMoved(from: int, to: int)
     signal itemRemoved(index: int)
     signal itemToggled(index: int, checked: bool)
+    signal itemResized(index: int, size: var)
 
     function labelFor(item: var): string {
         return item.label;
@@ -25,6 +31,16 @@ ListView {
 
     function toggledFor(item: var): bool {
         return false;
+    }
+
+    // The value in sizeOptions that a row is currently at
+    function sizeFor(item: var): var {
+        return undefined;
+    }
+
+    // The sizes a given row can take, if that differs from sizeOptions. Return an empty list for a row with no size
+    function sizeOptionsFor(item: var): var {
+        return sizeOptions;
     }
 
     function dampOvershoot(overshoot: real, maxOvershoot: real): real {
@@ -311,7 +327,34 @@ ListView {
                     onToggled: root.itemToggled(item.DelegateModel.itemsIndex, checked)
                 }
 
+                StyledRect {
+                    id: sizeButton
+
+                    readonly property var options: root.sizeOptionsFor(item.modelData) ?? []
+                    readonly property int currentIndex: Math.max(0, options.findIndex(o => o.value === root.sizeFor(item.modelData)))
+
+                    visible: options.length > 1
+                    implicitWidth: sizeLabel.implicitWidth + Tokens.padding.large * 2
+                    implicitHeight: sizeLabel.implicitHeight + Tokens.padding.small * 2
+                    radius: Tokens.rounding.full
+                    color: Colours.palette.m3secondaryContainer
+
+                    StyledText {
+                        id: sizeLabel
+
+                        anchors.centerIn: parent
+                        text: sizeButton.options[sizeButton.currentIndex]?.label ?? ""
+                        color: Colours.palette.m3onSecondaryContainer
+                        font: Tokens.font.label.medium
+                    }
+
+                    StateLayer {
+                        onClicked: root.itemResized(item.DelegateModel.itemsIndex, sizeButton.options[(sizeButton.currentIndex + 1) % sizeButton.options.length].value)
+                    }
+                }
+
                 IconButton {
+                    visible: root.removable
                     type: IconButton.Text
                     isRound: true
                     icon: "delete"

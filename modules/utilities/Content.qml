@@ -2,6 +2,7 @@ pragma ComponentBehavior: Bound
 
 import QtQuick
 import QtQuick.Layouts
+import Quickshell
 import Caelestia.Config
 import qs.components
 import qs.modules.utilities.cards
@@ -15,8 +16,39 @@ Item {
     required property BarPopouts.Wrapper popouts
     required property matrix4x4 deformMatrix
 
-    readonly property int enabledCards: (idleInhibit.active ? 1 : 0) + (record.active ? 1 : 0) + (phoneShare.active ? 1 : 0) + (toggles.active ? 1 : 0)
-    readonly property real nonAnimHeight: ((idleInhibit.item as IdleInhibit)?.nonAnimHeight ?? 0) + ((record.item as Record)?.nonAnimHeight ?? 0) + ((phoneShare.item as PhoneShare)?.nonAnimHeight ?? 0) + ((toggles.item as Toggles)?.implicitHeight ?? 0) + layout.spacing * Math.max(0, enabledCards - 1)
+    // Bumped as cards come and go, so the height below is worked out again for them: itemAt() on its own
+    // doesn't tell a binding that an item has been created
+    property int cardsRevision
+
+    readonly property real nonAnimHeight: {
+        root.cardsRevision;
+
+        let height = 0;
+        let shown = 0;
+        for (let i = 0; i < cards.count; i++) {
+            const card = cards.itemAt(i);
+            if (!card?.active)
+                continue;
+
+            height += card.cardHeight;
+            shown++;
+        }
+        return height + layout.spacing * Math.max(0, shown - 1);
+    }
+
+    function cardEnabled(id: string): bool {
+        switch (id) {
+        case "keepAwake":
+            return Config.utilities.cards.keepAwake;
+        case "recorder":
+            return Config.utilities.cards.recorder;
+        case "phoneShare":
+            return Config.utilities.cards.phoneShare;
+        case "quickToggles":
+            return Config.utilities.cards.quickToggles;
+        }
+        return false;
+    }
 
     implicitWidth: layout.implicitWidth
     implicitHeight: layout.implicitHeight
@@ -27,61 +59,96 @@ Item {
         anchors.fill: parent
         spacing: Tokens.spacing.medium
 
-        Loader {
-            id: idleInhibit
+        // The cards, in the order Config.utilities.cards.order gives. A card that is not in the list is not shown
+        Repeater {
+            id: cards
 
-            Layout.fillWidth: true
-            active: Config.utilities.cards.keepAwake
-            visible: active
+            model: ScriptModel {
+                values: Config.utilities.cards.order.values
+            }
 
-            sourceComponent: IdleInhibit {
-                objectName: "utilitiesKeepAwake"
+            onItemAdded: root.cardsRevision++
+            onItemRemoved: root.cardsRevision++
+
+            Loader {
+                id: card
+
+                required property var modelData
+
+                readonly property string cardId: modelData.id
+                readonly property bool compact: modelData.size === "compact"
+                // What the card settles at rather than what it is passing through, where it has one
+                readonly property real cardHeight: item ? (item.nonAnimHeight ?? item.implicitHeight) : 0
+
+                Layout.fillWidth: true
+                active: root.cardEnabled(cardId)
+                visible: active
+                // The recorder's menu opens over the cards under it
+                z: cardId === "recorder" ? 1 : 0
+
+                // Only these two have a compact form
+                Binding {
+                    target: card.item
+                    property: "compact"
+                    value: card.compact
+                    when: card.item && (card.cardId === "keepAwake" || card.cardId === "recorder")
+                }
+
+                sourceComponent: {
+                    switch (cardId) {
+                    case "keepAwake":
+                        return keepAwakeCard;
+                    case "recorder":
+                        return recorderCard;
+                    case "phoneShare":
+                        return phoneShareCard;
+                    case "quickToggles":
+                        return togglesCard;
+                    }
+                    return null;
+                }
             }
         }
+    }
 
-        Loader {
-            id: record
+    Component {
+        id: keepAwakeCard
 
-            Layout.fillWidth: true
-            active: Config.utilities.cards.recorder
-            visible: active
-            z: 1
+        IdleInhibit {
+            objectName: "utilitiesKeepAwake"
 
-            sourceComponent: Record {
-                objectName: "utilitiesScreenRecorder"
-
-                props: root.props
-                screenState: root.screenState
-            }
         }
+    }
 
-        Loader {
-            id: phoneShare
+    Component {
+        id: recorderCard
 
-            Layout.fillWidth: true
-            active: Config.utilities.cards.phoneShare
-            visible: active
+        Record {
+            objectName: "utilitiesScreenRecorder"
 
-            sourceComponent: PhoneShare {
-                objectName: "utilitiesPhoneShare"
-
-                screenState: root.screenState
-            }
+            props: root.props
+            screenState: root.screenState
         }
+    }
 
-        Loader {
-            id: toggles
+    Component {
+        id: phoneShareCard
 
-            Layout.fillWidth: true
-            active: Config.utilities.cards.quickToggles
-            visible: active
+        PhoneShare {
+            objectName: "utilitiesPhoneShare"
 
-            sourceComponent: Toggles {
-                objectName: "utilitiesQuickToggles"
+            screenState: root.screenState
+        }
+    }
 
-                screenState: root.screenState
-                popouts: root.popouts
-            }
+    Component {
+        id: togglesCard
+
+        Toggles {
+            objectName: "utilitiesQuickToggles"
+
+            screenState: root.screenState
+            popouts: root.popouts
         }
     }
 

@@ -11,10 +11,16 @@ StyledRect {
     // Gap between the row above and the "active since" chip under it, shared by where the chip sits
     // and the height the card settles at
     readonly property real chipSpacing: Tokens.spacing.large
+    // Only the title and the modes: no line under the title and no "active since" chip
+    property bool compact
+    // The mode the pointer is over in the pill, -1 for none. The line under the title then says what that mode does
+    // instead of what the current one does
+    property int hoveredMode: -1
+    readonly property bool showChip: IdleInhibitor.active && !compact
     // The height the card settles at, not the one it is passing through on the way there. The chip's
     // position is animated, so reading it here had the card chase its own animation, and anything
     // laid out from this height (the notifications panel) measured it mid-move.
-    readonly property real nonAnimHeight: layout.implicitHeight + (IdleInhibitor.active ? activeChip.implicitHeight + root.chipSpacing : 0) + Tokens.padding.extraLargeIncreased
+    readonly property real nonAnimHeight: layout.implicitHeight + (root.showChip ? activeChip.implicitHeight + root.chipSpacing : 0) + Tokens.padding.extraLargeIncreased
 
     implicitHeight: nonAnimHeight
 
@@ -62,10 +68,12 @@ StyledRect {
 
             StyledText {
                 Layout.fillWidth: true
+                visible: !root.compact
                 text: {
-                    if (IdleInhibitor.preventLock)
+                    const mode = root.hoveredMode >= 0 ? root.hoveredMode : IdleInhibitor.mode;
+                    if (mode >= IdleInhibitor.preventLockAndSleepMode)
                         return Tr.trCtx("Won't lock or sleep when idle", "idle inhibitor");
-                    if (IdleInhibitor.preventSleep)
+                    if (mode >= IdleInhibitor.preventSleepMode)
                         return Tr.trCtx("Won't sleep when idle, still locks", "idle inhibitor");
                     return Tr.trCtx("Normal power management", "idle inhibitor");
                 }
@@ -145,11 +153,11 @@ StyledRect {
         // resize the card to the wrong height first and then jump to the right one
         anchors.top: layout.bottom
         anchors.left: parent.left
-        anchors.topMargin: IdleInhibitor.active ? root.chipSpacing : -implicitHeight
+        anchors.topMargin: root.showChip ? root.chipSpacing : -implicitHeight
         anchors.leftMargin: Tokens.padding.large
 
-        opacity: IdleInhibitor.active ? 1 : 0
-        scale: IdleInhibitor.active ? 1 : 0.5
+        opacity: root.showChip ? 1 : 0
+        scale: root.showChip ? 1 : 0.5
 
         sourceComponent: StyledRect {
             implicitWidth: activeText.implicitWidth + Tokens.padding.medium * 2
@@ -219,6 +227,17 @@ StyledRect {
 
             Behavior on fill {
                 Anim {}
+            }
+        }
+
+        HoverHandler {
+            id: hover
+
+            onHoveredChanged: {
+                if (hovered)
+                    root.hoveredMode = stage.modelData.mode;
+                else if (root.hoveredMode === stage.modelData.mode)
+                    root.hoveredMode = -1;
             }
         }
 

@@ -68,9 +68,42 @@ class UtilitiesBottomText : public settings::ObjectNode {
     CONFIG_GLOBAL_PROPERTY(bool, enabled, true)
 };
 
+// NOTE(fork): one quick toggle. Where it sits in the list is where it sits in the card
+class UtilitiesToggleEntry : public settings::ObjectNode {
+    CONFIG_NODE(UtilitiesToggleEntry, settings::ObjectNode)
+
+    CONFIG_PROPERTY(QString, id, {})
+    CONFIG_PROPERTY(bool, enabled, true)
+    // How many of the card's columns the toggle takes up, 1 to the number of columns
+    CONFIG_PROPERTY(int, span, 1)
+};
+CONFIG_LIST_TYPE(UtilitiesToggleEntry, UtilitiesToggleList)
+
+// NOTE(fork): one card of the utilities panel. Whether it shows is still the bool of the same name in
+// UtilitiesCards, the list gives the order the cards stack in and how big each one is
+class UtilitiesCardEntry : public settings::ObjectNode {
+    CONFIG_NODE(UtilitiesCardEntry, settings::ObjectNode)
+
+    // "keepAwake", "recorder", "phoneShare" or "quickToggles"
+    CONFIG_PROPERTY(QString, id, {})
+    // "normal" or "compact", what compact drops is up to the card
+    CONFIG_PROPERTY(QString, size, u"normal"_s)
+};
+CONFIG_LIST_TYPE(UtilitiesCardEntry, UtilitiesCardList)
+
 class UtilitiesCards : public settings::ObjectNode {
     CONFIG_NODE(UtilitiesCards, settings::ObjectNode)
 
+    // Top to bottom
+    CONFIG_LIST(UtilitiesCardList, order,
+        DEFAULT_ARG({
+            vmap({ { u"id"_s, u"keepAwake"_s } }),
+            vmap({ { u"id"_s, u"recorder"_s } }),
+            vmap({ { u"id"_s, u"phoneShare"_s } }),
+            vmap({ { u"id"_s, u"quickToggles"_s } }),
+        }))
+    // How many columns the quick toggles are laid out in
+    CONFIG_PROPERTY(int, toggleColumns, 4)
     CONFIG_PROPERTY(bool, keepAwake, true)
     CONFIG_PROPERTY(bool, recorder, true)
     CONFIG_PROPERTY(bool, quickToggles, true)
@@ -104,7 +137,7 @@ class UtilitiesConfig : public settings::ObjectNode {
     CONFIG_GLOBAL_SUBOBJECT(UtilitiesVpn, vpn)
     CONFIG_GLOBAL_SUBOBJECT(UtilitiesGameMode, gameMode)
     CONFIG_GLOBAL_SUBOBJECT(UtilitiesBottomText, bottomText)
-    CONFIG_LIST(EntryList, quickToggles,
+    CONFIG_LIST(UtilitiesToggleList, quickToggles,
         DEFAULT_ARG({
             LIST_ENTRY(wifi, true),
             LIST_ENTRY(bluetooth, true),

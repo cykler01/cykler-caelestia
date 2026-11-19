@@ -13,9 +13,12 @@ import qs.services
 StyledRect {
     id: root
 
+    // No list of recordings under the buttons while nothing is being recorded
+    property bool compact
+
     required property var props
     required property ScreenState screenState
-    readonly property real nonAnimHeight: btnLayout.implicitHeight + listOrControls.implicitHeight + layout.spacing + layout.anchors.margins * 2
+    readonly property real nonAnimHeight: btnLayout.implicitHeight + (listOrControls.visible ? listOrControls.implicitHeight + layout.spacing : 0) + layout.anchors.margins * 2
 
     implicitHeight: layout.implicitHeight + layout.anchors.margins * 2
 
@@ -121,6 +124,7 @@ StyledRect {
             property bool running: Recorder.running
 
             asynchronous: true
+            visible: !root.compact || running
             Layout.fillWidth: true
             Layout.preferredHeight: implicitHeight
             sourceComponent: running ? recordingControls : recordingList

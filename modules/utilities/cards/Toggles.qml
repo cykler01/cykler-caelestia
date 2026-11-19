@@ -12,6 +12,7 @@ import qs.components.controls
 import qs.services
 import qs.modules.nexus
 import qs.modules.bar.popouts as BarPopouts
+import "../../../utils/toggleRows.js" as ToggleRows
 
 StyledRect {
     id: root
@@ -35,8 +36,8 @@ StyledRect {
             return true;
         });
     }
-    readonly property int splitIndex: Math.ceil(quickToggles.length / 2)
-    readonly property bool needExtraRow: quickToggles.length > 6
+    readonly property int columns: Math.max(1, Config.utilities.cards.toggleColumns)
+    readonly property var rows: ToggleRows.pack(quickToggles, columns)
 
     implicitHeight: layout.implicitHeight + Tokens.padding.extraLargeIncreased
 
@@ -55,13 +56,14 @@ StyledRect {
             font: Tokens.font.body.medium
         }
 
-        QuickToggleRow {
-            model: root.needExtraRow ? root.quickToggles.slice(0, root.splitIndex) : root.quickToggles
-        }
+        Repeater {
+            model: root.rows
 
-        QuickToggleRow {
-            visible: root.needExtraRow
-            model: root.needExtraRow ? root.quickToggles.slice(root.splitIndex) : []
+            QuickToggleRow {
+                required property var modelData
+
+                model: modelData
+            }
         }
     }
 
@@ -180,6 +182,9 @@ StyledRect {
     }
 
     component Toggle: IconButton {
+        required property var modelData
+
+        fillWeight: ToggleRows.spanOf(modelData, root.columns)
         inactiveColour: Colours.layer(Colours.palette.m3surfaceContainerHighest, 2)
         fillWidth: true
         isToggle: true
