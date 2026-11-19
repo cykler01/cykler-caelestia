@@ -18,6 +18,8 @@ PageBase {
             clock: Tr.tr("Clock"),
             profile: Tr.tr("Profile"),
             calendar: Tr.tr("Calendar"),
+            events: Tr.tr("Calendar events"),
+            day: Tr.tr("Day progress"),
             resources: Tr.tr("Resources"),
             media: Tr.tr("Media")
         })
@@ -27,6 +29,8 @@ PageBase {
             clock: "schedule",
             profile: "account_circle",
             calendar: "calendar_month",
+            events: "event",
+            day: "timelapse",
             resources: "monitoring",
             media: "music_note"
         })
@@ -39,6 +43,12 @@ PageBase {
             calendar: "bottom",
             resources: "bottom",
             media: "right"
+        })
+
+    // Where a card goes when added back that is not on the page by default
+    readonly property var addZones: ({
+            events: "right",
+            day: "top"
         })
 
     title: Tr.tr("Widgets")
@@ -120,7 +130,7 @@ PageBase {
                 GlobalConfig.dashboard.widgets.insert({
                     id: selectedItem,
                     enabled: true,
-                    zone: root.defaults[selectedItem] ?? "top"
+                    zone: root.defaults[selectedItem] ?? root.addZones[selectedItem] ?? "top"
                 });
             }
         }

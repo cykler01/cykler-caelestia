@@ -215,6 +215,18 @@ Item {
                 }
             }
             DelegateChoice {
+                roleValue: "day"
+                delegate: DayCard {
+                    gridHost: root
+                }
+            }
+            DelegateChoice {
+                roleValue: "events"
+                delegate: EventsCard {
+                    gridHost: root
+                }
+            }
+            DelegateChoice {
                 roleValue: "clock"
                 delegate: ClockCard {
                     gridHost: root
