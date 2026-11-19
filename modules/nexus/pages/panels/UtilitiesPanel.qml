@@ -137,6 +137,33 @@ PageBase {
             onItemResized: (index, size) => GlobalConfig.utilities.cards.order.at(index).size = size
         }
 
+        // Puts back a card that is missing from the order list, which is what a config written before the card
+        // existed ends up with; without this there is no row to switch on and no way to add one
+        DialogSelectButton {
+            rootParent: root.flickable
+            icon: "add"
+            label: Tr.tr("Add card")
+            header: Tr.tr("Add a card")
+            acceptLabel: Tr.trCtx("Add", "button")
+            visible: model.length > 0
+
+            model: Object.keys(root.cardNames).filter(id => !Config.utilities.cards.order.values.some(c => c.id === id)).map(id => ({
+                        id,
+                        label: root.cardNames[id]
+                    }))
+
+            onAccepted: {
+                if (!selectedItem)
+                    return;
+
+                GlobalConfig.utilities.cards.order.insert({
+                    id: selectedItem,
+                    size: "normal"
+                });
+                root.setCardOn(selectedItem, true);
+            }
+        }
+
         // Quick toggles
         SectionHeader {
             text: Tr.tr("Quick toggles")
