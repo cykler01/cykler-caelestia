@@ -84,6 +84,7 @@ private:
 
     QVector<double> m_targetValues;
     QVector<double> m_displayValues;
+    QVector<double> m_velocities;
     QColor m_primaryColor;
     QColor m_secondaryColor;
     qreal m_rounding = 0.0;

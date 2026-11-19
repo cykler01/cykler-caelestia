@@ -20,22 +20,40 @@ void VisualiserBars::advance(qreal dt) {
     if (m_displayValues.isEmpty() || m_settled)
         return;
 
-    // dt is in seconds (from FrameAnimation.frameTime), convert to ms
-    const qreal dtMs = dt * 1000.0;
-    const qreal tau = m_animationDuration / 3.0;
-    const qreal alpha = 1.0 - std::exp(-dtMs / tau);
+    // Underdamped spring per bar so values overshoot their target and bounce back.
+    // dt is in seconds (from FrameAnimation.frameTime).
+    const qreal omega = 12000.0 / std::max(m_animationDuration, 1); // rad/s
+    const qreal zeta = 0.18;
+    const qreal k = omega * omega;
+    const qreal c = 2.0 * zeta * omega;
+
+    if (m_velocities.size() != m_displayValues.size())
+        m_velocities.resize(m_displayValues.size(), 0.0);
+
+    // Substep so a long frame can't blow up the integration
+    const int steps = std::max(1, static_cast<int>(std::ceil(dt / 0.008)));
+    const qreal h = dt / steps;
 
     bool allSettled = true;
 
     for (qsizetype i = 0; i < m_displayValues.size(); ++i) {
-        const double diff = m_targetValues[i] - m_displayValues[i];
+        double x = m_displayValues[i];
+        double v = m_velocities[i];
 
-        if (std::abs(diff) > 0.001) {
-            m_displayValues[i] += diff * alpha;
+        for (int s = 0; s < steps; ++s) {
+            v += (k * (m_targetValues[i] - x) - c * v) * h;
+            x += v * h;
+        }
+
+        if (std::abs(m_targetValues[i] - x) > 0.001 || std::abs(v) > 0.01) {
             allSettled = false;
         } else {
-            m_displayValues[i] = m_targetValues[i];
+            x = m_targetValues[i];
+            v = 0.0;
         }
+
+        m_displayValues[i] = std::max(x, 0.0);
+        m_velocities[i] = m_displayValues[i] <= 0.0 && v < 0.0 ? 0.0 : v;
     }
 
     update();
@@ -103,7 +121,7 @@ void VisualiserBars::drawGroup(QPainter* painter, qreal xOffset, qreal groupWidt
 
     for (qsizetype i = 0; i < count; ++i) {
         const qsizetype valueIndex = reverse ? (count - i - 1) : i;
-        const qreal value = std::clamp(m_displayValues[valueIndex], 0.0, 1.0);
+        const qreal value = std::clamp(m_displayValues[valueIndex], 0.0, m_mirrored ? 1.25 : 1.6);
         const qreal barHeight = value * maxBarHeight;
 
         if (barHeight <= 0)
