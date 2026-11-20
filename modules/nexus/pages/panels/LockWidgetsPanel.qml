@@ -66,6 +66,7 @@ PageBase {
             Layout.fillWidth: true
             Layout.bottomMargin: Tokens.spacing.medium
             screenHeight: root.nState.screen?.height ?? 1080
+            screenWidth: root.nState.screen?.width ?? 1920
         }
 
         SectionHeader {

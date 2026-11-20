@@ -7,6 +7,7 @@ import qs.components
 import qs.services
 import qs.modules.lock as Lock
 import qs.modules.lock.center as LockCenter
+import qs.modules.lock.layouts as LockLayouts
 
 // A live, read-only miniature of the actual lock screen - the real widgets (weather, fetch,
 // media, ...), rendered with WidgetColumn.qml (the exact same component Content.qml itself uses),
@@ -28,12 +29,20 @@ Item {
     // way the desktop widgets do for their own miniature of the screen, for the rare case
     // there's no screen yet
     property real screenHeight: 1080
+    property real screenWidth: 1920
+
+    // NOTE(fork): the split, sidebar and minimal layouts (Config.lock.layout) span the whole
+    // screen rather than a card, so for those the real layout is drawn at the screen's full size
+    // and scaled down instead - with lock null, which swaps the password field for a dummy
+    readonly property string layoutId: Config.lock.layout ?? "card"
+    readonly property bool cardLayout: !["split", "sidebar", "minimal"].includes(root.layoutId)
+    readonly property real screenFactor: (root.width - root.framePadding * 2) / Math.max(1, root.screenWidth)
     readonly property real fullHeight: root.screenHeight * Tokens.sizes.lock.heightMult - Tokens.padding.extraLargeIncreased
     readonly property real fullWidth: root.fullHeight * Tokens.sizes.lock.ratio - Tokens.padding.extraLargeIncreased
 
     readonly property real factor: (root.width - root.framePadding * 2) / Math.max(1, root.fullWidth)
 
-    implicitHeight: root.fullHeight * root.factor + root.framePadding * 2
+    implicitHeight: root.cardLayout ? root.fullHeight * root.factor + root.framePadding * 2 : root.screenHeight * root.screenFactor + root.framePadding * 2
 
     StyledRect {
         id: frame
@@ -45,9 +54,47 @@ Item {
         border.color: Qt.alpha(Colours.palette.m3outlineVariant, 0.4)
         clip: true
 
+        Loader {
+            x: root.framePadding
+            y: root.framePadding
+            width: root.screenWidth
+            height: root.screenHeight
+            scale: root.screenFactor
+            transformOrigin: Item.TopLeft
+            active: !root.cardLayout
+            visible: active
+
+            sourceComponent: root.layoutId === "split" ? splitPreview : root.layoutId === "sidebar" ? sidebarPreview : minimalPreview
+        }
+
+        Component {
+            id: splitPreview
+
+            LockLayouts.SplitLayout {
+                lock: null
+            }
+        }
+
+        Component {
+            id: sidebarPreview
+
+            LockLayouts.SidebarLayout {
+                lock: null
+            }
+        }
+
+        Component {
+            id: minimalPreview
+
+            LockLayouts.MinimalLayout {
+                lock: null
+            }
+        }
+
         RowLayout {
             id: content
 
+            visible: root.cardLayout
             x: root.framePadding
             y: root.framePadding
             width: root.fullWidth
