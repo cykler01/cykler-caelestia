@@ -27,6 +27,16 @@ class LockConfig : public settings::ObjectNode {
     CONFIG_NODE(LockConfig, settings::ObjectNode)
 
     CONFIG_PROPERTY(bool, enabled, true)
+    // NOTE(fork): how the lock screen is arranged (modules/lock/LockSurface.qml):
+    // "card" - the original centre card with a widget column either side of it
+    // "split" - clock and weather on one side of the screen, the login card with its widgets on the other
+    // "sidebar" - one full-height panel along an edge holding the clock, login and every widget
+    // "minimal" - a large clock in the middle with the login under it, and no widgets
+    CONFIG_PROPERTY(QString, layout, u"card"_s)
+    // Which edge the login card / panel sits against in the split and sidebar layouts ("left" or "right")
+    CONFIG_PROPERTY(QString, panelSide, u"right"_s)
+    // Battery, network and Bluetooth pills along the top edge in the split, sidebar and minimal layouts
+    CONFIG_PROPERTY(bool, statusChips, true)
     CONFIG_PROPERTY(bool, useWallpaper, false)
     CONFIG_PROPERTY(bool, recolourLogo, true)
     CONFIG_GLOBAL_PROPERTY(bool, enableFprint, true)
