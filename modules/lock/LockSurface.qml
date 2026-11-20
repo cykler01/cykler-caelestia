@@ -64,10 +64,15 @@ WlSessionLockSurface {
     }
 
     // NOTE(fork): a pointer that has actually moved is what counts as the screen being used.
-    // HoverHandler rather than a filled MouseArea, so the cards underneath keep their own hover
-    // states and nothing swallows clicks. The position is compared by hand because pointChanged
-    // also fires for velocity and timestamp updates while the pointer sits still, which would
-    // hold the countdown open for as long as it is anywhere over the screen
+    // HoverHandler rather than a filled MouseArea, so nothing swallows clicks. The position is
+    // compared by hand because pointChanged also fires for velocity and timestamp updates while
+    // the pointer sits still, which would hold the countdown open for as long as it is anywhere
+    // over the screen.
+    //
+    // This holds everything else rather than sitting on top of it: as an overlay (z: 100) its
+    // handlers took the hover from every card and button underneath, so none of their hover
+    // states ever showed. Handlers on a parent see the pointer alongside its children instead
+    // of in their place
     Item {
         id: activityLayer
 
@@ -75,7 +80,6 @@ WlSessionLockSurface {
         property real lastY: -1
 
         anchors.fill: parent
-        z: 100
 
         // NOTE(fork): takes the pointer away with the rest of it, and is enabled only while
         // hidden so the cursors the cards set for themselves are untouched otherwise
@@ -95,6 +99,126 @@ WlSessionLockSurface {
                 activityLayer.lastX = pos.x;
                 activityLayer.lastY = pos.y;
                 root.noteActivity();
+            }
+        }
+
+        Item {
+            id: background
+
+            anchors.fill: parent
+            opacity: 0
+
+            layer.enabled: true
+            layer.effect: MultiEffect {
+                autoPaddingEnabled: false
+                blurEnabled: true
+                // NOTE(fork): follows the fade instead of easing on its own, since the blur is only
+                // there to hold the wallpaper back from what sits on top of it. Two animations over
+                // the same moment drifted against each other and flickered
+                blur: lockContent.opacity
+                blurMax: 64
+                blurMultiplier: 1
+            }
+
+            Loader {
+                anchors.fill: parent
+                sourceComponent: Config.lock.useWallpaper ? wallpaperBackground : screencopyBackground
+            }
+        }
+
+        Item {
+            id: lockContent
+
+            readonly property int size: lockIcon.implicitHeight + Tokens.padding.large * 4
+            readonly property int radius: size / 4 * Tokens.rounding.scale
+
+            anchors.centerIn: parent
+            implicitWidth: size
+            implicitHeight: size
+
+            visible: Config.lock.enabled
+            rotation: 180
+            scale: 0
+            opacity: root.idleHidden ? 0 : 1
+
+            Behavior on opacity {
+                Anim {}
+            }
+
+            StyledRect {
+                id: lockBg
+
+                anchors.fill: parent
+                color: Colours.palette.m3surface
+                radius: parent.radius
+                opacity: Colours.transparency.enabled ? Colours.transparency.base : 1
+
+                layer.enabled: true
+                layer.effect: MultiEffect {
+                    shadowEnabled: true
+                    blurMax: 15
+                    shadowColor: Qt.alpha(Colours.palette.m3shadow, 0.7)
+                }
+            }
+
+            MaterialIcon {
+                id: lockIcon
+
+                anchors.centerIn: parent
+                text: "lock"
+                fontStyle: Tokens.font.icon.builders.extraLarge.scale(4).weight(Font.Bold).build()
+                rotation: 180
+            }
+
+            // A Loader so the classic card and the other layouts are never both alive: each has a
+            // password field that insists on keyboard focus, and two would fight over it
+            Loader {
+                id: content
+
+                anchors.centerIn: parent
+                width: (root.screen?.height ?? 0) * Tokens.sizes.lock.heightMult * Tokens.sizes.lock.ratio - Tokens.padding.extraLargeIncreased
+                height: (root.screen?.height ?? 0) * Tokens.sizes.lock.heightMult - Tokens.padding.extraLargeIncreased
+
+                active: root.cardLayout
+                focus: root.cardLayout
+                opacity: 0
+                scale: 0
+
+                sourceComponent: Content {
+                    lock: root
+                }
+            }
+        }
+
+        // NOTE(fork): the split, sidebar and minimal layouts, which span the whole screen instead of
+        // sitting in the card above. Faded with the idle hide the same way the card is
+        Item {
+            id: altLayer
+
+            anchors.fill: parent
+            visible: Config.lock.enabled && !root.cardLayout
+            opacity: root.idleHidden ? 0 : 1
+
+            Behavior on opacity {
+                Anim {}
+            }
+
+            Loader {
+                id: altContent
+
+                anchors.fill: parent
+                active: !root.cardLayout
+                focus: !root.cardLayout
+                opacity: 0
+                scale: 0.94
+
+                sourceComponent: {
+                    if (root.layoutId === "split")
+                        return splitLayout;
+                    if (root.layoutId === "sidebar")
+                        return sidebarLayout;
+                    return minimalLayout;
+                }
             }
         }
     }
@@ -327,30 +451,6 @@ WlSessionLockSurface {
         }
     }
 
-    Item {
-        id: background
-
-        anchors.fill: parent
-        opacity: 0
-
-        layer.enabled: true
-        layer.effect: MultiEffect {
-            autoPaddingEnabled: false
-            blurEnabled: true
-            // NOTE(fork): follows the fade instead of easing on its own, since the blur is only
-            // there to hold the wallpaper back from what sits on top of it. Two animations over
-            // the same moment drifted against each other and flickered
-            blur: lockContent.opacity
-            blurMax: 64
-            blurMultiplier: 1
-        }
-
-        Loader {
-            anchors.fill: parent
-            sourceComponent: Config.lock.useWallpaper ? wallpaperBackground : screencopyBackground
-        }
-    }
-
     Component {
         id: screencopyBackground
 
@@ -365,102 +465,6 @@ WlSessionLockSurface {
         Visual {
             source: Wallpapers.current
             playing: PersistentState.wallpaperPlaying
-        }
-    }
-
-    Item {
-        id: lockContent
-
-        readonly property int size: lockIcon.implicitHeight + Tokens.padding.large * 4
-        readonly property int radius: size / 4 * Tokens.rounding.scale
-
-        anchors.centerIn: parent
-        implicitWidth: size
-        implicitHeight: size
-
-        visible: Config.lock.enabled
-        rotation: 180
-        scale: 0
-        opacity: root.idleHidden ? 0 : 1
-
-        Behavior on opacity {
-            Anim {}
-        }
-
-        StyledRect {
-            id: lockBg
-
-            anchors.fill: parent
-            color: Colours.palette.m3surface
-            radius: parent.radius
-            opacity: Colours.transparency.enabled ? Colours.transparency.base : 1
-
-            layer.enabled: true
-            layer.effect: MultiEffect {
-                shadowEnabled: true
-                blurMax: 15
-                shadowColor: Qt.alpha(Colours.palette.m3shadow, 0.7)
-            }
-        }
-
-        MaterialIcon {
-            id: lockIcon
-
-            anchors.centerIn: parent
-            text: "lock"
-            fontStyle: Tokens.font.icon.builders.extraLarge.scale(4).weight(Font.Bold).build()
-            rotation: 180
-        }
-
-        // A Loader so the classic card and the other layouts are never both alive: each has a
-        // password field that insists on keyboard focus, and two would fight over it
-        Loader {
-            id: content
-
-            anchors.centerIn: parent
-            width: (root.screen?.height ?? 0) * Tokens.sizes.lock.heightMult * Tokens.sizes.lock.ratio - Tokens.padding.extraLargeIncreased
-            height: (root.screen?.height ?? 0) * Tokens.sizes.lock.heightMult - Tokens.padding.extraLargeIncreased
-
-            active: root.cardLayout
-            focus: root.cardLayout
-            opacity: 0
-            scale: 0
-
-            sourceComponent: Content {
-                lock: root
-            }
-        }
-    }
-
-    // NOTE(fork): the split, sidebar and minimal layouts, which span the whole screen instead of
-    // sitting in the card above. Faded with the idle hide the same way the card is
-    Item {
-        id: altLayer
-
-        anchors.fill: parent
-        visible: Config.lock.enabled && !root.cardLayout
-        opacity: root.idleHidden ? 0 : 1
-
-        Behavior on opacity {
-            Anim {}
-        }
-
-        Loader {
-            id: altContent
-
-            anchors.fill: parent
-            active: !root.cardLayout
-            focus: !root.cardLayout
-            opacity: 0
-            scale: 0.94
-
-            sourceComponent: {
-                if (root.layoutId === "split")
-                    return splitLayout;
-                if (root.layoutId === "sidebar")
-                    return sidebarLayout;
-                return minimalLayout;
-            }
         }
     }
 
