@@ -19,6 +19,7 @@ import qs.services
 ColumnLayout {
     id: col
 
+    // "left" or "right", or "all" for the sidebar layout's single stack of every enabled widget
     required property string side
     required property real rootHeight
     required property var lock
@@ -33,7 +34,51 @@ ColumnLayout {
         const entries = Config.lock.widgets.values;
         for (const e of entries)
             void [e.enabled, e.column, e.weight];
-        return entries.filter(e => e.enabled && e.column === col.side && col.knownIds.includes(e.id));
+        const all = entries.filter(e => e.enabled && (col.side === "all" || e.column === col.side) && col.knownIds.includes(e.id));
+        if (col.fitHeight < 0)
+            return all;
+
+        // Keep widgets in order for as long as each fits whole, and leave the rest out rather
+        // than cutting the last one off part way through
+        const out = [];
+        let used = 0;
+        for (const e of all) {
+            const h = col.autoSized.includes(e.id) ? (col.measured[e.id] ?? 0) : col.minFlexHeight;
+            const add = h + (out.length > 0 && h > 0 ? col.spacing : 0);
+            if (used + add > col.fitHeight)
+                break;
+            used += add;
+            out.push(e);
+        }
+        return out;
+    }
+
+    // NOTE(fork): the free-standing layouts (modules/lock/layouts) set this to the height they can
+    // spare, and widgets that won't fit whole are dropped from the end of the list. Below zero
+    // (the classic card) everything is kept and clipped as before
+    property real fitHeight: -1
+    // The least a weighted widget is worth showing at, for the fit above
+    property real minFlexHeight: 125
+    // Last known natural heights of the fixed-size widgets by id (0 while one has nothing to show,
+    // like battery on a desktop), kept even after one is dropped so the fit can be redone
+    property var measured: ({})
+
+    function measure(item: Item): void {
+        const id = item?.modelData?.id;
+        if (!id || !col.autoSized.includes(id))
+            return;
+        const h = item.visible ? item.implicitHeight : 0;
+        if (col.measured[id] === h)
+            return;
+        const m = Object.assign({}, col.measured);
+        m[id] = h;
+        col.measured = m;
+    }
+
+    // The height this column wants when each weighted widget gets `unit` px per unit of weight,
+    // for layouts that size it to its contents instead of handing it a fixed slice of the screen
+    function naturalHeight(unit: real): real {
+        return col.autoHeight + (col.hasFlex ? col.flexTotalWeight * unit : 0) + Math.max(0, col.visibleCount - 1) * col.spacing;
     }
 
     // Ids of the widgets whose size is fixed to their natural content height rather than a
@@ -67,6 +112,11 @@ ColumnLayout {
         return sum;
     }
 
+    // Whether anything in here takes a weight share of the height. Without one the column has no
+    // use for more than its natural height, so the free-standing layouts pack it instead of
+    // stretching it (which would only spread the fixed cards apart)
+    readonly property bool hasFlex: col.items.some(e => !col.autoSized.includes(e.id))
+
     // Guard against no (or all-zero) flexible widgets so the share below never divides by
     // zero - the fixed widgets' weights don't count, they don't use a share
     readonly property real flexTotalWeight: col.items.filter(e => !col.autoSized.includes(e.id)).reduce((sum, e) => sum + e.weight, 0) || 1
@@ -79,7 +129,16 @@ ColumnLayout {
     // A flexible entry's share: the weight-slice of whatever budget is left after the
     // fixed-size widgets have taken their natural heights
     function shareOf(weight: real): real {
-        return Math.max(0, col.budget - col.autoHeight) / col.flexTotalWeight * weight;
+        const free = Math.max(0, col.budget - col.autoHeight);
+        if (col.fitHeight < 0)
+            return free / col.flexTotalWeight * weight;
+
+        // When fitting (the free-standing layouts), every weighted widget was let in on the
+        // promise of minFlexHeight, so each gets that first and only what's left is split by
+        // weight - otherwise a light one can end up shorter than its content
+        const n = col.items.filter(e => !col.autoSized.includes(e.id)).length;
+        const base = Math.min(col.minFlexHeight, free / Math.max(1, n));
+        return base + Math.max(0, free - base * n) / col.flexTotalWeight * weight;
     }
 
     Layout.fillWidth: true
@@ -91,6 +150,18 @@ ColumnLayout {
 
     Repeater {
         model: col.items
+
+        // Deferred: measuring straight away writes `measured` while `items` (which reads it) is
+        // still handing out the delegates it just made, which Qt reports as a binding loop
+        onItemAdded: (index, item) => {
+            // One closure per delegate: callLater folds repeat calls of the same function into
+            // the last one, which with a shared function would only ever measure one widget
+            const measureThis = () => col.measure(item);
+            const later = () => Qt.callLater(measureThis);
+            later();
+            item.implicitHeightChanged.connect(later);
+            item.visibleChanged.connect(later);
+        }
 
         DelegateChooser {
             role: "id"

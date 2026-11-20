@@ -8,6 +8,7 @@ import Caelestia.Multimedia
 import Caelestia.State
 import qs.components
 import qs.services
+import qs.modules.lock.layouts
 
 WlSessionLockSurface {
     id: root
@@ -15,7 +16,13 @@ WlSessionLockSurface {
     required property WlSessionLock lock
     required property Pam pam
 
-    readonly property alias unlocking: unlockAnim.running
+    readonly property bool unlocking: unlockAnim.running || altUnlockAnim.running
+    // NOTE(fork): which arrangement of the lock UI to show (Config.lock.layout). The classic card
+    // morphs out of the lock icon; the others have no card, so the icon spins in as usual and then
+    // shrinks away while the layout fades in over the whole screen. Read through lockContent since
+    // only contentItem is given a screen (see the note on GlobalConfig below)
+    readonly property string layoutId: lockContent.Config.lock.layout ?? "card"
+    readonly property bool cardLayout: !["split", "sidebar", "minimal"].includes(layoutId)
     // The dino game is up in this screen's notifications dock, which takes the keys from the
     // password field for as long as it lasts (see modules/lock/NotifDock.qml)
     property bool dinoPlaying: false
@@ -97,7 +104,10 @@ WlSessionLockSurface {
             root.dinoPlaying = false;
             root.idleHidden = false;
             idleTimer.stop();
-            unlockAnim.start();
+            if (root.cardLayout)
+                unlockAnim.start();
+            else
+                altUnlockAnim.start();
         }
 
         // The surface outlives any one lock, so the countdown is armed here rather than only
@@ -175,6 +185,115 @@ WlSessionLockSurface {
         }
     }
 
+    SequentialAnimation {
+        id: altUnlockAnim
+
+        ParallelAnimation {
+            Anim {
+                target: altContent
+                property: "opacity"
+                to: 0
+                type: Anim.StandardSmall
+            }
+            Anim {
+                target: altContent
+                property: "scale"
+                to: 1.06
+            }
+            Anim {
+                target: background
+                property: "opacity"
+                to: 0
+                type: Anim.StandardLarge
+            }
+        }
+        PropertyAction {
+            target: root.lock
+            property: "locked"
+            value: false
+        }
+    }
+
+    // The second half of the intro for the layouts without a card: the icon finishes its turn
+    // and drops away rather than opening up, and the layout comes in behind it
+    ParallelAnimation {
+        id: altInAnim
+
+        Anim {
+            target: lockIcon
+            property: "rotation"
+            to: 360
+            easing: Tokens.anim.standardDecel
+        }
+        Anim {
+            type: Anim.DefaultEffects
+            target: lockIcon
+            property: "opacity"
+            to: 0
+        }
+        Anim {
+            target: lockContent
+            property: "scale"
+            to: 0
+            type: Anim.FastSpatial
+        }
+        Anim {
+            type: Anim.DefaultEffects
+            target: altContent
+            property: "opacity"
+            to: 1
+        }
+        Anim {
+            target: altContent
+            property: "scale"
+            to: 1
+        }
+    }
+
+    // The second half of the intro for the classic card: the icon opens up into it
+    ParallelAnimation {
+        id: cardInAnim
+
+        Anim {
+            target: lockIcon
+            property: "rotation"
+            to: 360
+            easing: Tokens.anim.standardDecel
+        }
+        Anim {
+            type: Anim.DefaultEffects
+            target: lockIcon
+            property: "opacity"
+            to: 0
+        }
+        Anim {
+            type: Anim.DefaultEffects
+            target: content
+            property: "opacity"
+            to: 1
+        }
+        Anim {
+            target: content
+            property: "scale"
+            to: 1
+        }
+        Anim {
+            target: lockBg
+            property: "radius"
+            to: lockContent.Tokens.rounding.extraLarge * 1.5
+        }
+        Anim {
+            target: lockContent
+            property: "implicitWidth"
+            to: (root.screen?.height ?? 0) * lockContent.Tokens.sizes.lock.heightMult * lockContent.Tokens.sizes.lock.ratio
+        }
+        Anim {
+            target: lockContent
+            property: "implicitHeight"
+            to: (root.screen?.height ?? 0) * lockContent.Tokens.sizes.lock.heightMult
+        }
+    }
+
     ParallelAnimation {
         id: initAnim
 
@@ -202,45 +321,8 @@ WlSessionLockSurface {
                     easing: Tokens.anim.standardAccel
                 }
             }
-            ParallelAnimation {
-                Anim {
-                    target: lockIcon
-                    property: "rotation"
-                    to: 360
-                    easing: Tokens.anim.standardDecel
-                }
-                Anim {
-                    type: Anim.DefaultEffects
-                    target: lockIcon
-                    property: "opacity"
-                    to: 0
-                }
-                Anim {
-                    type: Anim.DefaultEffects
-                    target: content
-                    property: "opacity"
-                    to: 1
-                }
-                Anim {
-                    target: content
-                    property: "scale"
-                    to: 1
-                }
-                Anim {
-                    target: lockBg
-                    property: "radius"
-                    to: lockContent.Tokens.rounding.extraLarge * 1.5
-                }
-                Anim {
-                    target: lockContent
-                    property: "implicitWidth"
-                    to: (root.screen?.height ?? 0) * lockContent.Tokens.sizes.lock.heightMult * lockContent.Tokens.sizes.lock.ratio
-                }
-                Anim {
-                    target: lockContent
-                    property: "implicitHeight"
-                    to: (root.screen?.height ?? 0) * lockContent.Tokens.sizes.lock.heightMult
-                }
+            ScriptAction {
+                script: root.cardLayout ? cardInAnim.start() : altInAnim.start()
             }
         }
     }
@@ -330,16 +412,79 @@ WlSessionLockSurface {
             rotation: 180
         }
 
-        Content {
+        // A Loader so the classic card and the other layouts are never both alive: each has a
+        // password field that insists on keyboard focus, and two would fight over it
+        Loader {
             id: content
 
             anchors.centerIn: parent
             width: (root.screen?.height ?? 0) * Tokens.sizes.lock.heightMult * Tokens.sizes.lock.ratio - Tokens.padding.extraLargeIncreased
             height: (root.screen?.height ?? 0) * Tokens.sizes.lock.heightMult - Tokens.padding.extraLargeIncreased
 
-            lock: root
+            active: root.cardLayout
+            focus: root.cardLayout
             opacity: 0
             scale: 0
+
+            sourceComponent: Content {
+                lock: root
+            }
+        }
+    }
+
+    // NOTE(fork): the split, sidebar and minimal layouts, which span the whole screen instead of
+    // sitting in the card above. Faded with the idle hide the same way the card is
+    Item {
+        id: altLayer
+
+        anchors.fill: parent
+        visible: Config.lock.enabled && !root.cardLayout
+        opacity: root.idleHidden ? 0 : 1
+
+        Behavior on opacity {
+            Anim {}
+        }
+
+        Loader {
+            id: altContent
+
+            anchors.fill: parent
+            active: !root.cardLayout
+            focus: !root.cardLayout
+            opacity: 0
+            scale: 0.94
+
+            sourceComponent: {
+                if (root.layoutId === "split")
+                    return splitLayout;
+                if (root.layoutId === "sidebar")
+                    return sidebarLayout;
+                return minimalLayout;
+            }
+        }
+    }
+
+    Component {
+        id: splitLayout
+
+        SplitLayout {
+            lock: root
+        }
+    }
+
+    Component {
+        id: sidebarLayout
+
+        SidebarLayout {
+            lock: root
+        }
+    }
+
+    Component {
+        id: minimalLayout
+
+        MinimalLayout {
+            lock: root
         }
     }
 }
