@@ -137,6 +137,16 @@ Singleton {
         }
     }
 
+    // Only Ogg containers (Opus/Vorbis) keep their tags on the audio stream where Qt cannot see
+    // them, so only those need a taglib read when they load; mp3/m4a/flac/aac sessions never
+    // reach the scan below and behave exactly as they did.
+    readonly property bool currentNeedsTagScan: /\.(opus|ogg|oga)$/i.test(root.currentFile)
+
+    onCurrentChanged: {
+        if (root.currentNeedsTagScan && root.currentTags.title === undefined)
+            root.ensureTags();
+    }
+
     onHasTrackChanged: {
         if (!root.hasTrack) {
             root.wasRecentlyPlaying = false;
@@ -158,11 +168,17 @@ Singleton {
     // metaData is read through this property so the bindings below track metaDataChanged
     readonly property var metaData: mediaPlayer.metaData
 
-    readonly property string title: root.metaData?.stringValue(MediaMetaData.Title) || root.fileName
+    // NOTE(fork): Qt's ffmpeg backend only surfaces format-level metadata, and an Ogg/Opus file
+    // keeps its tags on the audio stream instead, so an .opus track reported nothing and showed
+    // up as its file name with "Unknown artist" (and no lyrics, which are looked up by artist).
+    // The taglib scan reads those files fine, so fall back to it for the now-playing fields.
+    readonly property var currentTags: root.tags[root.currentFile] ?? ({})
 
-    readonly property string artist: root.metaData?.stringValue(MediaMetaData.ContributingArtist) || root.metaData?.stringValue(MediaMetaData.AlbumArtist) || ""
+    readonly property string title: root.metaData?.stringValue(MediaMetaData.Title) || root.currentTags.title || root.fileName
 
-    readonly property string album: root.metaData?.stringValue(MediaMetaData.AlbumTitle) || ""
+    readonly property string artist: root.metaData?.stringValue(MediaMetaData.ContributingArtist) || root.metaData?.stringValue(MediaMetaData.AlbumArtist) || root.currentTags.artist || ""
+
+    readonly property string album: root.metaData?.stringValue(MediaMetaData.AlbumTitle) || root.currentTags.album || ""
 
     // Cover art. Art embedded in the track wins, then a well known image next to it. The ffmpeg
     // backend exposes the attached picture as ThumbnailImage and leaves CoverArtImage unset, and
