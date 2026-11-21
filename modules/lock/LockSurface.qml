@@ -18,8 +18,8 @@ WlSessionLockSurface {
 
     readonly property bool unlocking: unlockAnim.running || altUnlockAnim.running
     // NOTE(fork): which arrangement of the lock UI to show (Config.lock.layout). The classic card
-    // morphs out of the lock icon; the others have no card, so the icon spins in as usual and then
-    // shrinks away while the layout fades in over the whole screen. Read through lockContent since
+    // morphs out of the lock icon; the others have no card, so the icon spins in as usual and its
+    // tile then blooms and fades while the layout fades in over it. Read through lockContent since
     // only contentItem is given a screen (see the note on GlobalConfig below)
     readonly property string layoutId: lockContent.Config.lock.layout ?? "card"
     readonly property bool cardLayout: !["split", "sidebar", "minimal"].includes(layoutId)
@@ -342,7 +342,7 @@ WlSessionLockSurface {
     }
 
     // The second half of the intro for the layouts without a card: the icon finishes its turn
-    // and drops away rather than opening up, and the layout comes in behind it
+    // and its tile blooms and fades as the layout comes in
     ParallelAnimation {
         id: altInAnim
 
@@ -358,11 +358,27 @@ WlSessionLockSurface {
             property: "opacity"
             to: 0
         }
+        // The tile the icon sits on blooms a little as it fades and the layout comes up in its
+        // place, so the icon reads as turning into the layout rather than being swapped for it.
+        // Kept small and quick: grown to the whole screen it was a dark shape (with its shadow)
+        // sweeping out behind the layout, which showed as a black ripple
         Anim {
             target: lockContent
-            property: "scale"
+            property: "implicitWidth"
+            to: lockContent.size * 1.6
+        }
+        Anim {
+            target: lockContent
+            property: "implicitHeight"
+            to: lockContent.size * 1.6
+        }
+        // The tile's own background fades, not lockContent: the wallpaper blur follows
+        // lockContent's opacity (see the background layer), so fading that would lose the blur
+        Anim {
+            type: Anim.StandardSmall
+            target: lockBg
+            property: "opacity"
             to: 0
-            type: Anim.FastSpatial
         }
         Anim {
             type: Anim.DefaultEffects
