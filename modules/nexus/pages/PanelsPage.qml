@@ -56,6 +56,26 @@ PageBase {
         }
     ]
 
+    readonly property list<string> eqResponses: ["linear", "log", "sqrt", "exp"]
+    readonly property list<MenuItem> eqResponseItems: [
+        MenuItem {
+            text: Tr.trCtx("Linear", "equalizer response")
+            icon: "trending_flat"
+        },
+        MenuItem {
+            text: Tr.trCtx("Logarithmic", "equalizer response")
+            icon: "query_stats"
+        },
+        MenuItem {
+            text: Tr.trCtx("Square root", "equalizer response")
+            icon: "show_chart"
+        },
+        MenuItem {
+            text: Tr.trCtx("Exponential", "equalizer response")
+            icon: "trending_up"
+        }
+    ]
+
     title: Tr.tr("Panels")
 
     ColumnLayout {
@@ -245,6 +265,18 @@ PageBase {
             menuItems: root.eqStyleItems
             active: root.eqStyleItems[Math.max(0, root.eqStyles.indexOf(Config.background.floorEqualizer.style ?? "bars"))]
             onSelected: item => GlobalConfig.background.floorEqualizer.style = root.eqStyles[root.eqStyleItems.indexOf(item)]
+        }
+
+        SelectRow {
+            visible: GlobalConfig.background.floorEqualizer.enabled
+            // SEARCH: algorithm logarithmic log linear exponential response curve decibel equalizer equaliser
+            label: Tr.tr("Equalizer response")
+            subtext: Tr.tr("How loudness maps to height. Logarithmic lifts quiet detail, exponential keeps only strong hits")
+            menuOnTop: true
+            fallbackIcon: "query_stats"
+            menuItems: root.eqResponseItems
+            active: root.eqResponseItems[Math.max(0, root.eqResponses.indexOf(Config.background.floorEqualizer.response ?? "linear"))]
+            onSelected: item => GlobalConfig.background.floorEqualizer.response = root.eqResponses[root.eqResponseItems.indexOf(item)]
         }
 
         SliderRow {

@@ -68,6 +68,11 @@ class BackgroundFloorEqualizer : public settings::ObjectNode {
     // How slowly it eases between readings, as a multiple of the original (0 jumps straight to
     // each reading, 2 is twice as slow)
     CONFIG_PROPERTY(qreal, smoothness, 1.0)
+    // How a level maps to height: "linear", "log" (decibel-like, lifts quiet detail), "sqrt"
+    // (lifts the very quietest levels hardest, background noise included) or "exp" (only strong
+    // hits stand out). cava already spaces the bands logarithmically in frequency, so this is
+    // the loudness side of it
+    CONFIG_PROPERTY(QString, response, u"linear"_s)
 };
 
 class DesktopIcons : public settings::ObjectNode {

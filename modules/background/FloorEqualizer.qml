@@ -29,6 +29,10 @@ Item {
     // How slowly the levels are eased towards each reading, set in Nexus > Panels: 1 is the
     // original feel, 0 snaps straight to every reading
     readonly property real smoothness: Math.max(0, Math.min(2, Config.background.floorEqualizer.smoothness ?? 1))
+    // How a level (0-1) maps to height, set in Nexus > Panels. The frequency side is already
+    // logarithmic (cava spreads the bands over 50 Hz - 10 kHz on a log scale), so this is only
+    // the loudness response
+    readonly property string response: Config.background.floorEqualizer.response ?? "linear"
     readonly property real maxBarHeight: Math.round(Math.max(56, screen.height * 0.08) * root.amplitude)
     property var levels: []
 
@@ -44,6 +48,19 @@ Item {
     readonly property string style: {
         const s = Config.background.floorEqualizer.style ?? "bars";
         return s === "wave" || s === "line" ? s : "bars";
+    }
+
+    function shape(v: real): real {
+        switch (root.response) {
+        case "log":
+            // Decibel-like: log10(1 + 9v) runs 0 -> 1 over 0 -> 1 but rises steeply early on
+            return Math.log10(1 + 9 * v);
+        case "sqrt":
+            return Math.sqrt(v);
+        case "exp":
+            return v * v;
+        }
+        return v;
     }
 
     function barGap(available: real): real {
@@ -81,8 +98,10 @@ Item {
             const next = new Array(root.barCount);
             let loudest = 0;
             for (let i = 0; i < root.barCount; i++) {
-                next[i] = Math.min(1, Math.max(0, values[i] ?? 0));
-                loudest = Math.max(loudest, next[i]);
+                const raw = Math.min(1, Math.max(0, values[i] ?? 0));
+                // Silence is judged on the raw level, so the response curve can't change when it hides
+                loudest = Math.max(loudest, raw);
+                next[i] = Math.min(1, Math.max(0, root.shape(raw)));
             }
             root.levels = next;
 
