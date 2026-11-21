@@ -19,6 +19,21 @@ PageBase {
             reboot: Tr.tr("Reboot")
         })
 
+    // The status pills the free-standing layouts can show (modules/lock/layouts/StatusChips.qml)
+    readonly property var statusNames: ({
+            battery: Tr.tr("Battery"),
+            network: Tr.tr("Network"),
+            bluetooth: Tr.tr("Bluetooth"),
+            volume: Tr.tr("Volume"),
+            mic: Tr.tr("Microphone"),
+            vpn: Tr.tr("VPN"),
+            keyboard: Tr.tr("Keyboard layout"),
+            notifs: Tr.tr("Notifications"),
+            media: Tr.tr("Now playing"),
+            power: Tr.tr("Power profile"),
+            uptime: Tr.tr("Uptime")
+        })
+
     readonly property list<MenuItem> sideItems: [
         MenuItem {
             text: Tr.tr("Left")
@@ -66,9 +81,63 @@ PageBase {
             last: true
             // SEARCH: battery wifi bluetooth chips pills status
             text: Tr.tr("Status pills")
-            subtext: Tr.tr("Battery, network and Bluetooth along the top of the screen")
+            subtext: Tr.tr("Small pills along the top of the screen, picked below")
             checked: Config.lock.statusChips ?? true
             onToggled: GlobalConfig.lock.statusChips = checked
+        }
+
+        StyledText {
+            Layout.fillWidth: true
+            Layout.topMargin: Tokens.spacing.small
+            Layout.bottomMargin: Tokens.spacing.small
+            visible: !root.cardLayout && (Config.lock.statusChips ?? true)
+            text: Tr.tr("Which pills show, in order from the screen's edge inwards. Switch one off to hide it, or add more below. A pill with nothing to report (no battery, nothing playing) hides itself.")
+            color: Colours.palette.m3outline
+            font: Tokens.font.label.small
+            wrapMode: Text.WordWrap
+        }
+
+        ListEditor {
+            function labelFor(item: var): string {
+                return root.statusNames[item.id] ?? item.id;
+            }
+
+            function toggledFor(item: var): bool {
+                return item.enabled;
+            }
+
+            z: 1
+            first: true
+            visible: !root.cardLayout && (Config.lock.statusChips ?? true)
+            values: GlobalConfig.lock.statusEntries.values
+            onItemMoved: (from, to) => GlobalConfig.lock.statusEntries.move(from, to)
+            onItemRemoved: index => GlobalConfig.lock.statusEntries.remove(index)
+            onItemToggled: (index, checked) => GlobalConfig.lock.statusEntries.at(index).enabled = checked
+        }
+
+        DialogSelectButton {
+            visible: !root.cardLayout && (Config.lock.statusChips ?? true)
+            rootParent: root.flickable
+            icon: "add"
+            label: Tr.tr("Add pill")
+            header: Tr.tr("Add a status pill")
+            acceptLabel: Tr.trCtx("Add", "button")
+
+            // Only the pills that aren't in the list already
+            model: Object.keys(root.statusNames).filter(id => !GlobalConfig.lock.statusEntries.values.some(e => e.id === id)).map(id => ({
+                        id: id,
+                        label: root.statusNames[id]
+                    }))
+
+            onAccepted: {
+                if (!selectedItem)
+                    return;
+
+                GlobalConfig.lock.statusEntries.insert({
+                    id: selectedItem,
+                    enabled: true
+                });
+            }
         }
 
         // Clock

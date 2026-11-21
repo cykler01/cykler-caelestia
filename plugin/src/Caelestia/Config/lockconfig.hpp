@@ -35,8 +35,17 @@ class LockConfig : public settings::ObjectNode {
     CONFIG_PROPERTY(QString, layout, u"card"_s)
     // Which edge the login card / panel sits against in the split and sidebar layouts ("left" or "right")
     CONFIG_PROPERTY(QString, panelSide, u"right"_s)
-    // Battery, network and Bluetooth pills along the top edge in the split, sidebar and minimal layouts
+    // Status pills along the top edge in the split, sidebar and minimal layouts
     CONFIG_PROPERTY(bool, statusChips, true)
+    // Which pills show and in what order, outermost first (modules/lock/layouts/StatusChips.qml).
+    // ids: battery, network, bluetooth, volume, mic, vpn, keyboard, notifs, media, power, uptime -
+    // everything past bluetooth is opt-in from the settings page's add button
+    CONFIG_LIST(EntryList, statusEntries,
+        DEFAULT_ARG({
+            LIST_ENTRY(battery, true),
+            LIST_ENTRY(network, true),
+            LIST_ENTRY(bluetooth, true),
+        }))
     CONFIG_PROPERTY(bool, useWallpaper, false)
     // NOTE(fork): how strongly the background is blurred behind the lock UI, 0 (sharp) to 1 (the
     // original full blur) - modules/lock/LockSurface.qml
