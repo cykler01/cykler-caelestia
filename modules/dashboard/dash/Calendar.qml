@@ -23,7 +23,11 @@ CustomMouseArea {
     readonly property int nonAnimCurrMonth: screenState.dashboardDate.getMonth()
     readonly property int nonAnimCurrYear: screenState.dashboardDate.getFullYear()
 
-    readonly property int animDirection: screenState.dashboardDate > currentDate ? -1 : 1
+    // NOTE(fork): -1 slides the grid out to the left (a later month), 1 to the right (an earlier
+    // one). Fixed when a change starts rather than bound to the dates: a binding only catches up
+    // after the change has already begun, so the slide out read the old answer and every forward
+    // step went out to the right and came back in from the right
+    property int animDirection: 1
     property real animTranslate
     property real animOpacity: 1
 
@@ -68,8 +72,17 @@ CustomMouseArea {
     Behavior on currentDate {
         SequentialAnimation {
             ParallelAnimation {
+                // NOTE(fork): started right here rather than through Qt.callLater. Deferred, it
+                // began a frame late (a stutter on every month change), and with animations off
+                // (low power) the whole sequence below had already finished by the time it ran,
+                // so it slid the grid out to one side and left it there until the card reloaded.
+                // currentDate still holds the old month here (the Behavior hasn't written it yet)
+                // while dashboardDate already has the new one, so the two give the direction
                 ScriptAction {
-                    script: Qt.callLater(() => trOutAnim.start())
+                    script: {
+                        root.animDirection = root.screenState.dashboardDate > root.currentDate ? -1 : 1;
+                        trOutAnim.restart();
+                    }
                 }
                 Anim {
                     target: root
@@ -80,7 +93,8 @@ CustomMouseArea {
             }
             ScriptAction {
                 script: {
-                    trOutAnim.complete();
+                    // Stopped outright so nothing of the slide out can land after the slide in
+                    trOutAnim.stop();
                     root.animTranslate = root.Tokens.padding.extraLarge * -root.animDirection;
                 }
             }
