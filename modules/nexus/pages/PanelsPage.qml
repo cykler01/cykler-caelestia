@@ -247,6 +247,19 @@ PageBase {
             onSelected: item => GlobalConfig.background.floorEqualizer.style = root.eqStyles[root.eqStyleItems.indexOf(item)]
         }
 
+        SliderRow {
+            visible: GlobalConfig.background.floorEqualizer.enabled
+            icon: "height"
+            // SEARCH: amplitude height size tall equalizer equaliser
+            label: Tr.tr("Equalizer amplitude")
+            valueLabel: `${Math.round((Config.background.floorEqualizer.amplitude ?? 1) * 100)}%`
+            value: Config.background.floorEqualizer.amplitude ?? 1
+            from: 0.5
+            to: 3
+            stepSize: 0.1
+            onMoved: v => GlobalConfig.background.floorEqualizer.amplitude = Math.round(v * 10) / 10
+        }
+
         ToggleRow {
             visible: GlobalConfig.background.floorEqualizer.enabled
             last: true

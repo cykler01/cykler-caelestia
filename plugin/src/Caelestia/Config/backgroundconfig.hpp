@@ -63,6 +63,8 @@ class BackgroundFloorEqualizer : public settings::ObjectNode {
     CONFIG_PROPERTY(QString, style, u"bars"_s)
     // Fade it out while nothing is making a sound, and back in as soon as something does
     CONFIG_PROPERTY(bool, autoHide, true)
+    // How tall it reaches, as a multiple of its original height (0.5 - 3)
+    CONFIG_PROPERTY(qreal, amplitude, 1.0)
 };
 
 class DesktopIcons : public settings::ObjectNode {

@@ -23,8 +23,10 @@ Item {
     required property ShellScreen screen
 
     readonly property int barCount: Math.max(1, GlobalConfig.services.visualiserBars)
-    // Kept deliberately low so it reads as an accent along the bottom edge rather than a panel
-    readonly property real maxBarHeight: Math.max(56, Math.round(screen.height * 0.08))
+    // Kept deliberately low so it reads as an accent along the bottom edge rather than a panel,
+    // then scaled by the amplitude set in Nexus > Panels
+    readonly property real amplitude: Math.max(0.5, Math.min(3, Config.background.floorEqualizer.amplitude ?? 1))
+    readonly property real maxBarHeight: Math.round(Math.max(56, screen.height * 0.08) * root.amplitude)
     property var levels: []
 
     // NOTE(fork): whether anything has made a sound lately. Read off the levels themselves rather
