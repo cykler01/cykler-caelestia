@@ -29,6 +29,7 @@ Item {
             mic: "mic",
             timer: "timer",
             settings: "settings",
+            lock: "lock",
             gameMode: "gamepad",
             wallpaperPlaying: "smart_display",
             dnd: "notifications_off",

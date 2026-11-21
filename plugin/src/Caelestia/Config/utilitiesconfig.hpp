@@ -146,6 +146,7 @@ class UtilitiesConfig : public settings::ObjectNode {
             LIST_ENTRY(mic, true),
             LIST_ENTRY(timer, true),
             LIST_ENTRY(settings, true),
+            LIST_ENTRY(lock, true),
             LIST_ENTRY(gameMode, true),
             LIST_ENTRY(wallpaperPlaying, true),
             LIST_ENTRY(dnd, true),

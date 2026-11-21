@@ -13,6 +13,14 @@ Singleton {
     // anything that has to know (the notch's island, say) does not have to reach into the lock
     property bool sessionLocked
 
+    // NOTE(fork): asks modules/lock/Lock.qml to lock the session, the same as the lock shortcut
+    // (Super+L) does - for buttons in the shell's own menus (the session menu, the quick toggles)
+    signal lockRequested
+
+    function lockSession(): void {
+        lockRequested();
+    }
+
     function anySidebarOpen(): bool {
         return states.instances.some(s => s.sidebar);
     }

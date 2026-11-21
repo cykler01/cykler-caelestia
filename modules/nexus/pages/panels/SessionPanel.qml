@@ -13,6 +13,7 @@ PageBase {
     id: root
 
     readonly property var builtinEntries: ({
+            lock: Tr.tr("Lock"),
             logout: Tr.tr("Log out"),
             shutdown: Tr.tr("Shut down"),
             sleep: Tr.tr("Sleep"),

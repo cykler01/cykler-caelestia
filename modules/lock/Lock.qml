@@ -31,6 +31,14 @@ Scope {
         value: lock.locked
     }
 
+    Connections {
+        function onLockRequested(): void {
+            lock.locked = true;
+        }
+
+        target: ShellState
+    }
+
     Pam {
         id: pam
 

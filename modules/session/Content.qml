@@ -17,6 +17,15 @@ Column {
 
     // Everything an entry id can map to
     readonly property var builtinActions: ({
+            // Locks in-process like the lock shortcut, closing the menu first so it is not
+            // still open behind the lock when you come back
+            lock: {
+                icon: "lock",
+                action: () => {
+                    root.screenState.session = false;
+                    ShellState.lockSession();
+                }
+            },
             logout: {
                 icon: Config.session.icons.logout,
                 command: Config.session.commands.logout

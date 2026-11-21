@@ -141,6 +141,18 @@ StyledRect {
                     }
                 }
                 DelegateChoice {
+                    roleValue: "lock"
+                    delegate: Toggle {
+                        icon: "lock"
+                        inactiveOnColour: Colours.palette.m3onSurfaceVariant
+                        isToggle: false
+                        onClicked: {
+                            root.screenState.utilities = false;
+                            ShellState.lockSession();
+                        }
+                    }
+                }
+                DelegateChoice {
                     roleValue: "gameMode"
                     delegate: Toggle {
                         icon: "gamepad"

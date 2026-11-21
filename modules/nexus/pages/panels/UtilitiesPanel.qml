@@ -24,6 +24,7 @@ PageBase {
             mic: Tr.tr("Microphone"),
             timer: Tr.tr("Timer"),
             settings: Tr.tr("Settings"),
+            lock: Tr.tr("Lock"),
             gameMode: Tr.tr("Game mode"),
             wallpaperPlaying: Tr.tr("Live wallpaper"),
             dnd: Tr.tr("Do not disturb"),
