@@ -57,6 +57,12 @@ class BackgroundFloorEqualizer : public settings::ObjectNode {
     CONFIG_NODE(BackgroundFloorEqualizer, settings::ObjectNode)
 
     CONFIG_PROPERTY(bool, enabled, false)
+    // "floor" along the bottom edge, or "ceiling" hanging from just under the top bar
+    CONFIG_PROPERTY(QString, position, u"floor"_s)
+    // "bars", "wave" (filled curve with a slower echo behind it) or "line" (the curve's outline only)
+    CONFIG_PROPERTY(QString, style, u"bars"_s)
+    // Fade it out while nothing is making a sound, and back in as soon as something does
+    CONFIG_PROPERTY(bool, autoHide, true)
 };
 
 class DesktopIcons : public settings::ObjectNode {

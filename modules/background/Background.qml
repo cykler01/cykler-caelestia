@@ -142,9 +142,14 @@ Variants {
 
             // Only as tall as the strip itself: a full-screen loader would resize the item to the
             // whole screen and stretch the bars to the top edge
+            readonly property bool ceiling: (Config.background.floorEqualizer.position ?? "floor") === "ceiling"
+
             anchors.left: parent.left
             anchors.right: parent.right
-            anchors.bottom: parent.bottom
+            // On the ceiling it hangs from just under the top bar, which would otherwise cover it
+            anchors.bottom: ceiling ? undefined : parent.bottom
+            anchors.top: ceiling ? parent.top : undefined
+            anchors.topMargin: ceiling ? insets.barTop : 0
             height: item?.implicitHeight ?? 0
             asynchronous: true
             active: Config.background.floorEqualizer.enabled

@@ -27,6 +27,35 @@ PageBase {
         }
     ]
 
+    // NOTE(fork): the floor equalizer's placement and look (modules/background/FloorEqualizer.qml),
+    // in the order of the config values they map to
+    readonly property list<string> eqPositions: ["floor", "ceiling"]
+    readonly property list<MenuItem> eqPositionItems: [
+        MenuItem {
+            text: Tr.trCtx("Floor", "equalizer position")
+            icon: "vertical_align_bottom"
+        },
+        MenuItem {
+            text: Tr.trCtx("Ceiling", "equalizer position")
+            icon: "vertical_align_top"
+        }
+    ]
+    readonly property list<string> eqStyles: ["bars", "wave", "line"]
+    readonly property list<MenuItem> eqStyleItems: [
+        MenuItem {
+            text: Tr.trCtx("Bars", "equalizer style")
+            icon: "equalizer"
+        },
+        MenuItem {
+            text: Tr.trCtx("Wave", "equalizer style")
+            icon: "waves"
+        },
+        MenuItem {
+            text: Tr.trCtx("Line", "equalizer style")
+            icon: "show_chart"
+        }
+    ]
+
     title: Tr.tr("Panels")
 
     ColumnLayout {
@@ -186,12 +215,46 @@ PageBase {
         }
 
         ToggleRow {
-            last: true
+            last: !GlobalConfig.background.floorEqualizer.enabled
             // SEARCH: visualiser visualizer audio spectrum analyser wallpaper eq equaliser
             text: Tr.tr("Floor equalizer")
-            subtext: Tr.tr("A large audio spectrum across the bottom of the screen")
+            subtext: Tr.tr("A large audio spectrum along the bottom or top of the screen")
             checked: GlobalConfig.background.floorEqualizer.enabled
             onToggled: GlobalConfig.background.floorEqualizer.enabled = checked
+        }
+
+        SelectRow {
+            visible: GlobalConfig.background.floorEqualizer.enabled
+            // SEARCH: ceiling top bottom floor equalizer equaliser position
+            label: Tr.tr("Equalizer position")
+            subtext: Tr.tr("Along the bottom of the screen, or hanging from the top")
+            menuOnTop: true
+            fallbackIcon: "vertical_align_bottom"
+            menuItems: root.eqPositionItems
+            active: root.eqPositionItems[Math.max(0, root.eqPositions.indexOf(Config.background.floorEqualizer.position ?? "floor"))]
+            onSelected: item => GlobalConfig.background.floorEqualizer.position = root.eqPositions[root.eqPositionItems.indexOf(item)]
+        }
+
+        SelectRow {
+            visible: GlobalConfig.background.floorEqualizer.enabled
+            // SEARCH: wave line bars equalizer equaliser style mode
+            label: Tr.tr("Equalizer style")
+            subtext: Tr.tr("Bars, a filled wave, or just the wave's outline")
+            menuOnTop: true
+            fallbackIcon: "equalizer"
+            menuItems: root.eqStyleItems
+            active: root.eqStyleItems[Math.max(0, root.eqStyles.indexOf(Config.background.floorEqualizer.style ?? "bars"))]
+            onSelected: item => GlobalConfig.background.floorEqualizer.style = root.eqStyles[root.eqStyleItems.indexOf(item)]
+        }
+
+        ToggleRow {
+            visible: GlobalConfig.background.floorEqualizer.enabled
+            last: true
+            // SEARCH: hide silent silence quiet idle equalizer equaliser auto
+            text: Tr.tr("Hide when silent")
+            subtext: Tr.tr("Fade the equalizer out while no audio is playing")
+            checked: Config.background.floorEqualizer.autoHide ?? true
+            onToggled: GlobalConfig.background.floorEqualizer.autoHide = checked
         }
     }
 }

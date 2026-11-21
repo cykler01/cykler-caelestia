@@ -7,11 +7,16 @@ import Caelestia.Config
 import Caelestia.Services
 import qs.components
 import qs.services
+import qs.modules.background.widgets
 
 // NOTE(fork): the floor equalizer - a large spectrum spanning the bottom edge of the screen,
 // where the wallpaper visualiser spreads across the wallpaper itself. Levels are sampled from
 // cava at the decorative rate the other visualisers use, and each bar eases between readings
 // through Behavior rather than the painted item's own smoothing.
+//
+// Config.background.floorEqualizer.position hangs it from the top instead ("ceiling"), and
+// .style swaps the bars for the wallpaper visualiser's wave ("wave") or just its outline
+// ("line"), mirrored top to bottom on the ceiling so the crests point down into the screen
 Item {
     id: root
 
@@ -22,6 +27,20 @@ Item {
     readonly property real maxBarHeight: Math.max(56, Math.round(screen.height * 0.08))
     property var levels: []
 
+    // NOTE(fork): whether anything has made a sound lately. Read off the levels themselves rather
+    // than a media player's state, so any audio counts (a video in the browser, a game) and not
+    // only music. Starts false so it fades in on the first sound rather than flashing up idle
+    property bool hearing: false
+    readonly property bool autoHide: Config.background.floorEqualizer.autoHide ?? true
+    // A quiet room still reads a hair above zero, so anything at or under this counts as silence
+    readonly property real silenceLevel: 0.02
+
+    readonly property bool ceiling: (Config.background.floorEqualizer.position ?? "floor") === "ceiling"
+    readonly property string style: {
+        const s = Config.background.floorEqualizer.style ?? "bars";
+        return s === "wave" || s === "line" ? s : "bars";
+    }
+
     function barGap(available: real): real {
         if (root.barCount <= 1)
             return 0;
@@ -31,6 +50,15 @@ Item {
     }
 
     implicitHeight: root.maxBarHeight
+    // Faded rather than hidden: the sampling below stops with visibility, and it is what notices
+    // the sound coming back
+    opacity: !root.autoHide || root.hearing ? 1 : 0
+
+    Behavior on opacity {
+        Anim {
+            type: Anim.DefaultEffects
+        }
+    }
 
     // Cava, and the PipeWire capture behind it, only runs while something references it
     ServiceRef {
@@ -46,14 +74,32 @@ Item {
         onTriggered: {
             const values = Audio.cava.values;
             const next = new Array(root.barCount);
-            for (let i = 0; i < root.barCount; i++)
+            let loudest = 0;
+            for (let i = 0; i < root.barCount; i++) {
                 next[i] = Math.min(1, Math.max(0, values[i] ?? 0));
+                loudest = Math.max(loudest, next[i]);
+            }
             root.levels = next;
+
+            if (loudest > root.silenceLevel) {
+                root.hearing = true;
+                silenceTimer.restart();
+            }
         }
+    }
+
+    // How long it has to stay quiet before it fades, so a gap between tracks or a quiet bar in a
+    // song doesn't make it blink out
+    Timer {
+        id: silenceTimer
+
+        interval: 2000
+        onTriggered: root.hearing = false
     }
 
     RowLayout {
         anchors.fill: parent
+        visible: root.style === "bars"
         spacing: root.barGap(parent.width)
 
         Repeater {
@@ -67,7 +113,9 @@ Item {
 
                 Rectangle {
                     anchors.horizontalCenter: parent.horizontalCenter
-                    anchors.bottom: parent.bottom
+                    // Grown up from the floor, or down from the ceiling
+                    anchors.bottom: root.ceiling ? undefined : parent.bottom
+                    anchors.top: root.ceiling ? parent.top : undefined
                     width: parent.width
                     // A 2px floor keeps the row visible in a quiet room instead of collapsing
                     height: Math.max(2, parent.height * (root.levels[index] ?? 0))
@@ -80,6 +128,23 @@ Item {
                         }
                     }
                 }
+            }
+        }
+    }
+
+    Loader {
+        anchors.fill: parent
+        active: root.style !== "bars"
+        asynchronous: true
+
+        sourceComponent: VisualiserWave {
+            levels: root.levels
+            barCount: root.barCount
+            outlineOnly: root.style === "line"
+            // Drawn floor-up, so flipped for the ceiling
+            transform: Scale {
+                origin.y: root.height / 2
+                yScale: root.ceiling ? -1 : 1
             }
         }
     }

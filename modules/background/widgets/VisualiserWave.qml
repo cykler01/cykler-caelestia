@@ -14,6 +14,9 @@ Item {
 
     required property var levels
     required property int barCount
+    // NOTE(fork): just the front curve's outline, without its fill or the slower curve behind it
+    // (the floor equalizer's line style)
+    property bool outlineOnly: false
 
     // Each curve eases towards the latest levels at its own rate. Eased here rather than through a
     // Behavior, since what moves is a whole array and a Behavior can only ease a number
@@ -99,11 +102,11 @@ Item {
 
                 GradientStop {
                     position: 0
-                    color: Qt.alpha(Colours.palette.m3tertiary, 0.5)
+                    color: Qt.alpha(Colours.palette.m3tertiary, root.outlineOnly ? 0 : 0.5)
                 }
                 GradientStop {
                     position: 1
-                    color: Qt.alpha(Colours.palette.m3tertiary, 0.04)
+                    color: Qt.alpha(Colours.palette.m3tertiary, root.outlineOnly ? 0 : 0.04)
                 }
             }
 
@@ -113,7 +116,7 @@ Item {
         }
 
         ShapePath {
-            strokeWidth: 2
+            strokeWidth: root.outlineOnly ? 3 : 2
             strokeColor: Colours.palette.m3primary
             joinStyle: ShapePath.RoundJoin
             capStyle: ShapePath.RoundCap
@@ -125,11 +128,11 @@ Item {
 
                 GradientStop {
                     position: 0
-                    color: Qt.alpha(Colours.palette.m3primary, 0.7)
+                    color: Qt.alpha(Colours.palette.m3primary, root.outlineOnly ? 0 : 0.7)
                 }
                 GradientStop {
                     position: 1
-                    color: Qt.alpha(Colours.palette.m3primary, 0.1)
+                    color: Qt.alpha(Colours.palette.m3primary, root.outlineOnly ? 0 : 0.1)
                 }
             }
 
