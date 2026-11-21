@@ -31,6 +31,9 @@ Item {
     // The pill is only a stand-in for the weather widget, so it bows out when that's shown
     readonly property bool weatherWidgetShown: Config.lock.widgets.values.some(e => e.enabled && e.id === "weather")
 
+    // Height of the login card with its widget column under it: what the other column is sized to
+    readonly property real nearHeight: Math.min(panelStack.height, login.implicitHeight + (panelColumn.visible ? gap + Math.min(panelColumn.naturalHeight(flexUnit), panelStack.height - login.implicitHeight - gap) : 0))
+
     function sideX(item: Item, onPanelSide: bool): real {
         return onPanelSide === panelRight ? width - item.width - margin : margin;
     }
@@ -94,10 +97,6 @@ Item {
         height: root.height - y - root.margin
         spacing: root.gap
 
-        Item {
-            Layout.fillHeight: true
-        }
-
         LoginCard {
             id: login
 
@@ -109,15 +108,15 @@ Item {
         WidgetColumn {
             id: panelColumn
 
-            // Sized to its contents, with the weighted widgets at a modest height each, and
-            // centred by the spacers either side rather than stretched down the whole screen
+            // Sized to its contents, with the weighted widgets at a modest height each, hung
+            // from the login card. Never stretched: that only spreads the cards apart
+            Layout.fillWidth: true
             Layout.preferredHeight: naturalHeight(root.flexUnit)
             Layout.maximumHeight: naturalHeight(root.flexUnit)
             Layout.minimumHeight: 0
             visible: items.length > 0
             side: root.panelRight ? "right" : "left"
-            // Under the login card, with the gaps either side of it
-            fitHeight: panelStack.height - login.implicitHeight - root.gap * 3
+            fitHeight: panelStack.height - login.implicitHeight - root.gap
             rootHeight: height
             lock: root.lock
         }
@@ -137,20 +136,17 @@ Item {
         height: root.height - y - root.margin
         visible: innerColumn.items.length > 0
 
-        Item {
-            Layout.fillHeight: true
-        }
-
         WidgetColumn {
             id: innerColumn
 
-            // Sized to its contents, with the weighted widgets at a modest height each, and
-            // centred by the spacers either side rather than stretched down the whole screen
-            Layout.preferredHeight: naturalHeight(root.flexUnit)
-            Layout.maximumHeight: naturalHeight(root.flexUnit)
+            // Exactly as tall as the login-and-widgets stack beside it, so the two share a top
+            // and a bottom edge. The weighted widgets (weather, media) soak up the difference
+            Layout.fillWidth: true
+            Layout.preferredHeight: root.nearHeight
+            Layout.maximumHeight: root.nearHeight
             Layout.minimumHeight: 0
             side: root.panelRight ? "left" : "right"
-            fitHeight: innerStack.height - innerStack.spacing * 2
+            fitHeight: root.nearHeight
             rootHeight: height
             lock: root.lock
         }
