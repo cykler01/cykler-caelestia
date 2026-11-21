@@ -5,6 +5,7 @@ import QtQuick.Layouts
 import Caelestia.Config
 import Caelestia.I18n
 import qs.components
+import qs.components.controls
 import qs.services
 import qs.modules.nexus.common
 
@@ -18,6 +19,33 @@ PageBase {
             reboot: Tr.tr("Reboot")
         })
 
+    // The status pills the free-standing layouts can show (modules/lock/layouts/StatusChips.qml)
+    readonly property var statusNames: ({
+            battery: Tr.tr("Battery"),
+            network: Tr.tr("Network"),
+            bluetooth: Tr.tr("Bluetooth"),
+            volume: Tr.tr("Volume"),
+            mic: Tr.tr("Microphone"),
+            vpn: Tr.tr("VPN"),
+            keyboard: Tr.tr("Keyboard layout"),
+            notifs: Tr.tr("Notifications"),
+            media: Tr.tr("Now playing"),
+            power: Tr.tr("Power profile"),
+            uptime: Tr.tr("Uptime")
+        })
+
+    readonly property list<MenuItem> sideItems: [
+        MenuItem {
+            text: Tr.tr("Left")
+        },
+        MenuItem {
+            text: Tr.tr("Right")
+        }
+    ]
+    readonly property string layoutId: Config.lock.layout ?? "card"
+    readonly property bool sidedLayout: layoutId === "split" || layoutId === "sidebar"
+    readonly property bool cardLayout: !sidedLayout && layoutId !== "minimal"
+
     title: Tr.tr("Lock screen")
     isSubPage: true
 
@@ -27,13 +55,99 @@ PageBase {
         width: root.cappedWidth
         spacing: Tokens.spacing.extraSmall / 2
 
-        // Clock
+        // NOTE(fork): which arrangement the lock screen uses (modules/lock/LockSurface.qml)
         SectionHeader {
             first: true
+            text: Tr.tr("Layout")
+        }
+
+        LockLayoutPicker {
+            first: true
+            last: root.cardLayout
+        }
+
+        SelectRow {
+            visible: root.sidedLayout
+            // SEARCH: left right edge mirror flip
+            label: Tr.tr("Login side")
+            subtext: root.layoutId === "sidebar" ? Tr.tr("Which edge the panel sits against") : Tr.tr("Which side the login card sits on, with the clock opposite")
+            menuItems: root.sideItems
+            active: root.sideItems[(Config.lock.panelSide ?? "right") === "left" ? 0 : 1]
+            onSelected: item => GlobalConfig.lock.panelSide = root.sideItems.indexOf(item) === 0 ? "left" : "right"
+        }
+
+        ToggleRow {
+            visible: !root.cardLayout
+            last: true
+            // SEARCH: battery wifi bluetooth chips pills status
+            text: Tr.tr("Status pills")
+            subtext: Tr.tr("Small pills along the top of the screen, picked below")
+            checked: Config.lock.statusChips ?? true
+            onToggled: GlobalConfig.lock.statusChips = checked
+        }
+
+        StyledText {
+            Layout.fillWidth: true
+            Layout.topMargin: Tokens.spacing.small
+            Layout.bottomMargin: Tokens.spacing.small
+            visible: !root.cardLayout && (Config.lock.statusChips ?? true)
+            text: Tr.tr("Which pills show, in order from the screen's edge inwards. Switch one off to hide it, or add more below. A pill with nothing to report (no battery, nothing playing) hides itself.")
+            color: Colours.palette.m3outline
+            font: Tokens.font.label.small
+            wrapMode: Text.WordWrap
+        }
+
+        ListEditor {
+            function labelFor(item: var): string {
+                return root.statusNames[item.id] ?? item.id;
+            }
+
+            function toggledFor(item: var): bool {
+                return item.enabled;
+            }
+
+            z: 1
+            first: true
+            visible: !root.cardLayout && (Config.lock.statusChips ?? true)
+            values: GlobalConfig.lock.statusEntries.values
+            onItemMoved: (from, to) => GlobalConfig.lock.statusEntries.move(from, to)
+            onItemRemoved: index => GlobalConfig.lock.statusEntries.remove(index)
+            onItemToggled: (index, checked) => GlobalConfig.lock.statusEntries.at(index).enabled = checked
+        }
+
+        DialogSelectButton {
+            visible: !root.cardLayout && (Config.lock.statusChips ?? true)
+            rootParent: root.flickable
+            icon: "add"
+            label: Tr.tr("Add pill")
+            header: Tr.tr("Add a status pill")
+            acceptLabel: Tr.trCtx("Add", "button")
+
+            // Only the pills that aren't in the list already
+            model: Object.keys(root.statusNames).filter(id => !GlobalConfig.lock.statusEntries.values.some(e => e.id === id)).map(id => ({
+                        id: id,
+                        label: root.statusNames[id]
+                    }))
+
+            onAccepted: {
+                if (!selectedItem)
+                    return;
+
+                GlobalConfig.lock.statusEntries.insert({
+                    id: selectedItem,
+                    enabled: true
+                });
+            }
+        }
+
+        // Clock
+        SectionHeader {
+            visible: root.cardLayout
             text: Tr.tr("Clock")
         }
 
         ToggleRow {
+            visible: root.cardLayout
             first: true
             last: true
             text: Tr.tr("Analogue clock")
@@ -52,11 +166,23 @@ PageBase {
         // leave the background filling the screen on its own
         ToggleRow {
             first: true
-            last: true
             text: Tr.tr("Use the wallpaper")
             subtext: Tr.tr("Show the wallpaper rather than a capture of the session behind it")
             checked: Config.lock.useWallpaper
             onToggled: GlobalConfig.lock.useWallpaper = checked
+        }
+
+        SliderRow {
+            last: true
+            icon: "blur_on"
+            // SEARCH: blur blurry sharp frosted background strength
+            label: Tr.tr("Blur")
+            valueLabel: `${Math.round((Config.lock.blur ?? 1) * 100)}%`
+            value: Config.lock.blur ?? 1
+            from: 0
+            to: 1
+            stepSize: 0.05
+            onMoved: v => GlobalConfig.lock.blur = Math.round(v * 100) / 100
         }
 
         // Idle
@@ -172,7 +298,7 @@ PageBase {
             first: true
             last: true
             text: Tr.tr("Reveal on the lock screen")
-            subtext: Tr.tr("Show the buttons below when hovering the lock screen")
+            subtext: root.cardLayout ? Tr.tr("Show the buttons below when hovering the lock screen") : Tr.tr("Show the buttons below in a bar in the corner of the lock screen")
             checked: GlobalConfig.lock.enableSessionControls
             onToggled: GlobalConfig.lock.enableSessionControls = checked
         }
@@ -238,7 +364,7 @@ PageBase {
             last: true
             icon: "widgets"
             text: Tr.tr("Widgets")
-            subtext: Tr.tr("Reorder, resize and show or hide what's on the side columns")
+            subtext: root.layoutId === "minimal" ? Tr.tr("The minimal layout shows no widgets") : Tr.tr("Reorder, resize and show or hide what's on the side columns")
             onClicked: root.nState.openSubPage(17)
         }
 

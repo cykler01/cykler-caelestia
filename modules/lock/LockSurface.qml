@@ -8,6 +8,7 @@ import Caelestia.Multimedia
 import Caelestia.State
 import qs.components
 import qs.services
+import qs.modules.lock.layouts
 
 WlSessionLockSurface {
     id: root
@@ -15,7 +16,13 @@ WlSessionLockSurface {
     required property WlSessionLock lock
     required property Pam pam
 
-    readonly property alias unlocking: unlockAnim.running
+    readonly property bool unlocking: unlockAnim.running || altUnlockAnim.running
+    // NOTE(fork): which arrangement of the lock UI to show (Config.lock.layout). The classic card
+    // morphs out of the lock icon; the others have no card, so the icon spins in as usual and then
+    // shrinks away while the layout fades in over the whole screen. Read through lockContent since
+    // only contentItem is given a screen (see the note on GlobalConfig below)
+    readonly property string layoutId: lockContent.Config.lock.layout ?? "card"
+    readonly property bool cardLayout: !["split", "sidebar", "minimal"].includes(layoutId)
     // The dino game is up in this screen's notifications dock, which takes the keys from the
     // password field for as long as it lasts (see modules/lock/NotifDock.qml)
     property bool dinoPlaying: false
@@ -57,10 +64,15 @@ WlSessionLockSurface {
     }
 
     // NOTE(fork): a pointer that has actually moved is what counts as the screen being used.
-    // HoverHandler rather than a filled MouseArea, so the cards underneath keep their own hover
-    // states and nothing swallows clicks. The position is compared by hand because pointChanged
-    // also fires for velocity and timestamp updates while the pointer sits still, which would
-    // hold the countdown open for as long as it is anywhere over the screen
+    // HoverHandler rather than a filled MouseArea, so nothing swallows clicks. The position is
+    // compared by hand because pointChanged also fires for velocity and timestamp updates while
+    // the pointer sits still, which would hold the countdown open for as long as it is anywhere
+    // over the screen.
+    //
+    // This holds everything else rather than sitting on top of it: as an overlay (z: 100) its
+    // handlers took the hover from every card and button underneath, so none of their hover
+    // states ever showed. Handlers on a parent see the pointer alongside its children instead
+    // of in their place
     Item {
         id: activityLayer
 
@@ -68,7 +80,6 @@ WlSessionLockSurface {
         property real lastY: -1
 
         anchors.fill: parent
-        z: 100
 
         // NOTE(fork): takes the pointer away with the rest of it, and is enabled only while
         // hidden so the cursors the cards set for themselves are untouched otherwise
@@ -90,6 +101,128 @@ WlSessionLockSurface {
                 root.noteActivity();
             }
         }
+
+        Item {
+            id: background
+
+            anchors.fill: parent
+            opacity: 0
+
+            layer.enabled: true
+            layer.effect: MultiEffect {
+                autoPaddingEnabled: false
+                // Off entirely at zero strength rather than running the blur passes for nothing
+                blurEnabled: blur > 0
+                // NOTE(fork): follows the fade instead of easing on its own, since the blur is only
+                // there to hold the wallpaper back from what sits on top of it. Two animations over
+                // the same moment drifted against each other and flickered. Scaled by the strength
+                // set in Nexus > Lock screen > Background
+                blur: lockContent.opacity * Math.max(0, Math.min(1, Config.lock.blur ?? 1))
+                blurMax: 64
+                blurMultiplier: 1
+            }
+
+            Loader {
+                anchors.fill: parent
+                sourceComponent: Config.lock.useWallpaper ? wallpaperBackground : screencopyBackground
+            }
+        }
+
+        Item {
+            id: lockContent
+
+            readonly property int size: lockIcon.implicitHeight + Tokens.padding.large * 4
+            readonly property int radius: size / 4 * Tokens.rounding.scale
+
+            anchors.centerIn: parent
+            implicitWidth: size
+            implicitHeight: size
+
+            visible: Config.lock.enabled
+            rotation: 180
+            scale: 0
+            opacity: root.idleHidden ? 0 : 1
+
+            Behavior on opacity {
+                Anim {}
+            }
+
+            StyledRect {
+                id: lockBg
+
+                anchors.fill: parent
+                color: Colours.palette.m3surface
+                radius: parent.radius
+                opacity: Colours.transparency.enabled ? Colours.transparency.base : 1
+
+                layer.enabled: true
+                layer.effect: MultiEffect {
+                    shadowEnabled: true
+                    blurMax: 15
+                    shadowColor: Qt.alpha(Colours.palette.m3shadow, 0.7)
+                }
+            }
+
+            MaterialIcon {
+                id: lockIcon
+
+                anchors.centerIn: parent
+                text: "lock"
+                fontStyle: Tokens.font.icon.builders.extraLarge.scale(4).weight(Font.Bold).build()
+                rotation: 180
+            }
+
+            // A Loader so the classic card and the other layouts are never both alive: each has a
+            // password field that insists on keyboard focus, and two would fight over it
+            Loader {
+                id: content
+
+                anchors.centerIn: parent
+                width: (root.screen?.height ?? 0) * Tokens.sizes.lock.heightMult * Tokens.sizes.lock.ratio - Tokens.padding.extraLargeIncreased
+                height: (root.screen?.height ?? 0) * Tokens.sizes.lock.heightMult - Tokens.padding.extraLargeIncreased
+
+                active: root.cardLayout
+                focus: root.cardLayout
+                opacity: 0
+                scale: 0
+
+                sourceComponent: Content {
+                    lock: root
+                }
+            }
+        }
+
+        // NOTE(fork): the split, sidebar and minimal layouts, which span the whole screen instead of
+        // sitting in the card above. Faded with the idle hide the same way the card is
+        Item {
+            id: altLayer
+
+            anchors.fill: parent
+            visible: Config.lock.enabled && !root.cardLayout
+            opacity: root.idleHidden ? 0 : 1
+
+            Behavior on opacity {
+                Anim {}
+            }
+
+            Loader {
+                id: altContent
+
+                anchors.fill: parent
+                active: !root.cardLayout
+                focus: !root.cardLayout
+                opacity: 0
+                scale: 0.94
+
+                sourceComponent: {
+                    if (root.layoutId === "split")
+                        return splitLayout;
+                    if (root.layoutId === "sidebar")
+                        return sidebarLayout;
+                    return minimalLayout;
+                }
+            }
+        }
     }
 
     Connections {
@@ -97,7 +230,10 @@ WlSessionLockSurface {
             root.dinoPlaying = false;
             root.idleHidden = false;
             idleTimer.stop();
-            unlockAnim.start();
+            if (root.cardLayout)
+                unlockAnim.start();
+            else
+                altUnlockAnim.start();
         }
 
         // The surface outlives any one lock, so the countdown is armed here rather than only
@@ -175,6 +311,115 @@ WlSessionLockSurface {
         }
     }
 
+    SequentialAnimation {
+        id: altUnlockAnim
+
+        ParallelAnimation {
+            Anim {
+                target: altContent
+                property: "opacity"
+                to: 0
+                type: Anim.StandardSmall
+            }
+            Anim {
+                target: altContent
+                property: "scale"
+                to: 1.06
+            }
+            Anim {
+                target: background
+                property: "opacity"
+                to: 0
+                type: Anim.StandardLarge
+            }
+        }
+        PropertyAction {
+            target: root.lock
+            property: "locked"
+            value: false
+        }
+    }
+
+    // The second half of the intro for the layouts without a card: the icon finishes its turn
+    // and drops away rather than opening up, and the layout comes in behind it
+    ParallelAnimation {
+        id: altInAnim
+
+        Anim {
+            target: lockIcon
+            property: "rotation"
+            to: 360
+            easing: Tokens.anim.standardDecel
+        }
+        Anim {
+            type: Anim.DefaultEffects
+            target: lockIcon
+            property: "opacity"
+            to: 0
+        }
+        Anim {
+            target: lockContent
+            property: "scale"
+            to: 0
+            type: Anim.FastSpatial
+        }
+        Anim {
+            type: Anim.DefaultEffects
+            target: altContent
+            property: "opacity"
+            to: 1
+        }
+        Anim {
+            target: altContent
+            property: "scale"
+            to: 1
+        }
+    }
+
+    // The second half of the intro for the classic card: the icon opens up into it
+    ParallelAnimation {
+        id: cardInAnim
+
+        Anim {
+            target: lockIcon
+            property: "rotation"
+            to: 360
+            easing: Tokens.anim.standardDecel
+        }
+        Anim {
+            type: Anim.DefaultEffects
+            target: lockIcon
+            property: "opacity"
+            to: 0
+        }
+        Anim {
+            type: Anim.DefaultEffects
+            target: content
+            property: "opacity"
+            to: 1
+        }
+        Anim {
+            target: content
+            property: "scale"
+            to: 1
+        }
+        Anim {
+            target: lockBg
+            property: "radius"
+            to: lockContent.Tokens.rounding.extraLarge * 1.5
+        }
+        Anim {
+            target: lockContent
+            property: "implicitWidth"
+            to: (root.screen?.height ?? 0) * lockContent.Tokens.sizes.lock.heightMult * lockContent.Tokens.sizes.lock.ratio
+        }
+        Anim {
+            target: lockContent
+            property: "implicitHeight"
+            to: (root.screen?.height ?? 0) * lockContent.Tokens.sizes.lock.heightMult
+        }
+    }
+
     ParallelAnimation {
         id: initAnim
 
@@ -202,70 +447,9 @@ WlSessionLockSurface {
                     easing: Tokens.anim.standardAccel
                 }
             }
-            ParallelAnimation {
-                Anim {
-                    target: lockIcon
-                    property: "rotation"
-                    to: 360
-                    easing: Tokens.anim.standardDecel
-                }
-                Anim {
-                    type: Anim.DefaultEffects
-                    target: lockIcon
-                    property: "opacity"
-                    to: 0
-                }
-                Anim {
-                    type: Anim.DefaultEffects
-                    target: content
-                    property: "opacity"
-                    to: 1
-                }
-                Anim {
-                    target: content
-                    property: "scale"
-                    to: 1
-                }
-                Anim {
-                    target: lockBg
-                    property: "radius"
-                    to: lockContent.Tokens.rounding.extraLarge * 1.5
-                }
-                Anim {
-                    target: lockContent
-                    property: "implicitWidth"
-                    to: (root.screen?.height ?? 0) * lockContent.Tokens.sizes.lock.heightMult * lockContent.Tokens.sizes.lock.ratio
-                }
-                Anim {
-                    target: lockContent
-                    property: "implicitHeight"
-                    to: (root.screen?.height ?? 0) * lockContent.Tokens.sizes.lock.heightMult
-                }
+            ScriptAction {
+                script: root.cardLayout ? cardInAnim.start() : altInAnim.start()
             }
-        }
-    }
-
-    Item {
-        id: background
-
-        anchors.fill: parent
-        opacity: 0
-
-        layer.enabled: true
-        layer.effect: MultiEffect {
-            autoPaddingEnabled: false
-            blurEnabled: true
-            // NOTE(fork): follows the fade instead of easing on its own, since the blur is only
-            // there to hold the wallpaper back from what sits on top of it. Two animations over
-            // the same moment drifted against each other and flickered
-            blur: lockContent.opacity
-            blurMax: 64
-            blurMultiplier: 1
-        }
-
-        Loader {
-            anchors.fill: parent
-            sourceComponent: Config.lock.useWallpaper ? wallpaperBackground : screencopyBackground
         }
     }
 
@@ -286,60 +470,27 @@ WlSessionLockSurface {
         }
     }
 
-    Item {
-        id: lockContent
+    Component {
+        id: splitLayout
 
-        readonly property int size: lockIcon.implicitHeight + Tokens.padding.large * 4
-        readonly property int radius: size / 4 * Tokens.rounding.scale
-
-        anchors.centerIn: parent
-        implicitWidth: size
-        implicitHeight: size
-
-        visible: Config.lock.enabled
-        rotation: 180
-        scale: 0
-        opacity: root.idleHidden ? 0 : 1
-
-        Behavior on opacity {
-            Anim {}
-        }
-
-        StyledRect {
-            id: lockBg
-
-            anchors.fill: parent
-            color: Colours.palette.m3surface
-            radius: parent.radius
-            opacity: Colours.transparency.enabled ? Colours.transparency.base : 1
-
-            layer.enabled: true
-            layer.effect: MultiEffect {
-                shadowEnabled: true
-                blurMax: 15
-                shadowColor: Qt.alpha(Colours.palette.m3shadow, 0.7)
-            }
-        }
-
-        MaterialIcon {
-            id: lockIcon
-
-            anchors.centerIn: parent
-            text: "lock"
-            fontStyle: Tokens.font.icon.builders.extraLarge.scale(4).weight(Font.Bold).build()
-            rotation: 180
-        }
-
-        Content {
-            id: content
-
-            anchors.centerIn: parent
-            width: (root.screen?.height ?? 0) * Tokens.sizes.lock.heightMult * Tokens.sizes.lock.ratio - Tokens.padding.extraLargeIncreased
-            height: (root.screen?.height ?? 0) * Tokens.sizes.lock.heightMult - Tokens.padding.extraLargeIncreased
-
+        SplitLayout {
             lock: root
-            opacity: 0
-            scale: 0
+        }
+    }
+
+    Component {
+        id: sidebarLayout
+
+        SidebarLayout {
+            lock: root
+        }
+    }
+
+    Component {
+        id: minimalLayout
+
+        MinimalLayout {
+            lock: root
         }
     }
 }
