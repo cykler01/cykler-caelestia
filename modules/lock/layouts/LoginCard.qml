@@ -106,6 +106,11 @@ StyledRect {
 
         Loader {
             Layout.fillWidth: true
+            // The wrong-password and state lines hang below the field rather than reserving a
+            // line of their own, so the card isn't left with dead space under the field. They
+            // fall into the card's padding
+            Layout.preferredHeight: 0
+            Layout.maximumHeight: 0
             active: !!root.lock
             visible: active
 
