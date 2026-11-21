@@ -105,10 +105,21 @@ WlSessionLockSurface {
         Item {
             id: background
 
+            // NOTE(fork): a wallpaper this heavily blurred holds no fine detail, so the layer is
+            // rendered at a fraction of the screen's resolution and scaled back up. Blurring it at
+            // full size cost enough GPU time that a 120Hz panel fell back to 60fps whenever the
+            // blur was on. The blur's reach is scaled down with it, so the look is the same
+            readonly property bool blurred: (Config.lock.blur ?? 1) > 0
+            readonly property real layerScale: blurred ? 0.2 : 1
+
             anchors.fill: parent
             opacity: 0
 
             layer.enabled: true
+            layer.smooth: true
+            // Half-float, so the blur's passes don't each round to 8 bits and leave contour lines
+            layer.format: ShaderEffectSource.RGBA16F
+            layer.textureSize: Qt.size(Math.max(1, Math.round(width * layerScale)), Math.max(1, Math.round(height * layerScale)))
             layer.effect: MultiEffect {
                 autoPaddingEnabled: false
                 // Off entirely at zero strength rather than running the blur passes for nothing
@@ -118,6 +129,9 @@ WlSessionLockSurface {
                 // the same moment drifted against each other and flickered. Scaled by the strength
                 // set in Nexus > Lock screen > Background
                 blur: lockContent.opacity * Math.max(0, Math.min(1, Config.lock.blur ?? 1))
+                // The layer is small, so the full kernel already reaches ~5x as far on screen.
+                // The multiplier stays at 1: above it the samples spread wider than the texels
+                // and the blur breaks up into blotches instead of a smooth gradient
                 blurMax: 64
                 blurMultiplier: 1
             }
@@ -127,6 +141,15 @@ WlSessionLockSurface {
                 // A lock-only wallpaper wins over both of the others when one is set
                 sourceComponent: (Config.lock.wallpaper ?? "") !== "" ? lockWallpaperBackground : Config.lock.useWallpaper ? wallpaperBackground : screencopyBackground
             }
+        }
+
+        // A dark scrim over the blur, so whatever is on screen when it locks (windows, text) is
+        // dimmed to shapes and never reads through. Outside the blurred layer on purpose: inside
+        // it, darkening the range before the blur made its banding show. Follows the blur in/out
+        Rectangle {
+            anchors.fill: parent
+            color: Colours.palette.m3scrim
+            opacity: 0.4 * lockContent.opacity * Math.max(0, Math.min(1, Config.lock.blur ?? 1)) * background.opacity
         }
 
         Item {
