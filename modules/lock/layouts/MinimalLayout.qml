@@ -26,7 +26,8 @@ Item {
     StatusChips {
         x: root.width - width - root.margin
         y: root.margin
-        uiScale: root.uiScale
+        // Quieter than the corner pill opposite: this is a layout about the clock
+        uiScale: root.uiScale * 0.8
         layoutDirection: Qt.RightToLeft
     }
 

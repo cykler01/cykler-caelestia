@@ -44,7 +44,9 @@ GridLayout {
 
     RowLayout {
         Layout.alignment: root.stacked ? root.alignment : Qt.AlignVCenter
-        spacing: hours.implicitHeight * 0.08
+        // On one line AM/PM hangs off the right edge without taking any width, so the digits
+        // themselves are what sits centred
+        spacing: root.stacked ? hours.implicitHeight * 0.08 : 0
         layoutDirection: root.stacked && root.alignment === Qt.AlignRight ? Qt.RightToLeft : Qt.LeftToRight
 
         Tight {
@@ -57,6 +59,12 @@ GridLayout {
         Tight {
             visible: Units.twelveHourClock
             Layout.alignment: Qt.AlignBottom
+            Layout.preferredWidth: root.stacked ? implicitWidth : 0
+            Layout.minimumWidth: root.stacked ? implicitWidth : 0
+            Layout.maximumWidth: root.stacked ? implicitWidth : 0
+            transform: Translate {
+                x: root.stacked ? 0 : hours.implicitHeight * 0.08
+            }
             text: Time.amPmStr
             color: Qt.alpha(Colours.palette.m3primary, 0.6)
             font: Tokens.font.headline.builders.large.scale(root.fontScale / 4).weight(Font.Medium).build()
