@@ -66,7 +66,6 @@ ColumnLayout {
         return on[0] ?? null;
     }
     readonly property var next: root.timed.find(e => e.start.getTime() > root.nowMs) ?? null
-    readonly property int remaining: root.timed.filter(e => e.start.getTime() > root.nowMs).length
 
     // Events as blocks on the timeline, each in a lane so overlapping ones sit one above the other
     readonly property var blocks: {
@@ -105,6 +104,62 @@ ColumnLayout {
         return out;
     }
 
+    // The event under the pointer, on the timeline or an all-day chip. While there is one the
+    // status row up top tells it in full instead of what is on now - inside the widget's own
+    // footprint, so nothing pops out of the card or gets clipped by it
+    // Worked out from where the pointer is over the timeline (or the chips) rather than kept by
+    // each block, since the blocks are rebuilt every minute and a rebuilt block never hears that
+    // the pointer has left - which left the last one shown for good
+    readonly property var hovered: {
+        if (trackHover.hovered)
+            return root.blockAt(trackHover.point.position.x, trackHover.point.position.y);
+        if (chipHover.hovered)
+            return chipFlow.childAt(chipHover.point.position.x, chipHover.point.position.y)?.modelData ?? null;
+        return null;
+    }
+    readonly property var shown: root.hovered ?? root.current
+
+    // The event drawn at a point on the track, the top lane first as they are drawn
+    function blockAt(x: real, y: real): var {
+        const laneHeight = (track.height - (root.lanes - 1)) / root.lanes;
+        for (let i = root.blocks.length - 1; i >= 0; i--) {
+            const b = root.blocks[i];
+            const bx = track.width * b.from;
+            const bw = Math.max(3, track.width * (b.to - b.from) - 1);
+            const by = b.lane * (laneHeight + 1);
+            if (x >= bx && x <= bx + bw && y >= by && y <= by + laneHeight)
+                return b.event;
+        }
+        return null;
+    }
+
+    // When an event runs, with the day on either end that is not today
+    function rangeLabel(ev: var): string {
+        if (ev.allDay) {
+            const days = CalendarEvents.dayCount(ev);
+            if (days <= 1)
+                return Tr.tr("All day");
+            return `${CalendarEvents.dayLabel(ev.start)} – ${CalendarEvents.dayLabel(CalendarEvents.lastDay(ev))}`;
+        }
+        const from = CalendarEvents.sameDay(ev.start, root.now) ? CalendarEvents.formatTime(ev.start) : `${CalendarEvents.dayLabel(ev.start)} ${CalendarEvents.formatTime(ev.start)}`;
+        if (ev.end.getTime() <= ev.start.getTime())
+            return from;
+        return `${from} – ${root.endLabel(ev)}`;
+    }
+
+    // How it stands against now: time left if it is on, time until it starts if it is to come
+    function countdownLabel(ev: var): string {
+        if (ev.allDay)
+            return "";
+        const start = ev.start.getTime();
+        const end = ev.end.getTime();
+        if (start <= root.nowMs && root.nowMs < end)
+            return Tr.tr("ends in %1").arg(CalendarEvents.durationLabel(end - root.nowMs));
+        if (start > root.nowMs)
+            return Tr.tr("starts in %1").arg(CalendarEvents.durationLabel(start - root.nowMs));
+        return Tr.tr("ended");
+    }
+
     function endLabel(ev: var): string {
         if (CalendarEvents.sameDay(ev.end, root.now) || ev.end.getTime() === root.midnight.getTime() + 86400000)
             return CalendarEvents.formatTime(ev.end);
@@ -122,18 +177,18 @@ ColumnLayout {
             implicitWidth: root.compact ? 28 : 36
             implicitHeight: implicitWidth
             radius: Tokens.rounding.full
-            color: Qt.alpha(root.current ? CalendarEvents.colourOf(root.current) : Colours.palette.m3primary, 0.2)
+            color: Qt.alpha(root.shown ? CalendarEvents.colourOf(root.shown) : Colours.palette.m3primary, 0.2)
 
             MaterialIcon {
                 anchors.centerIn: parent
                 text: {
-                    if (root.current)
-                        return root.current.kind === "regular" ? "schedule" : root.current.kind === "rare" ? "celebration" : "star";
+                    if (root.shown)
+                        return root.shown.kind === "regular" ? "schedule" : root.shown.kind === "rare" ? "celebration" : "star";
                     if (root.next)
                         return "self_improvement";
                     return root.timed.length > 0 ? "bedtime" : "wb_sunny";
                 }
-                color: root.current ? CalendarEvents.colourOf(root.current) : Colours.palette.m3primary
+                color: root.shown ? CalendarEvents.colourOf(root.shown) : Colours.palette.m3primary
                 fontStyle: root.compact ? Tokens.font.icon.small : Tokens.font.icon.medium
             }
         }
@@ -142,19 +197,59 @@ ColumnLayout {
             Layout.fillWidth: true
             spacing: 0
 
-            StyledText {
+            // The title. A hovered event's name is never cut short: if it is wider than the row it
+            // scrolls across to show the rest, then back
+            Item {
+                id: titleBox
+
                 Layout.fillWidth: true
-                elide: Text.ElideRight
-                color: Colours.palette.m3onSurface
-                font: root.compact ? Tokens.font.body.builders.medium.weight(Font.DemiBold).build() : Tokens.font.title.builders.medium.weight(Font.DemiBold).build()
-                text: {
-                    if (root.current)
-                        return CalendarEvents.titleOf(root.current);
-                    if (root.next)
-                        return Tr.tr("Free");
-                    if (root.timed.length > 0)
-                        return Tr.tr("Done for the day");
-                    return Tr.tr("Nothing scheduled");
+                implicitHeight: titleText.implicitHeight
+                clip: true
+
+                StyledText {
+                    id: titleText
+
+                    readonly property real overflow: Math.max(0, implicitWidth - titleBox.width)
+                    readonly property bool scrolls: !!root.hovered && overflow > 0
+
+                    width: scrolls ? implicitWidth : titleBox.width
+                    elide: scrolls ? Text.ElideNone : Text.ElideRight
+                    color: Colours.palette.m3onSurface
+                    font: root.compact ? Tokens.font.body.builders.medium.weight(Font.DemiBold).build() : Tokens.font.title.builders.medium.weight(Font.DemiBold).build()
+                    text: {
+                        if (root.shown)
+                            return CalendarEvents.titleOf(root.shown);
+                        if (root.next)
+                            return Tr.tr("Free");
+                        if (root.timed.length > 0)
+                            return Tr.tr("Done for the day");
+                        return Tr.tr("Nothing scheduled");
+                    }
+
+                    onScrollsChanged: x = 0
+                    onTextChanged: x = 0
+
+                    SequentialAnimation on x {
+                        running: titleText.scrolls
+                        loops: Animation.Infinite
+
+                        PauseAnimation {
+                            duration: 800
+                        }
+                        NumberAnimation {
+                            to: -titleText.overflow
+                            duration: Math.max(600, titleText.overflow * 25)
+                            easing.type: Easing.InOutSine
+                        }
+                        PauseAnimation {
+                            duration: 1200
+                        }
+                        NumberAnimation {
+                            to: 0
+                            duration: Math.max(600, titleText.overflow * 25)
+                            easing.type: Easing.InOutSine
+                        }
+                    }
                 }
             }
 
@@ -164,6 +259,18 @@ ColumnLayout {
                 color: Colours.palette.m3onSurfaceVariant
                 font: Tokens.font.label.medium
                 text: {
+                    if (root.hovered) {
+                        const ev = root.hovered;
+                        const parts = [root.rangeLabel(ev)];
+                        const countdown = root.countdownLabel(ev);
+                        if (countdown)
+                            parts.push(countdown);
+                        if (ev.location)
+                            parts.push(ev.location);
+                        else if (ev.calendarName)
+                            parts.push(ev.calendarName);
+                        return parts.join(" · ");
+                    }
                     if (root.current) {
                         const left = CalendarEvents.durationLabel(root.current.end.getTime() - root.nowMs);
                         return Tr.tr("Until %1 · %2 left").arg(root.endLabel(root.current)).arg(left);
@@ -179,33 +286,27 @@ ColumnLayout {
             }
         }
 
-        // How far through the day, and what is left of it
-        ColumnLayout {
+        // How far through the day
+        StyledText {
+            Layout.alignment: Qt.AlignRight | Qt.AlignVCenter
             visible: root.timed.length > 0
-            spacing: 0
-
-            StyledText {
-                Layout.alignment: Qt.AlignRight
-                text: `${Math.round(root.progress * 100)}%`
-                color: Colours.palette.m3primary
-                font: root.compact ? Tokens.font.label.builders.large.weight(Font.Bold).build() : Tokens.font.title.builders.small.weight(Font.Bold).build()
-            }
-
-            StyledText {
-                Layout.alignment: Qt.AlignRight
-                visible: !root.compact
-                text: root.remaining > 0 ? Tr.trN("%n to go", "%n to go", root.remaining) : Tr.tr("all done")
-                color: Colours.palette.m3outline
-                font: Tokens.font.label.small
-            }
+            text: `${Math.round(root.progress * 100)}%`
+            color: Colours.palette.m3primary
+            font: root.compact ? Tokens.font.label.builders.large.weight(Font.Bold).build() : Tokens.font.title.builders.small.weight(Font.Bold).build()
         }
     }
 
     // All-day things today - a birthday, a deadline - as chips over the timeline
     Flow {
+        id: chipFlow
+
         Layout.fillWidth: true
         visible: !root.compact && root.allDay.length > 0
         spacing: Tokens.spacing.small
+
+        HoverHandler {
+            id: chipHover
+        }
 
         Repeater {
             model: root.allDay.slice(0, 4)
@@ -257,7 +358,7 @@ ColumnLayout {
     Item {
         id: timeline
 
-        readonly property real trackHeight: root.compact ? 10 : 30
+        readonly property real trackHeight: root.compact ? 10 : 24
         readonly property real labelHeight: root.compact ? 0 : hourMetrics.height + Tokens.spacing.extraSmall
 
         Layout.fillWidth: true
@@ -279,6 +380,10 @@ ColumnLayout {
             radius: root.compact ? height / 2 : Tokens.rounding.small
             color: Colours.palette.m3surfaceContainerHighest
             clip: true
+
+            HoverHandler {
+                id: trackHover
+            }
 
             // The part of the day already gone
             StyledRect {

@@ -44,14 +44,21 @@ WidgetCard {
         }
     }
 
-    DayProgress {
-        Layout.fillWidth: true
-        visible: CalendarEvents.ready
-        compact: card.compact
-        interactive: !card.preview
-    }
-
+    // Held to the top of the card, so the few pixels the grid rounds its height up by gather
+    // at the bottom instead of opening gaps between the rows. No spacer under it either: that
+    // cost a whole row of spacing, which was enough to push the card a full grid cell taller
     Item {
+        Layout.fillWidth: true
         Layout.fillHeight: true
+        visible: CalendarEvents.ready
+        implicitHeight: day.implicitHeight
+
+        DayProgress {
+            id: day
+
+            width: parent.width
+            compact: card.compact
+            interactive: !card.preview
+        }
     }
 }
