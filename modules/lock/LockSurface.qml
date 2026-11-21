@@ -124,7 +124,8 @@ WlSessionLockSurface {
 
             Loader {
                 anchors.fill: parent
-                sourceComponent: Config.lock.useWallpaper ? wallpaperBackground : screencopyBackground
+                // A lock-only wallpaper wins over both of the others when one is set
+                sourceComponent: (Config.lock.wallpaper ?? "") !== "" ? lockWallpaperBackground : Config.lock.useWallpaper ? wallpaperBackground : screencopyBackground
             }
         }
 
@@ -466,6 +467,15 @@ WlSessionLockSurface {
 
         Visual {
             source: Wallpapers.current
+            playing: PersistentState.wallpaperPlaying
+        }
+    }
+
+    Component {
+        id: lockWallpaperBackground
+
+        Visual {
+            source: Config.lock.wallpaper
             playing: PersistentState.wallpaperPlaying
         }
     }

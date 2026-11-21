@@ -47,6 +47,11 @@ ConnectedRect {
     // always ships with are missing rather than unset, but a profile picture can simply
     // not be there yet, so it gets a friendlier icon.
     property string fallbackIcon: "broken_image"
+    // NOTE(fork): what the source line says while the option is at its default, for options whose
+    // default isn't an image of the shell's own (the lock screen wallpaper's is "none")
+    property string defaultLabel: Tr.tr("Shell default")
+    // NOTE(fork): absolute folder the file dialog opens in, the home folder if blank
+    property string startFolder
 
     // Whether the managed file is there. Checked on disk rather than read off the preview,
     // which can't tell a missing file apart from one it failed to decode.
@@ -67,7 +72,7 @@ ConnectedRect {
             return root.filePresent ? Paths.shortenHome(root.targetPath) : Tr.tr("None");
 
         if (root.value === root.defaultValue)
-            return Tr.tr("Shell default");
+            return root.defaultLabel;
         if (!root.value)
             return Tr.tr("None");
         return Paths.shortenHome(root.value);
@@ -177,6 +182,15 @@ ConnectedRect {
     FileDialog {
         id: dialog
 
+        // The dialog's path is a list of folder names under either "Home" or the root
+        cwd: {
+            const folder = root.startFolder.replace(/\/+$/, "");
+            if (!folder)
+                return ["Home"];
+            if (folder === Paths.home || folder.startsWith(`${Paths.home}/`))
+                return ["Home", ...folder.slice(Paths.home.length).split("/").filter(p => p)];
+            return ["", ...folder.split("/").filter(p => p)];
+        }
         title: Tr.tr("Choose an image")
         filterLabel: Tr.tr("Image files")
         filters: root.filters

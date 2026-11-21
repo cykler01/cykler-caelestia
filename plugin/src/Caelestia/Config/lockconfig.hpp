@@ -50,6 +50,10 @@ class LockConfig : public settings::ObjectNode {
     // NOTE(fork): how strongly the background is blurred behind the lock UI, 0 (sharp) to 1 (the
     // original full blur) - modules/lock/LockSurface.qml
     CONFIG_PROPERTY(qreal, blur, 1.0)
+    // NOTE(fork): an image (or video) shown only on the lock screen, in place of both the desktop
+    // wallpaper and the session capture. Empty keeps those as they were. Set from Nexus, which
+    // copies the chosen file into the shell's data directory so it outlives the original
+    CONFIG_PROPERTY(QString, wallpaper, {})
     CONFIG_PROPERTY(bool, recolourLogo, true)
     CONFIG_GLOBAL_PROPERTY(bool, enableFprint, true)
     CONFIG_GLOBAL_PROPERTY(int, maxFprintTries, 3)

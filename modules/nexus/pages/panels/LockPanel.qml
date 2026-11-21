@@ -7,7 +7,9 @@ import Caelestia.I18n
 import qs.components
 import qs.components.controls
 import qs.services
+import qs.utils
 import qs.modules.nexus.common
+import qs.modules.nexus.pages.assets
 
 PageBase {
     id: root
@@ -167,9 +169,27 @@ PageBase {
         ToggleRow {
             first: true
             text: Tr.tr("Use the wallpaper")
-            subtext: Tr.tr("Show the wallpaper rather than a capture of the session behind it")
+            subtext: (Config.lock.wallpaper ?? "") !== "" ? Tr.tr("Not used while a lock screen wallpaper is set below") : Tr.tr("Show the wallpaper rather than a capture of the session behind it")
             checked: Config.lock.useWallpaper
             onToggled: GlobalConfig.lock.useWallpaper = checked
+        }
+
+        // NOTE(fork): a wallpaper for the lock screen alone, chosen through the same row the
+        // asset images use (pages/assets/AssetRow.qml), which copies the file into the shell's
+        // data directory and offers the reset
+        AssetRow {
+            // SEARCH: wallpaper background image picture lock screen separate different
+            label: Tr.tr("Lock screen wallpaper")
+            subtext: Tr.tr("Shown only on the lock screen, in place of the desktop wallpaper")
+            option: "lockWallpaper"
+            value: GlobalConfig.lock.wallpaper ?? ""
+            defaultValue: ""
+            defaultLabel: Tr.tr("None, using the setting above")
+            previewSource: Paths.absolutePath(GlobalConfig.lock.wallpaper ?? "")
+            startFolder: Paths.wallsdir
+            fallbackIcon: "wallpaper"
+            write: v => GlobalConfig.lock.wallpaper = v
+            reset: () => GlobalConfig.lock.wallpaper = ""
         }
 
         SliderRow {
