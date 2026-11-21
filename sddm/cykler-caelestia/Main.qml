@@ -152,8 +152,18 @@ Item {
                 break;
             }
         }
-        if (sessionModel.lastIndex >= 0 && sessionModel.lastIndex < Lock.sessions.length)
+        if (sessionModel.lastIndex >= 0 && sessionModel.lastIndex < Lock.sessions.length) {
             Lock.sessionIndex = sessionModel.lastIndex;
+        } else {
+            // nothing remembered yet (a first login, or the greeter run in test mode): prefer
+            // Hyprland over whichever session sorts first
+            for (var j = 0; j < Lock.sessions.length; j++) {
+                if (/hyprland/i.test(Lock.sessions[j].name)) {
+                    Lock.sessionIndex = j;
+                    break;
+                }
+            }
+        }
 
         // sddm can be told to list nobody; then every login is typed by hand
         if (Lock.accounts.length === 0)
