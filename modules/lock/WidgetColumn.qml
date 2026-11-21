@@ -63,24 +63,6 @@ ColumnLayout {
     // like battery on a desktop), kept even after one is dropped so the fit can be redone
     property var measured: ({})
 
-    function measure(item: Item): void {
-        const id = item?.modelData?.id;
-        if (!id || !col.autoSized.includes(id))
-            return;
-        const h = item.visible ? item.implicitHeight : 0;
-        if (col.measured[id] === h)
-            return;
-        const m = Object.assign({}, col.measured);
-        m[id] = h;
-        col.measured = m;
-    }
-
-    // The height this column wants when each weighted widget gets `unit` px per unit of weight,
-    // for layouts that size it to its contents instead of handing it a fixed slice of the screen
-    function naturalHeight(unit: real): real {
-        return col.autoHeight + (col.hasFlex ? col.flexTotalWeight * unit : 0) + Math.max(0, col.visibleCount - 1) * col.spacing;
-    }
-
     // Ids of the widgets whose size is fixed to their natural content height rather than a
     // weight share - their weights are ignored. Audio and network read live service state whose
     // card height doesn't depend on it, so they size naturally too
@@ -125,6 +107,24 @@ ColumnLayout {
     // of this, shares would sum to more than col.rootHeight once spacing is added on top,
     // pushing the last widget slightly past the bottom of the lock screen
     readonly property real budget: Math.max(0, col.rootHeight - Math.max(0, col.visibleCount - 1) * col.spacing)
+
+    function measure(item: Item): void {
+        const id = item?.modelData?.id;
+        if (!id || !col.autoSized.includes(id))
+            return;
+        const h = item.visible ? item.implicitHeight : 0;
+        if (col.measured[id] === h)
+            return;
+        const m = Object.assign({}, col.measured);
+        m[id] = h;
+        col.measured = m;
+    }
+
+    // The height this column wants when each weighted widget gets `unit` px per unit of weight,
+    // for layouts that size it to its contents instead of handing it a fixed slice of the screen
+    function naturalHeight(unit: real): real {
+        return col.autoHeight + (col.hasFlex ? col.flexTotalWeight * unit : 0) + Math.max(0, col.visibleCount - 1) * col.spacing;
+    }
 
     // A flexible entry's share: the weight-slice of whatever budget is left after the
     // fixed-size widgets have taken their natural heights

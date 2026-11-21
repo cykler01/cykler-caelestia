@@ -142,10 +142,6 @@ ConnectedRect {
         readonly property color card: Qt.alpha(ink, 0.22)
         readonly property color solid: Qt.alpha(ink, 0.8)
 
-        radius: Tokens.rounding.small
-        color: Qt.alpha(Colours.palette.m3onSurface, 0.06)
-        clip: true
-
         // [x, y, w, h, kind] with x measured from the panel edge's opposite side; mirrored for a
         // left-hand panel. kind 0 = card, 1 = solid (clock digits, field)
         readonly property var blocks: ({
@@ -155,6 +151,10 @@ ConnectedRect {
                 minimal: [[0.3, 0.26, 0.4, 0.16, 1], [0.38, 0.46, 0.24, 0.04, 1], [0.44, 0.6, 0.12, 0.05, 1], [0.36, 0.7, 0.28, 0.06, 0]]
             })[kind] ?? []
         readonly property bool mirror: (kind === "split" || kind === "sidebar") && !root.panelRight
+
+        radius: Tokens.rounding.small
+        color: Qt.alpha(Colours.palette.m3onSurface, 0.06)
+        clip: true
 
         Repeater {
             model: sketch.blocks
