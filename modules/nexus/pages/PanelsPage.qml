@@ -56,6 +56,34 @@ PageBase {
         }
     ]
 
+    readonly property list<string> eqShapes: ["rounded", "square"]
+    readonly property list<MenuItem> eqShapeItems: [
+        MenuItem {
+            text: Tr.trCtx("Rounded", "equalizer bar shape")
+            icon: "rounded_corner"
+        },
+        MenuItem {
+            text: Tr.trCtx("Square", "equalizer bar shape")
+            icon: "crop_square"
+        }
+    ]
+
+    readonly property list<string> eqColours: ["theme", "gradient", "chroma"]
+    readonly property list<MenuItem> eqColourItems: [
+        MenuItem {
+            text: Tr.trCtx("Theme", "equalizer colours")
+            icon: "palette"
+        },
+        MenuItem {
+            text: Tr.trCtx("Gradient", "equalizer colours")
+            icon: "gradient"
+        },
+        MenuItem {
+            text: Tr.trCtx("Chroma", "equalizer colours")
+            icon: "looks"
+        }
+    ]
+
     readonly property list<string> eqResponses: ["linear", "log", "sqrt", "exp"]
     readonly property list<MenuItem> eqResponseItems: [
         MenuItem {
@@ -265,6 +293,43 @@ PageBase {
             menuItems: root.eqStyleItems
             active: root.eqStyleItems[Math.max(0, root.eqStyles.indexOf(Config.background.floorEqualizer.style ?? "bars"))]
             onSelected: item => GlobalConfig.background.floorEqualizer.style = root.eqStyles[root.eqStyleItems.indexOf(item)]
+        }
+
+        SelectRow {
+            visible: GlobalConfig.background.floorEqualizer.enabled && (Config.background.floorEqualizer.style ?? "bars") === "bars"
+            // SEARCH: square rounded round corners bar shape equalizer equaliser
+            label: Tr.tr("Bar shape")
+            subtext: Tr.tr("Rounded pills or square blocks")
+            menuOnTop: true
+            fallbackIcon: "crop_square"
+            menuItems: root.eqShapeItems
+            active: root.eqShapeItems[Math.max(0, root.eqShapes.indexOf(Config.background.floorEqualizer.barShape ?? "rounded"))]
+            onSelected: item => GlobalConfig.background.floorEqualizer.barShape = root.eqShapes[root.eqShapeItems.indexOf(item)]
+        }
+
+        StepperRow {
+            visible: GlobalConfig.background.floorEqualizer.enabled
+            // TRANSLATORS: bars of a spectrum analyser, not the taskbar
+            // SEARCH: density resolution bars count detail equalizer equaliser
+            label: Tr.tr("Equalizer density")
+            subtext: Tr.tr("How many bars it is drawn with. Only this equalizer, not the other visualisers")
+            value: (Config.background.floorEqualizer.bars ?? 0) > 0 ? Config.background.floorEqualizer.bars : GlobalConfig.services.visualiserBars
+            from: 16
+            to: 240
+            stepSize: 8
+            onMoved: v => GlobalConfig.background.floorEqualizer.bars = v
+        }
+
+        SelectRow {
+            visible: GlobalConfig.background.floorEqualizer.enabled
+            // SEARCH: colour color chroma rainbow gradient hue rgb equalizer equaliser
+            label: Tr.tr("Equalizer colours")
+            subtext: Tr.tr("The theme colour, a gradient across the screen, or a slowly turning rainbow")
+            menuOnTop: true
+            fallbackIcon: "palette"
+            menuItems: root.eqColourItems
+            active: root.eqColourItems[Math.max(0, root.eqColours.indexOf(Config.background.floorEqualizer.colour ?? "theme"))]
+            onSelected: item => GlobalConfig.background.floorEqualizer.colour = root.eqColours[root.eqColourItems.indexOf(item)]
         }
 
         SelectRow {

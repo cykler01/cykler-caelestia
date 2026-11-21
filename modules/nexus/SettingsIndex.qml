@@ -270,7 +270,7 @@ QtObject {
             section: Tr.tr("Wallpaper"),
             label: Tr.tr("Floor equalizer"),
             subtext: Tr.tr("A large audio spectrum across the bottom of the screen"),
-            keywords: "visualiser visualizer audio spectrum analyser wallpaper eq equaliser"
+            keywords: "visualiser visualizer audio spectrum analyser wallpaper eq equaliser square bars density resolution chroma rainbow gradient colour color"
         },
 
         {

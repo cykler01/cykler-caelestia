@@ -73,6 +73,15 @@ class BackgroundFloorEqualizer : public settings::ObjectNode {
     // hits stand out). cava already spaces the bands logarithmically in frequency, so this is
     // the loudness side of it
     CONFIG_PROPERTY(QString, response, u"linear"_s)
+    // The bars' ends: "rounded" pills or "square" blocks (the bars style only)
+    CONFIG_PROPERTY(QString, barShape, u"rounded"_s)
+    // How many bars (or points along the wave) it is drawn with. Resampled from cava's bands, so
+    // it can be denser than the other visualisers without changing them. 0 follows
+    // services.visualiserBars
+    CONFIG_PROPERTY(int, bars, 0)
+    // "theme" (the scheme's primary), "gradient" (primary into tertiary across the screen) or
+    // "chroma" (the whole hue wheel across the spectrum, slowly turning)
+    CONFIG_PROPERTY(QString, colour, u"theme"_s)
 };
 
 class DesktopIcons : public settings::ObjectNode {

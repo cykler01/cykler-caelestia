@@ -21,6 +21,140 @@ Item {
     // rates - 1 as they always were, 0 straight onto every reading (the floor equalizer's
     // smoothness setting)
     property real smoothing: 1
+    // NOTE(fork): when set, a function (t, alpha) giving the colour at a point across the spectrum,
+    // 0 at the low end and 1 at the high end, and both curves are painted with it from side to
+    // side in place of the theme's flat colours (the floor equalizer's gradient and chroma colours)
+    property var colourAt: null
+
+    // Left to right along the spectrum, sampled at seven points (enough for the full hue wheel to
+    // read as one smooth sweep)
+    readonly property LinearGradient spectrumStroke: LinearGradient {
+        x1: 0
+        y1: 0
+        x2: root.width
+        y2: 0
+
+        GradientStop {
+            position: 0
+            color: root.spectrum(0, 1)
+        }
+
+        GradientStop {
+            position: 1 / 6
+            color: root.spectrum(1 / 6, 1)
+        }
+
+        GradientStop {
+            position: 2 / 6
+            color: root.spectrum(2 / 6, 1)
+        }
+
+        GradientStop {
+            position: 3 / 6
+            color: root.spectrum(3 / 6, 1)
+        }
+
+        GradientStop {
+            position: 4 / 6
+            color: root.spectrum(4 / 6, 1)
+        }
+
+        GradientStop {
+            position: 5 / 6
+            color: root.spectrum(5 / 6, 1)
+        }
+
+        GradientStop {
+            position: 1
+            color: root.spectrum(1, 1)
+        }
+    }
+    readonly property LinearGradient spectrumFront: LinearGradient {
+        x1: 0
+        y1: 0
+        x2: root.width
+        y2: 0
+
+        GradientStop {
+            position: 0
+            color: root.spectrum(0, root.outlineOnly ? 0 : 0.45)
+        }
+
+        GradientStop {
+            position: 1 / 6
+            color: root.spectrum(1 / 6, root.outlineOnly ? 0 : 0.45)
+        }
+
+        GradientStop {
+            position: 2 / 6
+            color: root.spectrum(2 / 6, root.outlineOnly ? 0 : 0.45)
+        }
+
+        GradientStop {
+            position: 3 / 6
+            color: root.spectrum(3 / 6, root.outlineOnly ? 0 : 0.45)
+        }
+
+        GradientStop {
+            position: 4 / 6
+            color: root.spectrum(4 / 6, root.outlineOnly ? 0 : 0.45)
+        }
+
+        GradientStop {
+            position: 5 / 6
+            color: root.spectrum(5 / 6, root.outlineOnly ? 0 : 0.45)
+        }
+
+        GradientStop {
+            position: 1
+            color: root.spectrum(1, root.outlineOnly ? 0 : 0.45)
+        }
+    }
+    readonly property LinearGradient spectrumBack: LinearGradient {
+        x1: 0
+        y1: 0
+        x2: root.width
+        y2: 0
+
+        GradientStop {
+            position: 0
+            color: root.spectrum(0, root.outlineOnly ? 0 : 0.22)
+        }
+
+        GradientStop {
+            position: 1 / 6
+            color: root.spectrum(1 / 6, root.outlineOnly ? 0 : 0.22)
+        }
+
+        GradientStop {
+            position: 2 / 6
+            color: root.spectrum(2 / 6, root.outlineOnly ? 0 : 0.22)
+        }
+
+        GradientStop {
+            position: 3 / 6
+            color: root.spectrum(3 / 6, root.outlineOnly ? 0 : 0.22)
+        }
+
+        GradientStop {
+            position: 4 / 6
+            color: root.spectrum(4 / 6, root.outlineOnly ? 0 : 0.22)
+        }
+
+        GradientStop {
+            position: 5 / 6
+            color: root.spectrum(5 / 6, root.outlineOnly ? 0 : 0.22)
+        }
+
+        GradientStop {
+            position: 1
+            color: root.spectrum(1, root.outlineOnly ? 0 : 0.22)
+        }
+    }
+
+    function spectrum(t: real, alpha: real): color {
+        return root.colourAt ? root.colourAt(t, alpha) : "transparent";
+    }
 
     // Each curve eases towards the latest levels at its own rate. Eased here rather than through a
     // Behavior, since what moves is a whole array and a Behavior can only ease a number
@@ -103,7 +237,9 @@ Item {
         ShapePath {
             strokeWidth: 0
             strokeColor: "transparent"
-            fillGradient: LinearGradient {
+            fillGradient: root.colourAt ? root.spectrumBack : backFill
+
+            readonly property LinearGradient backFill: LinearGradient {
                 x1: 0
                 y1: 0
                 x2: 0
@@ -127,9 +263,12 @@ Item {
         ShapePath {
             strokeWidth: root.outlineOnly ? 3 : 2
             strokeColor: Colours.palette.m3primary
+            strokeGradient: root.colourAt ? root.spectrumStroke : null
             joinStyle: ShapePath.RoundJoin
             capStyle: ShapePath.RoundCap
-            fillGradient: LinearGradient {
+            fillGradient: root.colourAt ? root.spectrumFront : frontFill
+
+            readonly property LinearGradient frontFill: LinearGradient {
                 x1: 0
                 y1: 0
                 x2: 0
