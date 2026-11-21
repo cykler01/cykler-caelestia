@@ -38,6 +38,9 @@ class LockConfig : public settings::ObjectNode {
     // Battery, network and Bluetooth pills along the top edge in the split, sidebar and minimal layouts
     CONFIG_PROPERTY(bool, statusChips, true)
     CONFIG_PROPERTY(bool, useWallpaper, false)
+    // NOTE(fork): how strongly the background is blurred behind the lock UI, 0 (sharp) to 1 (the
+    // original full blur) - modules/lock/LockSurface.qml
+    CONFIG_PROPERTY(qreal, blur, 1.0)
     CONFIG_PROPERTY(bool, recolourLogo, true)
     CONFIG_GLOBAL_PROPERTY(bool, enableFprint, true)
     CONFIG_GLOBAL_PROPERTY(int, maxFprintTries, 3)

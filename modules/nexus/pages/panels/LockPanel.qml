@@ -97,11 +97,23 @@ PageBase {
         // leave the background filling the screen on its own
         ToggleRow {
             first: true
-            last: true
             text: Tr.tr("Use the wallpaper")
             subtext: Tr.tr("Show the wallpaper rather than a capture of the session behind it")
             checked: Config.lock.useWallpaper
             onToggled: GlobalConfig.lock.useWallpaper = checked
+        }
+
+        SliderRow {
+            last: true
+            icon: "blur_on"
+            // SEARCH: blur blurry sharp frosted background strength
+            label: Tr.tr("Blur")
+            valueLabel: `${Math.round((Config.lock.blur ?? 1) * 100)}%`
+            value: Config.lock.blur ?? 1
+            from: 0
+            to: 1
+            stepSize: 0.05
+            onMoved: v => GlobalConfig.lock.blur = Math.round(v * 100) / 100
         }
 
         // Idle

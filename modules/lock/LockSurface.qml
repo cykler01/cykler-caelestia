@@ -111,11 +111,13 @@ WlSessionLockSurface {
             layer.enabled: true
             layer.effect: MultiEffect {
                 autoPaddingEnabled: false
-                blurEnabled: true
+                // Off entirely at zero strength rather than running the blur passes for nothing
+                blurEnabled: blur > 0
                 // NOTE(fork): follows the fade instead of easing on its own, since the blur is only
                 // there to hold the wallpaper back from what sits on top of it. Two animations over
-                // the same moment drifted against each other and flickered
-                blur: lockContent.opacity
+                // the same moment drifted against each other and flickered. Scaled by the strength
+                // set in Nexus > Lock screen > Background
+                blur: lockContent.opacity * Math.max(0, Math.min(1, Config.lock.blur ?? 1))
                 blurMax: 64
                 blurMultiplier: 1
             }
