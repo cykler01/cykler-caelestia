@@ -65,6 +65,9 @@ class BackgroundFloorEqualizer : public settings::ObjectNode {
     CONFIG_PROPERTY(bool, autoHide, true)
     // How tall it reaches, as a multiple of its original height (0.5 - 3)
     CONFIG_PROPERTY(qreal, amplitude, 1.0)
+    // How slowly it eases between readings, as a multiple of the original (0 jumps straight to
+    // each reading, 2 is twice as slow)
+    CONFIG_PROPERTY(qreal, smoothness, 1.0)
 };
 
 class DesktopIcons : public settings::ObjectNode {

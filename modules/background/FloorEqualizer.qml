@@ -26,6 +26,9 @@ Item {
     // Kept deliberately low so it reads as an accent along the bottom edge rather than a panel,
     // then scaled by the amplitude set in Nexus > Panels
     readonly property real amplitude: Math.max(0.5, Math.min(3, Config.background.floorEqualizer.amplitude ?? 1))
+    // How slowly the levels are eased towards each reading, set in Nexus > Panels: 1 is the
+    // original feel, 0 snaps straight to every reading
+    readonly property real smoothness: Math.max(0, Math.min(2, Config.background.floorEqualizer.smoothness ?? 1))
     readonly property real maxBarHeight: Math.round(Math.max(56, screen.height * 0.08) * root.amplitude)
     property var levels: []
 
@@ -125,8 +128,13 @@ Item {
                     color: Qt.alpha(Colours.palette.m3primary, 0.85)
 
                     Behavior on height {
+                        enabled: root.smoothness > 0
+
                         Anim {
                             type: Anim.FastSpatial
+                            // The type's own duration, stretched or shortened by the smoothness
+                            // (and still nothing with animations switched off)
+                            duration: PowerSaving.animations ? Tokens.anim.durations.expressiveFastSpatial * root.smoothness : 0
                         }
                     }
                 }
@@ -143,6 +151,7 @@ Item {
             levels: root.levels
             barCount: root.barCount
             outlineOnly: root.style === "line"
+            smoothing: root.smoothness
             // Drawn floor-up, so flipped for the ceiling
             transform: Scale {
                 origin.y: root.height / 2

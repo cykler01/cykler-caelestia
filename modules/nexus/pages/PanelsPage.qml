@@ -260,6 +260,19 @@ PageBase {
             onMoved: v => GlobalConfig.background.floorEqualizer.amplitude = Math.round(v * 10) / 10
         }
 
+        SliderRow {
+            visible: GlobalConfig.background.floorEqualizer.enabled
+            icon: "airwave"
+            // SEARCH: smoothness smooth smoothing responsive snappy speed equalizer equaliser
+            label: Tr.tr("Equalizer smoothness")
+            valueLabel: `${Math.round((Config.background.floorEqualizer.smoothness ?? 1) * 100)}%`
+            value: Config.background.floorEqualizer.smoothness ?? 1
+            from: 0
+            to: 2
+            stepSize: 0.1
+            onMoved: v => GlobalConfig.background.floorEqualizer.smoothness = Math.round(v * 10) / 10
+        }
+
         ToggleRow {
             visible: GlobalConfig.background.floorEqualizer.enabled
             last: true

@@ -17,6 +17,10 @@ Item {
     // NOTE(fork): just the front curve's outline, without its fill or the slower curve behind it
     // (the floor equalizer's line style)
     property bool outlineOnly: false
+    // NOTE(fork): how slowly both curves ease towards the levels, as a multiple of their own
+    // rates - 1 as they always were, 0 straight onto every reading (the floor equalizer's
+    // smoothness setting)
+    property real smoothing: 1
 
     // Each curve eases towards the latest levels at its own rate. Eased here rather than through a
     // Behavior, since what moves is a whole array and a Behavior can only ease a number
@@ -72,6 +76,11 @@ Item {
 
         onTriggered: {
             const n = root.barCount;
+            // Each rate is the share of the gap closed per tick. Raised to 1 / smoothing, so twice
+            // the smoothing takes twice as many ticks to close the same share
+            const ease = k => root.smoothing <= 0 ? 1 : 1 - Math.pow(1 - k, 1 / root.smoothing);
+            const kf = ease(0.45);
+            const kb = ease(0.12);
             const f = new Array(n);
             const b = new Array(n);
             // A small floor, so a quiet room leaves a low swell along the bottom rather than nothing
@@ -79,8 +88,8 @@ Item {
                 const target = Math.max(0.03, root.levels[i] ?? 0);
                 const pf = root.front[i] ?? 0;
                 const pb = root.back[i] ?? 0;
-                f[i] = pf + (target - pf) * 0.45;
-                b[i] = pb + (target * 1.08 - pb) * 0.12;
+                f[i] = pf + (target - pf) * kf;
+                b[i] = pb + (target * 1.08 - pb) * kb;
             }
             root.front = f;
             root.back = b;
