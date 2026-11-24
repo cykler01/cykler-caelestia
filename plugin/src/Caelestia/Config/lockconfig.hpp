@@ -5,6 +5,7 @@
 
 #include "settings/objectnode.hpp"
 #include "common.hpp"
+#include "enums.hpp"
 
 namespace caelestia::shell::config {
 
@@ -57,9 +58,10 @@ class LockConfig : public settings::ObjectNode {
     CONFIG_PROPERTY(bool, recolourLogo, true)
     CONFIG_GLOBAL_PROPERTY(bool, enableFprint, true)
     CONFIG_GLOBAL_PROPERTY(int, maxFprintTries, 3)
-    CONFIG_GLOBAL_PROPERTY(bool, enableHowdy, true)
-    CONFIG_GLOBAL_PROPERTY(int, maxHowdyTries, 3)
-    CONFIG_GLOBAL_PROPERTY(bool, triggerHowdyOnWake, true)
+    CONFIG_GLOBAL_PROPERTY(bool, enableFaceAuth, true)
+    CONFIG_GLOBAL_ENUM_PROPERTY(FaceAuthProvider, faceAuthProvider, FaceAuthProvider::Howdy)
+    CONFIG_GLOBAL_PROPERTY(int, maxFaceAuthTries, 3)
+    CONFIG_GLOBAL_PROPERTY(bool, triggerFaceAuthOnWake, true)
     CONFIG_PROPERTY(bool, hideNotifs, false)
     // NOTE(fork): the lock UI fades out after hideIdleDelay seconds with no pointer movement or
     // keystroke, leaving only the background behind it (modules/lock/LockSurface.qml). Worth

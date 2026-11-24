@@ -44,6 +44,7 @@ ENUM(ClockFormat, Auto, TwelveHour, TwentyFourHour)
 // (modules/launcher/services/Todo.qml)
 ENUM(TodoClearAfter, Never, FiveMinutes, OneDay, SevenDays, EndOfWeek)
 ENUM(PerfGraphColours, Scheme, Vibrant, Monochrome, Custom)
+ENUM(FaceAuthProvider, Howdy, Visage)
 ENUM(WallpaperTransition,
     // clang-format off
     ChromaticBloom,
