@@ -1,5 +1,6 @@
 pragma ComponentBehavior: Bound
 
+import QtQuick
 import Quickshell
 import Quickshell.Io
 import Quickshell.Wayland
@@ -62,6 +63,15 @@ Scope {
                 }
             }
         }
+    }
+
+    // Opened by anything that is not the picker's own IPC or keybinds, such as a hot corner
+    Connections {
+        function onScreenshotRequested(freeze: bool): void {
+            root.openPicker(freeze);
+        }
+
+        target: ShellState
     }
 
     IpcHandler {

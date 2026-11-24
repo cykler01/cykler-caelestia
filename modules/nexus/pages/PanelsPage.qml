@@ -10,8 +10,9 @@ import qs.modules.nexus.common
 PageBase {
     id: root
 
-    // What a hot corner can be set to open, ordered to match config::HotCornerAction (None, Overview,
-    // Sidebar). A corner opens one panel at most, so this is a choice rather than a set of toggles
+    // What a hot corner can be set to do, ordered to match config::HotCornerAction (None, Overview,
+    // Sidebar, Screenshot, Ocr, Lens, ColourPicker). A corner does one thing at most, so this is a
+    // choice rather than a set of toggles
     readonly property list<MenuItem> cornerItems: [
         MenuItem {
             text: Tr.trCtx("Nothing", "hot corner action")
@@ -24,6 +25,22 @@ PageBase {
         MenuItem {
             text: Tr.trCtx("Sidebar", "hot corner action")
             icon: "dock_to_right"
+        },
+        MenuItem {
+            text: Tr.trCtx("Screenshot", "hot corner action")
+            icon: "screenshot_monitor"
+        },
+        MenuItem {
+            text: Tr.trCtx("OCR", "hot corner action")
+            icon: "text_fields"
+        },
+        MenuItem {
+            text: Tr.trCtx("Google Lens", "hot corner action")
+            icon: "image_search"
+        },
+        MenuItem {
+            text: Tr.trCtx("Colour picker", "hot corner action")
+            icon: "colorize"
         }
     ]
 

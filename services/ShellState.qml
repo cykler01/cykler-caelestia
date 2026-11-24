@@ -16,9 +16,16 @@ Singleton {
     // NOTE(fork): asks modules/lock/Lock.qml to lock the session, the same as the lock shortcut
     // (Super+L) does - for buttons in the shell's own menus (the session menu, the quick toggles)
     signal lockRequested
+    // NOTE(fork): asks modules/areapicker/AreaPicker.qml to open the screenshot picker, for the
+    // things that are not the screenshot keybinds themselves (the hot corners)
+    signal screenshotRequested(bool freeze)
 
     function lockSession(): void {
         lockRequested();
+    }
+
+    function openScreenshot(freeze: bool): void {
+        screenshotRequested(freeze);
     }
 
     function anySidebarOpen(): bool {

@@ -24,9 +24,10 @@ ENUM(PanelEdge, Top, Bottom)
 ENUM(PanelAlign, Start, Center, End)
 // Which side edge a panel that opens from the left or right (OSD, session menu, sidebar) comes from
 ENUM(PanelSide, Left, Right)
-// What resting the pointer in a screen corner opens. A corner can only ever open one thing, so this is
-// per corner rather than a set of flags
-ENUM(HotCornerAction, None, Overview, Sidebar)
+// What resting the pointer in a screen corner does. A corner can only ever do one thing, so this is
+// per corner rather than a set of flags. The capture actions run the same scripts as their launcher
+// actions. Appended so the existing values keep their numbers in the config file
+ENUM(HotCornerAction, None, Overview, Sidebar, Screenshot, Ocr, Lens, ColourPicker)
 ENUM(BarWorkspaceDisplay, Shapes, Text, Icons)
 ENUM(BarWorkspaceCapitalisation, Preserve, Upper, Lower)
 // SpicyLyrics is where word timings come from; it is not offered as a preferred backend, since the

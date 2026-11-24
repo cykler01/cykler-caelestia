@@ -4,6 +4,7 @@ import Quickshell
 import Caelestia.Config
 import qs.components
 import qs.components.controls
+import qs.services
 import qs.modules.bar as Bar
 import qs.modules.bar.popouts as BarPopouts
 
@@ -34,10 +35,10 @@ CustomMouseArea {
     property bool osdShortcutActive
     property bool utilitiesShortcutActive
 
-    // Hot corners: each corner of the screen can be given a panel to open when the pointer comes
-    // to rest in it (set in settings, under Panels)
+    // Hot corners: each corner of the screen can be given a panel to open or a capture action to
+    // run when the pointer comes to rest in it (set in settings, under Panels)
     readonly property int hotCornerSize: GlobalConfig.hotCorners.size
-    // What the corner the pointer is resting in is set to open, or None while it is in none of them
+    // What the corner the pointer is resting in is set to do, or None while it is in none of them
     property int armedAction: HotCornerAction.None
     // Set when a corner pulls the sidebar out, so it slides back in once the pointer leaves it, the
     // same way it does when Config.sidebar.showOnHover is on
@@ -292,11 +293,26 @@ CustomMouseArea {
 
         interval: 150
         onTriggered: {
-            if (root.armedAction === HotCornerAction.Overview)
+            switch (root.armedAction) {
+            case HotCornerAction.Overview:
                 root.screenState.overview = true;
-            else if (root.armedAction === HotCornerAction.Sidebar) {
+                break;
+            case HotCornerAction.Sidebar:
                 root.sidebarCornerActive = true;
                 root.screenState.sidebar = true;
+                break;
+            case HotCornerAction.Screenshot:
+                ShellState.openScreenshot(false);
+                break;
+            case HotCornerAction.Ocr:
+                Quickshell.execDetached(["bash", `${Quickshell.shellDir}/assets/ocr.sh`]);
+                break;
+            case HotCornerAction.Lens:
+                Quickshell.execDetached(["bash", `${Quickshell.shellDir}/assets/lens.sh`, ...GlobalConfig.general.apps.browser]);
+                break;
+            case HotCornerAction.ColourPicker:
+                Quickshell.execDetached(["bash", `${Quickshell.shellDir}/assets/colourpicker.sh`]);
+                break;
             }
         }
     }

@@ -11,7 +11,7 @@ class HotCornersConfig : public settings::ObjectNode {
 
     // Size of a hot corner, in pixels
     CONFIG_GLOBAL_PROPERTY(int, size, 10)
-    // What resting the pointer in each corner of the screen opens. The overview used to live in the
+    // What resting the pointer in each corner of the screen does. The overview used to live in the
     // top left corner on its own, so that is where it starts, with the sidebar in the top right
     CONFIG_ENUM_PROPERTY(HotCornerAction, topLeft, HotCornerAction::Overview)
     CONFIG_ENUM_PROPERTY(HotCornerAction, topRight, HotCornerAction::Sidebar)
