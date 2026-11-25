@@ -45,6 +45,7 @@ ColumnLayout {
         Layout.topMargin: Tokens.spacing.extraExtraLarge * root.centerScale
         Layout.bottomMargin: Tokens.spacing.extraLarge * root.centerScale
         centerWidth: root.centerWidth
+        pam: root.lock?.pam
     }
 
     Greeting {

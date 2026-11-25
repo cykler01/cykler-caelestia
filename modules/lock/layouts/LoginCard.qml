@@ -48,6 +48,7 @@ StyledRect {
             visible: !root.inline
             // ProfilePic sizes itself to 70% of the width it's given
             centerWidth: root.avatarSize / 0.7
+            pam: root.lock?.pam
         }
 
         StyledText {
@@ -78,6 +79,7 @@ StyledRect {
 
                 sourceComponent: ProfilePic {
                     centerWidth: root.avatarSize / 0.7
+                    pam: root.lock?.pam
                 }
             }
 
