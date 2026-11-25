@@ -1,7 +1,8 @@
-# The random lines shown along the bottom of the screen (Nexus -> Panels -> Utilities -> Desktop text).
+# The random lines shown along the bottom of the screen (Nexus -> Shell assets -> Desktop text).
 #
 # One text per line. Lines starting with # are notes like this one and are skipped, as are blank
 # lines. Add as many as you like: the file is watched, so the next line shows up without a restart.
+# Editing the list in Nexus writes a copy to the data directory, leaving this file as shipped.
 
 I use arch btw
 1337

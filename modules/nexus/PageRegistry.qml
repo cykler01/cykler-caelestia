@@ -27,7 +27,7 @@ QtObject {
             key: "assets",
             label: Tr.tr("Shell assets"),
             icon: "image",
-            description: Tr.tr("Logo, gifs, placeholder images"),
+            description: Tr.tr("Logo, gifs, placeholder images, bottom texts"),
             category: "appearance"
         },
 

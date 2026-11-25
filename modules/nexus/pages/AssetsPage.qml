@@ -133,6 +133,22 @@ PageBase {
             reset: () => GlobalConfig.paths.resetOption("lockNoNotifsPic")
         }
 
+        // Text
+        SectionHeader {
+            text: Tr.tr("Text")
+        }
+
+        // NOTE(fork): the one asset here that is a list of lines rather than an image, and the one
+        // the shell ships as a starting point rather than artwork to replace
+        NavRow {
+            first: true
+            last: true
+            icon: "subtitles"
+            text: Tr.tr("Desktop text")
+            subtext: BottomText.customized ? Tr.tr("Using your own lines") : Tr.tr("The shell's default lines")
+            onClicked: root.nState.openSubPage(1)
+        }
+
         Item {
             Layout.fillHeight: true
             Layout.fillWidth: true

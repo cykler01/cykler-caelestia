@@ -3,17 +3,26 @@ pragma Singleton
 import QtQuick
 import Quickshell
 import Quickshell.Io
+import Caelestia
 import Caelestia.Config
+import qs.utils
 
 // NOTE(fork): the line of text shown at random along the bottom of the screen (modules/bottomtext).
 //
-// The texts live in a plain file so adding more is just adding a line: assets/bottom-texts.txt, one
-// per line, with # starting a note that is skipped. That file is watched, so a new line shows up
-// without restarting the shell.
+// The texts live in a plain file, one per line, with # starting a note that is skipped, so adding
+// more is just adding a line. Editing them in Nexus (Shell assets -> Desktop text) writes the
+// user's own copy under the data directory, which wins over the shell's file: the shipped list is
+// never written to (it can be read only, e.g. under /etc/xdg), and it can be brought back from
+// there. Both files are watched, so a change shows up without restarting the shell.
 Singleton {
     id: root
 
-    readonly property string path: Quickshell.shellPath("assets/bottom-texts.txt")
+    readonly property string defaultPath: Quickshell.shellPath("assets/bottom-texts.txt")
+    readonly property string userPath: `${Paths.assetsdir}/bottom-texts.txt`
+    // The file in use: the user's copy once there is one, the shell's own until then
+    readonly property string path: root.customized ? root.userPath : root.defaultPath
+    property bool customized: false
+
     // Shown when the file is missing or has been emptied, so the overlay is never blank by accident
     readonly property var fallback: [
         "You are exactly where you need to be.",
@@ -22,6 +31,8 @@ Singleton {
     ]
     property var texts: root.fallback
     property string current: ""
+    // The whole list as it is being written out, cleared once the writer has taken it
+    property string pendingWrite: ""
 
     // One per line; blank lines and notes are dropped
     function parse(text: string): var {
@@ -38,20 +49,113 @@ Singleton {
         root.current = others.length > 0 ? others[Math.floor(Math.random() * others.length)] : root.texts[0];
     }
 
+    // Writes the given list as the user's copy, creating the folder it lives in if needed
+    function save(lines: var): void {
+        root.texts = lines;
+        root.customized = true;
+        root.pendingWrite = lines.join("\n") + "\n";
+        if (!writer.running)
+            writer.running = true;
+    }
+
+    function setLine(index: int, text: string): void {
+        if (index < 0 || index >= root.texts.length)
+            return;
+
+        if (text.trim() === "") {
+            root.removeLine(index);
+            return;
+        }
+
+        const lines = root.texts.slice();
+        lines[index] = text.trim();
+        root.save(lines);
+    }
+
+    function addLine(text: string): void {
+        const line = text.trim();
+        if (line === "")
+            return;
+
+        root.save([...root.texts, line]);
+    }
+
+    function removeLine(index: int): void {
+        if (index < 0 || index >= root.texts.length)
+            return;
+
+        root.save(root.texts.filter((_, i) => i !== index));
+    }
+
+    // Drops the user's copy, so the shell's own list is used again
+    function restoreDefaults(): void {
+        if (!root.customized)
+            return;
+
+        if (!CUtils.deleteFile(Qt.resolvedUrl(root.userPath)))
+            return;
+
+        root.customized = false;
+        root.texts = root.parse(shippedFile.text());
+        root.pick();
+    }
+
     onTextsChanged: root.pick()
 
     Component.onCompleted: root.pick()
 
     FileView {
-        path: root.path
+        id: userFile
+
+        path: root.userPath
+        watchChanges: true
+        printErrors: false
+        onFileChanged: reload()
+        onLoaded: {
+            root.customized = true;
+            root.texts = root.parse(text());
+        }
+        onLoadFailed: {
+            root.customized = false;
+            root.texts = root.parse(shippedFile.text());
+        }
+    }
+
+    FileView {
+        id: shippedFile
+
+        path: root.defaultPath
         // Small enough to read on the spot rather than after the first frame, so the overlay never
         // flashes a fallback line before the real list arrives
         blockLoading: true
         watchChanges: true
         printErrors: false
         onFileChanged: reload()
-        onLoaded: root.texts = root.parse(text())
-        onLoadFailed: root.texts = root.fallback
+        onLoaded: {
+            if (!root.customized)
+                root.texts = root.parse(text());
+        }
+        onLoadFailed: {
+            if (!root.customized)
+                root.texts = root.fallback;
+        }
+    }
+
+    Process {
+        id: writer
+
+        command: ["sh", "-c", "mkdir -p \"$1\" && cat > \"$2\"", "sh", Paths.assetsdir, root.userPath]
+        stdinEnabled: true
+
+        onStarted: {
+            write(root.pendingWrite);
+            root.pendingWrite = "";
+        }
+
+        onExited: {
+            if (root.pendingWrite !== "")
+                writer.running = true;
+        }
     }
 
     // Rotates while the overlay is on, so a long session is not one frozen line

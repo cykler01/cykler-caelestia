@@ -9,6 +9,7 @@ import qs.services
 import qs.modules.nexus.common
 import qs.modules.nexus.pages
 import qs.modules.nexus.pages.apps
+import qs.modules.nexus.pages.assets
 import qs.modules.nexus.pages.audio
 import qs.modules.nexus.pages.bluetooth
 import qs.modules.nexus.pages.monitors
@@ -45,6 +46,9 @@ QtObject {
             StackPage {
                 Component {
                     AssetsPage {}
+                }
+                Component {
+                    BottomTextsPage {}
                 }
             }
         },
