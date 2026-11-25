@@ -34,16 +34,23 @@ Singleton {
     // The whole list as it is being written out, cleared once the writer has taken it
     property string pendingWrite: ""
 
-    // One per line; blank lines and notes are dropped
+    // One per line; blank lines and notes are dropped, so an empty file reads as an empty list
     function parse(text: string): var {
-        const out = text.split("\n").map(line => line.trim()).filter(line => line !== "" && !line.startsWith("#"));
-        return out.length > 0 ? out : root.fallback;
+        return text.split("\n").map(line => line.trim()).filter(line => line !== "" && !line.startsWith("#"));
+    }
+
+    // The shell's own list, or the built-in lines when its file cannot be read or has none
+    function shippedLines(): var {
+        const lines = root.parse(shippedFile.text());
+        return lines.length > 0 ? lines : root.fallback;
     }
 
     // Never the same text twice in a row, so a rotation is visible even from a short list
     function pick(): void {
-        if (root.texts.length === 0)
+        if (root.texts.length === 0) {
+            root.current = "";
             return;
+        }
 
         const others = root.texts.filter(text => text !== root.current);
         root.current = others.length > 0 ? others[Math.floor(Math.random() * others.length)] : root.texts[0];
@@ -53,7 +60,7 @@ Singleton {
     function save(lines: var): void {
         root.texts = lines;
         root.customized = true;
-        root.pendingWrite = lines.join("\n") + "\n";
+        root.pendingWrite = lines.length > 0 ? lines.join("\n") + "\n" : "";
         if (!writer.running)
             writer.running = true;
     }
@@ -87,6 +94,14 @@ Singleton {
         root.save(root.texts.filter((_, i) => i !== index));
     }
 
+    // Empties the list, so nothing is shown at the bottom until a line is added again
+    function removeAll(): void {
+        if (root.texts.length === 0)
+            return;
+
+        root.save([]);
+    }
+
     // Drops the user's copy, so the shell's own list is used again
     function restoreDefaults(): void {
         if (!root.customized)
@@ -96,7 +111,7 @@ Singleton {
             return;
 
         root.customized = false;
-        root.texts = root.parse(shippedFile.text());
+        root.texts = root.shippedLines();
         root.pick();
     }
 
@@ -117,7 +132,7 @@ Singleton {
         }
         onLoadFailed: {
             root.customized = false;
-            root.texts = root.parse(shippedFile.text());
+            root.texts = root.shippedLines();
         }
     }
 
@@ -133,7 +148,7 @@ Singleton {
         onFileChanged: reload()
         onLoaded: {
             if (!root.customized)
-                root.texts = root.parse(text());
+                root.texts = root.shippedLines();
         }
         onLoadFailed: {
             if (!root.customized)

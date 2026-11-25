@@ -15,6 +15,8 @@ import qs.modules.nexus.common
 PageBase {
     id: root
 
+    property bool confirmingRemove: false
+
     function commitAdd(): void {
         const text = input.text.trim();
         if (text === "")
@@ -43,6 +45,19 @@ PageBase {
             Layout.leftMargin: Tokens.padding.largeIncreased
             Layout.rightMargin: Tokens.padding.largeIncreased
             Layout.bottomMargin: Tokens.spacing.small
+            text: Tr.tr("One of these is shown at a time along the bottom of the screen. They are only a starting point, so replace them with your own.")
+            color: Colours.palette.m3outline
+            font: Tokens.font.label.small
+            wrapMode: Text.WordWrap
+        }
+
+        StyledText {
+            Layout.fillWidth: true
+            Layout.leftMargin: Tokens.padding.largeIncreased
+            Layout.rightMargin: Tokens.padding.largeIncreased
+            Layout.topMargin: Tokens.spacing.small
+            visible: BottomText.texts.length === 0
+            text: Tr.tr("No lines left, so nothing is shown. Add one below, or restore the defaults.")
             color: Colours.palette.m3outline
             font: Tokens.font.label.small
             wrapMode: Text.WordWrap
@@ -132,11 +147,44 @@ PageBase {
             }
         }
 
-        TextButton {
+        RowLayout {
             Layout.topMargin: Tokens.spacing.small
-            visible: BottomText.customized
-            text: Tr.tr("Restore the shipped lines")
-            onClicked: BottomText.restoreDefaults()
+            spacing: Tokens.spacing.medium
+
+            TextButton {
+                visible: BottomText.texts.length > 0
+                type: TextButton.Tonal
+                isRound: true
+                text: root.confirmingRemove ? Tr.tr("Remove every line?") : Tr.tr("Remove all")
+                onClicked: {
+                    if (root.confirmingRemove) {
+                        BottomText.removeAll();
+                        root.confirmingRemove = false;
+                    } else {
+                        root.confirmingRemove = true;
+                    }
+                }
+            }
+
+            TextButton {
+                visible: BottomText.customized
+                type: TextButton.Tonal
+                isRound: true
+                text: Tr.tr("Restore defaults")
+                onClicked: {
+                    root.confirmingRemove = false;
+                    BottomText.restoreDefaults();
+                }
+            }
+
+            StyledText {
+                Layout.fillWidth: true
+                visible: root.confirmingRemove
+                text: Tr.tr("Click again to remove every line. Restore defaults brings the shell's own back.")
+                color: Colours.palette.m3outline
+                font: Tokens.font.label.small
+                wrapMode: Text.WordWrap
+            }
         }
 
         Item {
