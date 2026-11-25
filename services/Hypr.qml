@@ -186,7 +186,9 @@ Singleton {
 
     function reloadDynamicConfs(): void {
         if (usingLua) {
-            const confs = ['eval hl.bind("Caps_Lock", hl.dsp.global("caelestia:refreshDevices"), { locked = true, non_consuming = true, ignore_mods = true, release = true })', 'eval hl.bind("Num_Lock", hl.dsp.global("caelestia:refreshDevices"), { locked = true, non_consuming = true, ignore_mods = true, release = true })', 'eval hl.bind("code:66", hl.dsp.global("caelestia:refreshDevices"), { locked = true, non_consuming = true, ignore_mods = true, release = true })'];
+            // hl.bind adds rather than replaces, and this runs on every reload, so unbind first
+            // or each run stacks another copy of the same bind
+            const confs = ["Caps_Lock", "Num_Lock", "code:66"].map(key => `eval pcall(hl.unbind, "${key}"); hl.bind("${key}", hl.dsp.global("caelestia:refreshDevices"), { locked = true, non_consuming = true, ignore_mods = true, release = true })`);
             if (!gesturesRegistered) {
                 gesturesRegistered = true;
 
