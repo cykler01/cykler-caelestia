@@ -617,6 +617,23 @@ Singleton {
             ]
         },
         {
+            id: "claude",
+            name: Tr.tr("Claude limits"),
+            icon: "data_usage",
+            types: [
+                {
+                    id: "bars",
+                    name: Tr.tr("5-hour and weekly"),
+                    height: 4
+                },
+                {
+                    id: "rings",
+                    name: Tr.tr("Rings"),
+                    height: 5
+                }
+            ]
+        },
+        {
             id: "sun",
             name: Tr.tr("Daylight"),
             icon: "wb_sunny",

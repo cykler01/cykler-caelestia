@@ -269,6 +269,12 @@ Item {
                 }
             }
             DelegateChoice {
+                roleValue: "claude"
+                delegate: ClaudeLimitsCard {
+                    gridHost: root
+                }
+            }
+            DelegateChoice {
                 roleValue: "battery"
                 delegate: BatteryCard {
                     gridHost: root

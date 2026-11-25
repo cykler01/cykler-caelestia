@@ -82,6 +82,8 @@ Item {
                 return lyricsCard;
             case "battery":
                 return batteryCard;
+            case "claude":
+                return claudeCard;
             case "bluetooth":
                 return bluetoothCard;
             case "fetch":
@@ -233,6 +235,16 @@ Item {
         id: lyricsCard
 
         LyricsCard {
+            variant: root.variant
+            widgetId: root.kind
+            entryIndex: -1
+        }
+    }
+
+    Component {
+        id: claudeCard
+
+        ClaudeLimitsCard {
             variant: root.variant
             widgetId: root.kind
             entryIndex: -1

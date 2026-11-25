@@ -75,9 +75,9 @@ if("shell" IN_LIST ENABLE_MODULES)
     install(PROGRAMS assets/wrap_term_launch.sh DESTINATION "${INSTALL_QSCONFDIR}/assets")
     install(PROGRAMS assets/fetch-tile.sh DESTINATION "${INSTALL_QSCONFDIR}/assets")
     # Runtime helpers spawned through Quickshell.shellPath (the process list, and
-    # the calendar's event reader); the dev-only scripts beside them stay out of
+    # the calendar's event reader, the Claude limits reader); the dev-only scripts beside them stay out of
     # the install
-    install(PROGRAMS scripts/caelestia-process-monitor.py scripts/caelestia-calendar.py DESTINATION "${INSTALL_QSCONFDIR}/scripts")
+    install(PROGRAMS scripts/caelestia-process-monitor.py scripts/caelestia-calendar.py scripts/caelestia-claude-limits.py DESTINATION "${INSTALL_QSCONFDIR}/scripts")
 
     file(READ shell.qml SHELL_QML)
     string(REPLACE "settings.watchFiles: true" "settings.watchFiles: false" SHELL_QML "${SHELL_QML}")
