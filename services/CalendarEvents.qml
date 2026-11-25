@@ -5,6 +5,7 @@ import Quickshell
 import Quickshell.Io
 import Caelestia.Config
 import Caelestia.I18n
+import qs.utils
 
 // The user's calendar events, for the dashboard's month grid and the event widgets on the
 // desktop, the dashboard and the lock screen.
@@ -350,8 +351,13 @@ Singleton {
         return new Date(v * 1000);
     }
 
-    function apply(msg: var): void {
+    function apply(msg: var, fromCache: bool): void {
+        // The helper's own list always wins over the one saved from last time
+        if (fromCache && lastMessage)
+            return;
         lastMessage = msg;
+        if (!fromCache)
+            cacheSaveTimer.restart();
 
         const cals = {};
         for (const c of msg.calendars)
@@ -434,7 +440,7 @@ Singleton {
                 }
 
                 if (msg.type === "events")
-                    root.apply(msg);
+                    root.apply(msg, false);
                 else if (msg.type === "error" && msg.fatal)
                     root.available = false;
                 else if (msg.type === "error")
@@ -452,6 +458,38 @@ Singleton {
             }
             if (root.wanted)
                 restartTimer.restart();
+        }
+    }
+
+    // The last list the helper sent, saved so the calendar is filled in the moment the shell
+    // starts rather than once the helper has connected to every calendar, which can take a
+    // few seconds with online accounts. Replaced by the live list as soon as that arrives
+    FileView {
+        id: cache
+
+        path: `${Paths.cache}/calendar-events.json`
+        printErrors: false
+        blockLoading: true
+        onLoaded: {
+            if (!root.enabled)
+                return;
+            try {
+                const msg = JSON.parse(text());
+                if (msg?.type === "events" && Array.isArray(msg.events))
+                    root.apply(msg, true);
+            } catch (e) {
+                // Nothing saved yet, or unreadable: wait for the helper
+            }
+        }
+    }
+
+    Timer {
+        id: cacheSaveTimer
+
+        interval: 1000
+        onTriggered: {
+            if (root.lastMessage)
+                cache.setText(JSON.stringify(root.lastMessage));
         }
     }
 

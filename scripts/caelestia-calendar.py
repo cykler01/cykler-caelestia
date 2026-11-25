@@ -133,9 +133,12 @@ class Calendars:
                 client = ECal.Client.connect_finish(result)
             except GLib.Error as e:
                 emit({"type": "error", "message": f"{source.get_display_name()}: {e.message}"})
+                # Still settles the wait in flush(), so one broken calendar can't hold back the rest
+                self.schedule()
                 return
             # Unticked or removed while the connection was on its way
             if uid not in {s.get_uid() for s in self.wanted_sources()}:
+                self.schedule()
                 return
             self.clients[uid] = client
             self.watch(uid)
@@ -246,6 +249,13 @@ class Calendars:
 
     def flush(self) -> bool:
         self.pending = 0
+
+        # Calendars connect one by one, so reading before they all have would send a list missing
+        # whole calendars (the first read has none at all), and the shell would show the days
+        # empty for a moment before they filled back in. Each connection finishing schedules
+        # another flush, so this one simply waits for the last
+        if self.connecting:
+            return GLib.SOURCE_REMOVE
         calendars, events = [], []
 
         for uid, client in self.clients.items():
