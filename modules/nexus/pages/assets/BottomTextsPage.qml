@@ -15,7 +15,56 @@ import qs.modules.nexus.common
 PageBase {
     id: root
 
+    readonly property list<MenuItem> animationItems: [
+        MenuItem {
+            readonly property string value: "fade"
+
+            icon: "blur_on"
+            text: Tr.tr("Fade")
+            activeIcon: "check"
+        },
+        MenuItem {
+            readonly property string value: "slide"
+
+            icon: "swap_vert"
+            text: Tr.tr("Slide")
+            activeIcon: "check"
+        },
+        MenuItem {
+            readonly property string value: "typewriter"
+
+            icon: "keyboard"
+            text: Tr.tr("Typewriter")
+            activeIcon: "check"
+        },
+        MenuItem {
+            readonly property string value: "scramble"
+
+            icon: "shuffle"
+            text: Tr.tr("Scramble")
+            activeIcon: "check"
+        },
+        MenuItem {
+            readonly property string value: "pop"
+
+            icon: "zoom_in"
+            text: Tr.tr("Pop")
+            activeIcon: "check"
+        },
+        MenuItem {
+            readonly property string value: "none"
+
+            icon: "block"
+            text: Tr.tr("None")
+            activeIcon: "check"
+        }
+    ]
+
     property bool confirmingRemove: false
+
+    function animationItem(value: string): MenuItem {
+        return animationItems.find(i => i.value === value) ?? animationItems[0];
+    }
 
     function commitAdd(): void {
         const text = input.text.trim();
@@ -50,7 +99,6 @@ PageBase {
         }
 
         StepperRow {
-            last: true
             enabled: GlobalConfig.utilities.bottomText.enabled
             label: Tr.tr("Cycle interval")
             // TRANSLATORS: s is the second unit, leave it untranslated
@@ -60,6 +108,16 @@ PageBase {
             to: 600
             stepSize: 5
             onMoved: v => GlobalConfig.utilities.bottomText.cycleInterval = Math.round(v * 1000)
+        }
+
+        SelectRow {
+            last: true
+            enabled: GlobalConfig.utilities.bottomText.enabled
+            label: Tr.tr("Animation between messages")
+            subtext: Tr.tr("Transition used when rotating to the next message")
+            active: root.animationItem(GlobalConfig.utilities.bottomText.animation)
+            menuItems: root.animationItems
+            onSelected: item => GlobalConfig.utilities.bottomText.animation = item.value
         }
 
         SectionHeader {

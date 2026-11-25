@@ -77,6 +77,7 @@ FEATURES=(
     "desktop|Desktop links|Opening links, and notifications from scripts|xdg-utils libnotify|"
     "shells|Script shells|The shells the bundled scripts are written in|fish bash|"
     "fonts|Extra fonts|Rubik and Cascadia Code Nerd Font|  |ttf-rubik-vf ttf-cascadia-code-nerd"
+    "updates|System updater|Checks pending Arch/AUR updates and creates pre-update Btrfs snapshots|pacman-contrib snapper|"
 )
 
 feature_field() {
