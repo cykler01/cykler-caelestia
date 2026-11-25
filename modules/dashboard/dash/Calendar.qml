@@ -10,6 +10,7 @@ import qs.components
 import qs.components.controls
 import qs.components.effects
 import qs.components.misc
+import qs.components.widgets
 import qs.services
 
 CustomMouseArea {
@@ -36,6 +37,13 @@ CustomMouseArea {
     // the event widgets rather than here, which keeps this card the height it always was
     readonly property bool showEvents: CalendarEvents.enabled && CalendarEvents.available
 
+    // The day under the pointer, and the one whose events the hover card is showing. Kept apart
+    // so the card waits a moment before it opens (no flicker sweeping across the grid) but
+    // follows straight away once it is open
+    property Item hoveredDay: null
+    property Item shownDay: null
+    readonly property int hoverLimit: 3
+
     function onWheel(event: WheelEvent): void {
         if (event.angleDelta.y > 0)
             screenState.dashboardDate = new Date(nonAnimCurrYear, nonAnimCurrMonth - 1, 1);
@@ -53,10 +61,44 @@ CustomMouseArea {
     onNonAnimCurrMonthChanged: CalendarEvents.focusMonth(nonAnimCurrYear, nonAnimCurrMonth)
     onNonAnimCurrYearChanged: CalendarEvents.focusMonth(nonAnimCurrYear, nonAnimCurrMonth)
     Component.onCompleted: CalendarEvents.focusMonth(nonAnimCurrYear, nonAnimCurrMonth)
+    onHoveredDayChanged: {
+        if (!hoveredDay) {
+            hoverHideTimer.restart();
+        } else if (shownDay) {
+            hoverHideTimer.stop();
+            shownDay = hoveredDay;
+        } else {
+            hoverHideTimer.stop();
+            hoverShowTimer.restart();
+        }
+    }
+    onCurrentDateChanged: {
+        hoverShowTimer.stop();
+        hoveredDay = null;
+        shownDay = null;
+    }
 
     // Keeps the event reader running only while a calendar card is around to show what it reads
     Ref {
         service: CalendarEvents
+    }
+
+    Timer {
+        id: hoverShowTimer
+
+        interval: 350
+        onTriggered: root.shownDay = root.hoveredDay
+    }
+
+    Timer {
+        id: hoverHideTimer
+
+        interval: 120
+        onTriggered: {
+            hoverShowTimer.stop();
+            if (!root.hoveredDay)
+                root.shownDay = null;
+        }
     }
 
     Anim {
@@ -240,6 +282,13 @@ CustomMouseArea {
                     implicitWidth: baseSize
                     implicitHeight: baseSize
 
+                    Component.onDestruction: {
+                        if (root.hoveredDay === dayItem)
+                            root.hoveredDay = null;
+                        if (root.shownDay === dayItem)
+                            root.shownDay = null;
+                    }
+
                     // A wash in the colour of the day's events - blue for a special one, green for
                     // a birthday or holiday - so the days that matter read at a glance. Today has its own shape instead, and anything drawn under that is
                     // recoloured along with the number
@@ -308,6 +357,12 @@ CustomMouseArea {
                         visible: root.showEvents
                         radius: Tokens.rounding.small
                         onClicked: CalendarEvents.openDate(dayItem.model.date)
+                        onContainsMouseChanged: {
+                            if (containsMouse)
+                                root.hoveredDay = dayItem;
+                            else if (root.hoveredDay === dayItem)
+                                root.hoveredDay = null;
+                        }
                     }
                 }
             }
@@ -375,6 +430,156 @@ CustomMouseArea {
                     color: Colours.on(todayBadge.color)
                     font: Tokens.font.label.builders.small.size(7).weight(Font.Bold).build()
                 }
+            }
+        }
+    }
+
+    // What is on the hovered day, in a small card beside it: above for the lower rows and below
+    // for the upper ones, kept inside the calendar so the card never clips it. For today that is
+    // what is left - anything under way first, then what comes next, three in all - and for any
+    // other day its first three. Passes the pointer through, so moving on to another day just
+    // moves the card along
+    Item {
+        id: hoverCard
+
+        // Held on to while the card fades out, so it doesn't jump to the corner on the way
+        property Item day
+        readonly property date date: day?.model.date ?? new Date()
+        readonly property bool isToday: CalendarEvents.dayDiff(date) === 0
+        readonly property var events: {
+            if (!day)
+                return [];
+            const all = CalendarEvents.shownOn(date);
+            if (!isToday)
+                return all;
+            void Time.date;
+            const left = all.filter(e => !CalendarEvents.isOver(e));
+            return [...left.filter(e => CalendarEvents.isOngoing(e)), ...left.filter(e => !CalendarEvents.isOngoing(e))];
+        }
+        readonly property bool open: root.showEvents && root.shownDay !== null
+        readonly property point dayPos: {
+            void root.animTranslate;
+            void grid.width;
+            return day ? day.mapToItem(root, 0, 0) : Qt.point(0, 0);
+        }
+        readonly property bool above: dayPos.y > root.height / 2
+        readonly property real margin: Tokens.padding.small
+
+        z: 10
+        width: Math.min(root.width - margin * 2, 240)
+        height: card.implicitHeight
+        x: day ? Math.max(margin, Math.min(root.width - width - margin, dayPos.x + day.width / 2 - width / 2)) : 0
+        y: {
+            if (!day)
+                return 0;
+            const want = above ? dayPos.y - height - 4 : dayPos.y + day.height + 4;
+            return Math.max(margin, Math.min(root.height - height - margin, want));
+        }
+
+        opacity: open ? 1 : 0
+        visible: opacity > 0
+        scale: open ? 1 : 0.95
+        transformOrigin: above ? Item.Bottom : Item.Top
+
+        Connections {
+            function onShownDayChanged(): void {
+                if (root.shownDay)
+                    hoverCard.day = root.shownDay;
+            }
+
+            target: root
+        }
+
+        Elevation {
+            anchors.fill: card
+            radius: card.radius
+            level: 2
+        }
+
+        StyledRect {
+            id: card
+
+            anchors.left: parent.left
+            anchors.right: parent.right
+            implicitHeight: cardLayout.implicitHeight + Tokens.padding.small * 2
+
+            radius: Tokens.rounding.medium
+            color: Colours.palette.m3surfaceContainerHigh
+
+            ColumnLayout {
+                id: cardLayout
+
+                anchors.left: parent.left
+                anchors.right: parent.right
+                anchors.top: parent.top
+                anchors.margins: Tokens.padding.small
+                spacing: 0
+
+                StyledText {
+                    Layout.leftMargin: Tokens.padding.small
+                    Layout.bottomMargin: Tokens.spacing.extraSmall
+                    text: CalendarEvents.dayLabel(hoverCard.date)
+                    color: Colours.palette.m3primary
+                    font: Tokens.font.label.builders.medium.weight(Font.Medium).build()
+                }
+
+                Repeater {
+                    model: hoverCard.events.slice(0, root.hoverLimit)
+
+                    EventRow {
+                        required property var modelData
+
+                        Layout.fillWidth: true
+                        event: modelData
+                        day: hoverCard.date
+                        interactive: false
+                    }
+                }
+
+                StyledText {
+                    Layout.leftMargin: Tokens.padding.small
+                    Layout.bottomMargin: Tokens.spacing.extraSmall
+                    visible: hoverCard.events.length === 0
+                    text: hoverCard.isToday ? Tr.tr("No events left today") : Tr.tr("No events")
+                    color: Colours.palette.m3outline
+                    font: Tokens.font.label.medium
+                }
+
+                StyledText {
+                    Layout.leftMargin: Tokens.padding.small
+                    visible: hoverCard.events.length > root.hoverLimit
+                    text: Tr.tr("+%1 more").arg(hoverCard.events.length - root.hoverLimit)
+                    color: Colours.palette.m3onSurfaceVariant
+                    font: Tokens.font.label.small
+                }
+            }
+        }
+
+        Behavior on opacity {
+            Anim {
+                type: Anim.FastEffects
+            }
+        }
+
+        Behavior on scale {
+            Anim {
+                type: Anim.FastSpatial
+            }
+        }
+
+        Behavior on x {
+            enabled: hoverCard.opacity > 0
+
+            Anim {
+                type: Anim.FastSpatial
+            }
+        }
+
+        Behavior on y {
+            enabled: hoverCard.opacity > 0
+
+            Anim {
+                type: Anim.FastSpatial
             }
         }
     }
