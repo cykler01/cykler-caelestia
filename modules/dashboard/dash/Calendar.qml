@@ -36,6 +36,9 @@ CustomMouseArea {
     // there to read them from (services/CalendarEvents.qml). The events themselves are listed by
     // the event widgets rather than here, which keeps this card the height it always was
     readonly property bool showEvents: CalendarEvents.enabled && CalendarEvents.available
+    // Keeps GNOME Calendar running in the background while the dashboard is open, so a click on
+    // a day opens it straight away (see CalendarEvents.warmApp)
+    readonly property bool warmsApp: screenState.dashboard && showEvents
 
     // The day under the pointer, and the one whose events the hover card is showing. Kept apart
     // so the card waits a moment before it opens (no flicker sweeping across the grid) but
@@ -60,7 +63,16 @@ CustomMouseArea {
 
     onNonAnimCurrMonthChanged: CalendarEvents.focusMonth(nonAnimCurrYear, nonAnimCurrMonth)
     onNonAnimCurrYearChanged: CalendarEvents.focusMonth(nonAnimCurrYear, nonAnimCurrMonth)
-    Component.onCompleted: CalendarEvents.focusMonth(nonAnimCurrYear, nonAnimCurrMonth)
+    Component.onCompleted: {
+        CalendarEvents.focusMonth(nonAnimCurrYear, nonAnimCurrMonth);
+        if (warmsApp)
+            CalendarEvents.appWarmers++;
+    }
+    Component.onDestruction: {
+        if (warmsApp)
+            CalendarEvents.appWarmers--;
+    }
+    onWarmsAppChanged: CalendarEvents.appWarmers += warmsApp ? 1 : -1
     onHoveredDayChanged: {
         if (!hoveredDay) {
             hoverHideTimer.restart();
@@ -356,7 +368,12 @@ CustomMouseArea {
 
                         visible: root.showEvents
                         radius: Tokens.rounding.small
-                        onClicked: CalendarEvents.openDate(dayItem.model.date)
+                        // Handed to GNOME Calendar first, so it is already opening while the
+                        // dashboard closes out of its way
+                        onClicked: {
+                            CalendarEvents.openDate(dayItem.model.date);
+                            root.screenState.dashboard = false;
+                        }
                         onContainsMouseChanged: {
                             if (containsMouse)
                                 root.hoveredDay = dayItem;

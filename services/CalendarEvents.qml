@@ -36,6 +36,8 @@ Singleton {
     id: root
 
     property int refCount: 0
+    // How many open dashboards would like GNOME Calendar ready to open on a click (see warmApp)
+    property int appWarmers: 0
 
     // False where evolution-data-server or its Python bindings are missing, so the calendar can
     // fall back to a plain grid rather than waiting on events that will never come
@@ -93,6 +95,12 @@ Singleton {
 
     readonly property bool enabled: GlobalConfig.dashboard.calendarEvents
     readonly property bool wanted: enabled && available && refCount > 0
+
+    // A click on a day has GNOME Calendar up in a fraction of a second, rather than the couple it
+    // takes starting cold, by having it already running as a background service while a
+    // dashboard is open: the click then only asks the running instance for a window. It drops
+    // out by itself after a few idle seconds, so it is started again for as long as it is wanted
+    readonly property bool warmApp: appWarmers > 0 && enabled && available
     // Whether anything can be shown at all, for a widget deciding between events and a note
     readonly property bool ready: enabled && available && loaded
 
@@ -415,6 +423,15 @@ Singleton {
             apply(lastMessage);
     }
 
+    onWarmAppChanged: {
+        if (warmApp) {
+            warmRetry.stop();
+            warmProc.running = true;
+        } else {
+            warmRetry.stop();
+        }
+    }
+
     onWantedChanged: {
         if (wanted) {
             proc.running = true;
@@ -490,6 +507,33 @@ Singleton {
         onTriggered: {
             if (root.lastMessage)
                 cache.setText(JSON.stringify(root.lastMessage));
+        }
+    }
+
+    Process {
+        id: warmProc
+
+        property real startedAt
+
+        command: ["gnome-calendar", "--gapplication-service"]
+        onStarted: startedAt = Date.now()
+        onExited: {
+            if (!root.warmApp)
+                return;
+            // Ran for a while and timed out: straight back up. Gone at once means GNOME
+            // Calendar is already open in a window of its own, so there is nothing to warm and
+            // it is only looked at again in a while
+            warmRetry.interval = Date.now() - startedAt > 3000 ? 200 : 15000;
+            warmRetry.restart();
+        }
+    }
+
+    Timer {
+        id: warmRetry
+
+        onTriggered: {
+            if (root.warmApp)
+                warmProc.running = true;
         }
     }
 
