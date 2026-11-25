@@ -240,26 +240,5 @@ PageBase {
             to: 6
             onMoved: v => GlobalConfig.utilities.cards.toggleColumns = Math.round(v)
         }
-
-        // Desktop text
-        SectionHeader {
-            text: Tr.tr("Desktop text")
-        }
-
-        ToggleRow {
-            // SEARCH: quote random bottom screen line text
-            first: true
-            text: Tr.tr("Random text")
-            subtext: Tr.tr("Show a random line along the bottom of the screen")
-            checked: GlobalConfig.utilities.bottomText.enabled
-            onToggled: GlobalConfig.utilities.bottomText.enabled = checked
-        }
-
-        InfoRow {
-            last: true
-            label: Tr.tr("Texts")
-            subtext: Tr.tr("One per line; lines starting with # are skipped")
-            value: Paths.shortenHome(BottomText.path)
-        }
     }
 }

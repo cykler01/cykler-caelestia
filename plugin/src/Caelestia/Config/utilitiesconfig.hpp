@@ -66,6 +66,8 @@ class UtilitiesBottomText : public settings::ObjectNode {
     CONFIG_NODE(UtilitiesBottomText, settings::ObjectNode)
 
     CONFIG_GLOBAL_PROPERTY(bool, enabled, true)
+    // How long one line stays before the next is picked (ms)
+    CONFIG_GLOBAL_PROPERTY(int, cycleInterval, 60000)
 };
 
 // NOTE(fork): one quick toggle. Where it sits in the list is where it sits in the card

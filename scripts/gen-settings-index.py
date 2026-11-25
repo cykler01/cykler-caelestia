@@ -38,7 +38,7 @@ OUT_FILE = REPO_ROOT / "modules" / "nexus" / "SettingsIndex.qml"
 # key in PageRegistry.pages.
 PAGES: dict[str, list[str]] = {
     "wallpaper": ["WallpaperAndStyle", "WallpaperSelect", "WallpaperCategory", "ColourSelect"],
-    "assets": ["AssetsPage"],
+    "assets": ["AssetsPage", "BottomTextsPage"],
     "panels": [
         "PanelsPage", "DashboardPanel", "TaskbarPanel", "LauncherPanel", "SidebarPanel",
         "UtilitiesPanel", "BarWorkspaces", "BarActiveWindow", "BarTray", "BarStatusIcons",

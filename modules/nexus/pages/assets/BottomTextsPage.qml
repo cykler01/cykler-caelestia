@@ -37,6 +37,32 @@ PageBase {
 
         SectionHeader {
             first: true
+            text: Tr.tr("Display")
+        }
+
+        ToggleRow {
+            // SEARCH: quote random bottom screen line text
+            first: true
+            text: Tr.tr("Show the text")
+            subtext: Tr.tr("A random line along the bottom of the screen")
+            checked: GlobalConfig.utilities.bottomText.enabled
+            onToggled: GlobalConfig.utilities.bottomText.enabled = checked
+        }
+
+        StepperRow {
+            last: true
+            enabled: GlobalConfig.utilities.bottomText.enabled
+            label: Tr.tr("Cycle interval")
+            // TRANSLATORS: s is the second unit, leave it untranslated
+            subtext: Tr.tr("How often the line changes (s)")
+            value: Math.round(GlobalConfig.utilities.bottomText.cycleInterval / 1000)
+            from: 5
+            to: 600
+            stepSize: 5
+            onMoved: v => GlobalConfig.utilities.bottomText.cycleInterval = Math.round(v * 1000)
+        }
+
+        SectionHeader {
             text: Tr.tr("Lines")
         }
 

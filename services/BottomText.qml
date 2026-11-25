@@ -175,7 +175,7 @@ Singleton {
 
     // Rotates while the overlay is on, so a long session is not one frozen line
     Timer {
-        interval: 60000
+        interval: Math.max(1000, GlobalConfig.utilities.bottomText.cycleInterval)
         running: GlobalConfig.utilities.bottomText.enabled && root.texts.length > 1
         repeat: true
         onTriggered: root.pick()

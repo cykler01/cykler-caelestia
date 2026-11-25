@@ -143,6 +143,32 @@ QtObject {
             label: Tr.tr("Lock screen image"),
             subtext: Tr.tr("Shown on the lock screen when there are no notifications")
         },
+        {
+            page: "assets",
+            path: [],
+            title: Tr.tr("Shell assets"),
+            section: Tr.tr("Text"),
+            label: Tr.tr("Desktop text")
+        },
+
+        {
+            page: "assets",
+            path: [1],
+            title: Tr.tr("Desktop text"),
+            section: Tr.tr("Display"),
+            label: Tr.tr("Show the text"),
+            subtext: Tr.tr("A random line along the bottom of the screen"),
+            keywords: "quote random bottom screen line text"
+        },
+        {
+            page: "assets",
+            path: [1],
+            title: Tr.tr("Desktop text"),
+            section: Tr.tr("Display"),
+            label: Tr.tr("Cycle interval"),
+            subtext: Tr.tr("How often the line changes (s)"),
+            keywords: "timer rotate rotation speed frequency delay how long"
+        },
 
         {
             page: "panels",
@@ -884,24 +910,6 @@ QtObject {
             label: Tr.tr("VPN"),
             subtext: Tr.tr("Connect or disconnect the VPN")
         },
-        {
-            page: "panels",
-            path: [5],
-            title: Tr.tr("Utilities"),
-            section: Tr.tr("Desktop text"),
-            label: Tr.tr("Random text"),
-            subtext: Tr.tr("Show a random line along the bottom of the screen"),
-            keywords: "quote random bottom screen line text"
-        },
-        {
-            page: "panels",
-            path: [5],
-            title: Tr.tr("Utilities"),
-            section: Tr.tr("Desktop text"),
-            label: Tr.tr("Texts"),
-            subtext: Tr.tr("One per line; lines starting with # are skipped")
-        },
-
         {
             page: "panels",
             path: [2, 6],
