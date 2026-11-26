@@ -60,12 +60,13 @@ DesktopCard {
     z: held ? 4 : 0
 
     // Geometry is applied through Bindings rather than plain bindings so that a preview, which has no
-    // slot to read, is left with whatever size it was given instead of a binding loop on itself
+    // slot to read, is left with whatever size it was given instead of a binding loop on itself. A
+    // Binding works its value out even while `when` is false, so the slot is read with a fallback
     Binding {
         target: root
         property: "x"
         when: !root.preview
-        value: root.held ? root.gridHost.pointer.x - root.gridHost.grab.x : root.slot.col * WidgetGrid.unit
+        value: root.held ? root.gridHost.pointer.x - root.gridHost.grab.x : (root.slot?.col ?? 0) * WidgetGrid.unit
         restoreMode: Binding.RestoreNone
     }
 
@@ -73,7 +74,7 @@ DesktopCard {
         target: root
         property: "y"
         when: !root.preview
-        value: root.held ? root.gridHost.pointer.y - root.gridHost.grab.y : root.slot.row * WidgetGrid.unit
+        value: root.held ? root.gridHost.pointer.y - root.gridHost.grab.y : (root.slot?.row ?? 0) * WidgetGrid.unit
         restoreMode: Binding.RestoreNone
     }
 
@@ -81,7 +82,7 @@ DesktopCard {
         target: root
         property: "width"
         when: !root.preview
-        value: root.slot.w * WidgetGrid.unit - WidgetGrid.gap
+        value: (root.slot?.w ?? 0) * WidgetGrid.unit - WidgetGrid.gap
         restoreMode: Binding.RestoreNone
     }
 
@@ -91,7 +92,7 @@ DesktopCard {
         target: root
         property: "height"
         when: !root.preview
-        value: Math.max(root.slot.h, Math.ceil((root.implicitHeight + WidgetGrid.gap) / WidgetGrid.unit)) * WidgetGrid.unit - WidgetGrid.gap
+        value: Math.max(root.slot?.h ?? 0, Math.ceil((root.implicitHeight + WidgetGrid.gap) / WidgetGrid.unit)) * WidgetGrid.unit - WidgetGrid.gap
         restoreMode: Binding.RestoreNone
     }
 }

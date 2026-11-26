@@ -127,6 +127,11 @@ Singleton {
             note: Tr.tr("Everything on one small card")
         },
         {
+            id: "board",
+            name: Tr.tr("Widget board"),
+            note: Tr.tr("The clock beside a block of desktop widgets")
+        },
+        {
             id: "blank",
             name: Tr.tr("Blank"),
             note: Tr.tr("Only the password field, to build from scratch")
@@ -711,6 +716,37 @@ Singleton {
                 }), e("session", 0.5, 0.75, "t", {
                     scale: 0.7
                 })];
+        case "board":
+            return [e("status", 1 - root.mx, root.my, "tr", {
+                    scale: 0.9
+                }), e("session", 1 - root.mx, 1 - root.my, "br"), e("clock", 0.08, 0.42, "bl", {
+                    scale: 0.8,
+                    options: {
+                        align: "left"
+                    }
+                }), e("date", 0.08, 0.44, "tl", {
+                    scale: 1.1,
+                    options: {
+                        size: "title",
+                        weight: "bold"
+                    }
+                }), e("greeting", 0.08, 0.5, "tl"), e("widget:calendar", 0.515, 0.18, "tl", {
+                    options: {
+                        style: "month"
+                    }
+                }), e("widget:weather", 0.69, 0.18, "tl", {
+                    options: {
+                        style: "default"
+                    }
+                }), e("widget:media", 0.515, 0.48, "tl", {
+                    options: {
+                        style: "default"
+                    }
+                }), e("widget:resources", 0.69, 0.44, "tl", {
+                    options: {
+                        style: "rings-all"
+                    }
+                }), ...root.inlineLogin(0.08, 0.66, 300)];
         case "blank":
             return [e("password", 0.5, 0.5, "c")];
         default:

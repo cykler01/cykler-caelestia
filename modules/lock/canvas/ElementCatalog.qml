@@ -5,6 +5,7 @@ import Quickshell
 import Caelestia.Config
 import Caelestia.I18n
 import qs.services
+import qs.utils
 
 // NOTE(fork): every kind of thing that can go on the lock screen (Config.lock.elements), what it's
 // called, what it looks like by default, and which options it takes. The lock canvas draws from
@@ -144,7 +145,34 @@ Singleton {
     // id: the kind. sized: fills a box (w, h) rather than its natural size. box: the box a new one
     // gets, as fractions of the screen. at: where a new one goes, [x, y, anchor]. options: [{ key, label, type: select | toggle | slider |
     // text, items, from, to, step }], with defaults in `defaults`
-    readonly property var kinds: [
+    readonly property var kinds: [...root.baseKinds, ...root.desktopKinds]
+
+    // Every desktop widget (utils/WidgetCatalog.qml) as a kind of its own, "widget:<id>", with its
+    // styles as an option. Drawn by DesktopWidgetElement.qml
+    readonly property var desktopKinds: WidgetCatalog.kinds.map(k => ({
+                id: `widget:${k.id}`,
+                name: k.name,
+                icon: k.icon,
+                group: "desktop",
+                // TRANSLATORS: %1 = a desktop widget's name
+                description: Tr.tr("The desktop's %1 widget, to look at").arg(k.name),
+                options: (k.types ?? []).length > 1 ? [
+                    {
+                        key: "style",
+                        label: Tr.tr("Style"),
+                        type: "select",
+                        items: k.types.map(t => ({
+                                    value: t.id,
+                                    label: t.name
+                                }))
+                    }
+                ] : [],
+                defaults: {
+                    style: k.types?.[0]?.id ?? ""
+                }
+            }))
+
+    readonly property var baseKinds: [
         {
             id: "password",
             name: Tr.tr("Password field"),
@@ -860,6 +888,10 @@ Singleton {
         {
             id: "decoration",
             name: Tr.tr("Decoration")
+        },
+        {
+            id: "desktop",
+            name: Tr.tr("Desktop widgets")
         }
     ]
 

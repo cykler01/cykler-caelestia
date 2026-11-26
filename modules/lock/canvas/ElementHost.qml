@@ -97,7 +97,7 @@ Item {
                 divider: dividerKind,
                 equalizer: equalizerKind,
                 bottomText: bottomTextKind
-            })[host.element.id] ?? null
+            })[host.element.id] ?? ((host.element.id ?? "").startsWith("widget:") ? desktopWidgetKind : null)
     }
 
     Binding {
@@ -119,6 +119,14 @@ Item {
         property: "lock"
         value: host.lock
         when: loader.status === Loader.Ready
+    }
+
+    // Which desktop widget a "widget:<id>" element draws
+    Binding {
+        target: loader.item
+        property: "kind"
+        value: (host.element.id ?? "").slice(7)
+        when: loader.status === Loader.Ready && (host.element.id ?? "").startsWith("widget:")
     }
 
     // Only the equalizer has a use for it: it stays up through silence while being edited
@@ -277,5 +285,12 @@ Item {
         id: bottomTextKind
 
         BottomTextElement {}
+    }
+
+    // Any desktop widget, which one going by the element's id
+    Component {
+        id: desktopWidgetKind
+
+        DesktopWidgetElement {}
     }
 }
