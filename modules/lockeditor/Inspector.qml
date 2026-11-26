@@ -284,7 +284,8 @@ StyledRect {
                             select: selectOption,
                             toggle: toggleOption,
                             slider: sliderOption,
-                            text: textKind
+                            text: textKind,
+                            multi: multiOption
                         })[modelData.type] ?? null
 
                     Component {
@@ -295,6 +296,18 @@ StyledRect {
                             items: option.modelData.items
                             value: root.opts[option.modelData.key]
                             onPicked: v => root.editor.setOption(root.index, option.modelData.key, v)
+                        }
+                    }
+
+                    Component {
+                        id: multiOption
+
+                        Multi {
+                            label: option.modelData.label
+                            items: option.modelData.items
+                            // Only the widget column has one; what it shows until it's been given its own list
+                            value: option.modelData.key === "widgets" ? ElementCatalog.widgetsFor(root.opts) : root.opts[option.modelData.key] ?? []
+                            onChangedTo: v => root.editor.setOption(root.index, option.modelData.key, v)
                         }
                     }
 
@@ -505,6 +518,78 @@ StyledRect {
                     StateLayer {
                         radius: chip.radius
                         onClicked: choice.picked(chip.modelData.value)
+                    }
+                }
+            }
+        }
+    }
+
+    // Several of a list picked at once, in the order they were picked: a wrap of chips, the picked
+    // ones filled and numbered. Picking one adds it at the end; picking it again takes it out
+    component Multi: ColumnLayout {
+        id: multi
+
+        property string label
+        property var items: []
+        property var value: []
+
+        signal changedTo(value: var)
+
+        Layout.fillWidth: true
+        spacing: Tokens.spacing.small
+
+        StyledText {
+            Layout.fillWidth: true
+            text: multi.label
+            color: Colours.palette.m3onSurface
+            font: Tokens.font.body.medium
+            wrapMode: Text.WordWrap
+        }
+
+        Flow {
+            Layout.fillWidth: true
+            spacing: Tokens.spacing.extraSmall
+
+            Repeater {
+                model: multi.items
+
+                StyledRect {
+                    id: pick
+
+                    required property var modelData
+                    readonly property int position: multi.value.indexOf(modelData.value)
+                    readonly property bool current: position >= 0
+
+                    implicitWidth: pickRow.implicitWidth + Tokens.padding.medium * 2
+                    implicitHeight: 30
+                    radius: Tokens.rounding.full
+                    color: current ? Colours.palette.m3secondaryContainer : Colours.tPalette.m3surfaceContainerHigh
+                    border.width: current ? 0 : 1
+                    border.color: Qt.alpha(Colours.palette.m3outline, 0.4)
+
+                    Row {
+                        id: pickRow
+
+                        anchors.centerIn: parent
+                        spacing: Tokens.spacing.small
+
+                        StyledText {
+                            visible: pick.current
+                            text: pick.position + 1
+                            color: Colours.palette.m3primary
+                            font: Tokens.font.label.large
+                        }
+
+                        StyledText {
+                            text: pick.modelData.label
+                            color: pick.current ? Colours.palette.m3onSecondaryContainer : Colours.palette.m3onSurfaceVariant
+                            font: Tokens.font.label.large
+                        }
+                    }
+
+                    StateLayer {
+                        radius: pick.radius
+                        onClicked: multi.changedTo(pick.current ? multi.value.filter(v => v !== pick.modelData.value) : [...multi.value, pick.modelData.value])
                     }
                 }
             }

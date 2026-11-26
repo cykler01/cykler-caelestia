@@ -122,9 +122,10 @@ class LockConfig : public settings::ObjectNode {
             LIST_ENTRY(sleep, true),
             LIST_ENTRY(reboot, true),
         }))
-    // Which widgets show in the side columns, in what order, which column, and how much
-    // vertical room each gets (ids: weather, fetch, media, resources, battery, notifs, network,
-    // audio, events, day - the last four are opt-in via the editor's add button, not in the defaults)
+    // The lock screen widgets from before widget columns named their own (the "widgets" option of
+    // a widget column element). Still read for the weight a widget was given here, and for the
+    // widgets of a column saved before then (ids: weather, fetch, media, resources, battery,
+    // notifs, network, audio, events, day)
     CONFIG_LIST(LockWidgetList, widgets,
         DEFAULT_ARG({
             vmap({ { u"id"_s, u"weather"_s }, { u"column"_s, u"left"_s }, { u"weight"_s, 1.0 } }),

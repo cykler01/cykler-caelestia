@@ -142,7 +142,7 @@ Singleton {
         })
 
     // id: the kind. sized: fills a box (w, h) rather than its natural size. box: the box a new one
-    // gets, as fractions of the screen. options: [{ key, label, type: select | toggle | slider |
+    // gets, as fractions of the screen. at: where a new one goes, [x, y, anchor]. options: [{ key, label, type: select | toggle | slider |
     // text, items, from, to, step }], with defaults in `defaults`
     readonly property var kinds: [
         {
@@ -531,31 +531,165 @@ Singleton {
             group: "info",
             sized: true,
             box: [0.2, 0.6],
-            description: Tr.tr("The lock screen widgets, as set under Widgets"),
+            description: Tr.tr("A stack of the lock screen widgets, sharing the height of their box"),
             options: [
                 {
-                    key: "column",
-                    label: Tr.tr("Which widgets"),
+                    key: "widgets",
+                    label: Tr.tr("Widgets, top to bottom in the order picked"),
+                    type: "multi",
+                    items: root.widgetItems
+                }
+            ],
+            defaults: {}
+        },
+        {
+            id: "equalizer",
+            name: Tr.tr("Floor equalizer"),
+            icon: "graphic_eq",
+            group: "info",
+            sized: true,
+            box: [1, 0.08],
+            at: [0.5, 1, "b"],
+            description: Tr.tr("A spectrum of whatever is playing, filling its box, like the desktop's"),
+            options: [
+                {
+                    key: "style",
+                    label: Tr.tr("Style"),
                     type: "select",
                     items: [
                         {
-                            value: "left",
-                            label: Tr.tr("Left column")
+                            value: "bars",
+                            label: Tr.tr("Bars")
                         },
                         {
-                            value: "right",
-                            label: Tr.tr("Right column")
+                            value: "wave",
+                            label: Tr.tr("Wave")
                         },
                         {
-                            value: "all",
-                            label: Tr.tr("All of them")
+                            value: "line",
+                            label: Tr.tr("Line")
                         }
                     ]
+                },
+                {
+                    key: "colour",
+                    label: Tr.tr("Colour"),
+                    type: "select",
+                    items: [
+                        {
+                            value: "theme",
+                            label: Tr.tr("Accent")
+                        },
+                        {
+                            value: "gradient",
+                            label: Tr.tr("Gradient")
+                        },
+                        {
+                            value: "chroma",
+                            label: Tr.tr("Rainbow")
+                        }
+                    ]
+                },
+                {
+                    key: "grow",
+                    label: Tr.tr("Grows"),
+                    type: "select",
+                    items: [
+                        {
+                            value: "up",
+                            label: Tr.tr("Up from the bottom")
+                        },
+                        {
+                            value: "down",
+                            label: Tr.tr("Down from the top")
+                        }
+                    ]
+                },
+                {
+                    key: "shape",
+                    label: Tr.tr("Bar ends"),
+                    type: "select",
+                    items: [
+                        {
+                            value: "rounded",
+                            label: Tr.tr("Rounded")
+                        },
+                        {
+                            value: "square",
+                            label: Tr.tr("Square")
+                        }
+                    ]
+                },
+                {
+                    key: "bars",
+                    label: Tr.tr("Bars (0 matches the visualiser setting)"),
+                    type: "slider",
+                    from: 0,
+                    to: 240,
+                    step: 4
+                },
+                {
+                    key: "response",
+                    label: Tr.tr("Loudness response"),
+                    type: "select",
+                    items: [
+                        {
+                            value: "linear",
+                            label: Tr.tr("Linear")
+                        },
+                        {
+                            value: "log",
+                            label: Tr.tr("Logarithmic")
+                        },
+                        {
+                            value: "sqrt",
+                            label: Tr.tr("Square root")
+                        },
+                        {
+                            value: "exp",
+                            label: Tr.tr("Exponential")
+                        }
+                    ]
+                },
+                {
+                    key: "smoothness",
+                    label: Tr.tr("Smoothness"),
+                    type: "slider",
+                    from: 0,
+                    to: 2,
+                    step: 0.1
+                },
+                {
+                    key: "autoHide",
+                    label: Tr.tr("Hide when it's quiet"),
+                    type: "toggle"
                 }
             ],
             defaults: {
-                column: "left"
+                style: "bars",
+                colour: "theme",
+                grow: "up",
+                shape: "rounded",
+                bars: 0,
+                response: "linear",
+                smoothness: 1,
+                autoHide: true
             }
+        },
+        {
+            id: "bottomText",
+            name: Tr.tr("Bottom text"),
+            icon: "short_text",
+            group: "decoration",
+            at: [0.5, 0.97, "b"],
+            description: Tr.tr("A line from the desktop's bottom text, turning over as it does"),
+            options: root.textOptions,
+            defaults: Object.assign({}, root.textDefaults, {
+                size: "body",
+                weight: "regular",
+                colour: "variant",
+                align: "center"
+            })
         },
         {
             id: "session",
@@ -666,6 +800,50 @@ Singleton {
         }
     ]
 
+    // The widgets a widget column can hold (modules/lock/WidgetColumn.qml)
+    readonly property var widgetItems: [
+        {
+            value: "weather",
+            label: Tr.tr("Weather")
+        },
+        {
+            value: "media",
+            label: Tr.tr("Media")
+        },
+        {
+            value: "notifs",
+            label: Tr.tr("Notifications")
+        },
+        {
+            value: "fetch",
+            label: Tr.tr("System fetch")
+        },
+        {
+            value: "resources",
+            label: Tr.tr("Resources")
+        },
+        {
+            value: "battery",
+            label: Tr.tr("Battery")
+        },
+        {
+            value: "network",
+            label: Tr.tr("Network")
+        },
+        {
+            value: "audio",
+            label: Tr.tr("Audio")
+        },
+        {
+            value: "events",
+            label: Tr.tr("Events")
+        },
+        {
+            value: "day",
+            label: Tr.tr("Day")
+        }
+    ]
+
     readonly property var groups: [
         {
             id: "signin",
@@ -698,23 +876,36 @@ Singleton {
         return Object.assign({}, root.kind(id)?.defaults ?? {}, saved ?? {});
     }
 
-    // A fresh element of a kind, placed in the middle of the screen
+    // A fresh element of a kind, placed where its kind starts out (`at`: [x, y, anchor]), or in
+    // the middle of the screen
     function create(id: string): var {
         const k = root.kind(id);
         return {
             id: id,
             enabled: true,
-            x: 0.5,
-            y: 0.5,
-            anchor: "c",
+            x: k?.at?.[0] ?? 0.5,
+            y: k?.at?.[1] ?? 0.5,
+            anchor: k?.at?.[2] ?? "c",
             w: k?.box?.[0] ?? 0,
             h: k?.box?.[1] ?? 0,
             scale: 1,
             opacity: 1,
             rotation: 0,
             showOn: "always",
-            options: {}
+            options: id === "widgets" ? {
+                widgets: ["weather", "media"]
+            } : {}
         };
+    }
+
+    // Which widgets a widget column shows: its own list, or for one saved before columns chose
+    // their own, the widgets assigned to its column in the old widgets list
+    function widgetsFor(opts: var): var {
+        if (Array.isArray(opts?.widgets))
+            return opts.widgets;
+        const side = opts?.column ?? "left";
+        const entries = GlobalConfig.lock.widgets?.values ?? [];
+        return entries.filter(e => e.enabled && (side === "all" || e.column === side)).map(e => e.id);
     }
 
     function colour(name: string): color {

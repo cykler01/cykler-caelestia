@@ -114,7 +114,7 @@ Singleton {
         {
             id: "nowplaying",
             name: Tr.tr("Now playing"),
-            note: Tr.tr("What's playing, front and centre")
+            note: Tr.tr("What's playing, front and centre, over an equalizer")
         },
         {
             id: "poster",
@@ -191,13 +191,13 @@ Singleton {
                     w: 0.2,
                     h: 0.655,
                     options: {
-                        column: "left"
+                        widgets: ["weather", "fetch", "media"]
                     }
                 }), e("widgets", 0.8375, 0.172, "tr", {
                     w: 0.2,
                     h: 0.655,
                     options: {
-                        column: "right"
+                        widgets: ["resources", "battery", "notifs"]
                     }
                 }), e("clock", 0.5, 0.2, "t", {
                     options: {
@@ -251,13 +251,13 @@ Singleton {
                     w: 0.208,
                     h: 0.44,
                     options: {
-                        column: "right"
+                        widgets: ["resources", "battery", "notifs"]
                     }
                 }), e("widgets", 0.742, 0.15, "tr", {
                     w: 0.208,
                     h: 0.78,
                     options: {
-                        column: "left"
+                        widgets: ["weather", "fetch", "media"]
                     }
                 })];
         case "sidebar":
@@ -284,7 +284,7 @@ Singleton {
                     w: 0.208,
                     h: 0.5,
                     options: {
-                        column: "all"
+                        widgets: ["weather", "fetch", "media", "resources", "battery", "notifs"]
                     }
                 }), e("divider", 0.762, 0.76, "tl", {
                     w: 0.208,
@@ -632,7 +632,15 @@ Singleton {
                     scale: 1.15
                 }), ...root.inlineLogin(0.41, 0.85, 300)];
         case "nowplaying":
-            return [...root.corners(), e("clock", 0.5, 0.1, "t", {
+            // The equalizer first, so it's drawn behind the corners it runs under
+            return [e("equalizer", 0.5, 1, "b", {
+                    w: 1,
+                    h: 0.1,
+                    opacity: 0.8,
+                    options: {
+                        colour: "gradient"
+                    }
+                }), ...root.corners(), e("clock", 0.5, 0.1, "t", {
                     scale: 0.5
                 }), e("date", 0.5, 0.25, "t", {
                     options: {
@@ -641,7 +649,7 @@ Singleton {
                     }
                 }), e("media", 0.5, 0.48, "c", {
                     scale: 1.6
-                }), ...root.inlineLogin(0.41, 0.82, 300)];
+                }), ...root.inlineLogin(0.41, 0.8, 300)];
         case "poster":
             return [e("status", 1 - root.mx, root.my, "tr", {
                     scale: 0.9
@@ -723,7 +731,7 @@ Singleton {
             const a = el.anchor ?? "c";
             const anchor = a.length === 2 ? a[0] + (swap[a[1]] ?? a[1]) : (swap[a] ?? a);
             const options = Object.assign({}, el.options ?? {});
-            for (const k of ["align", "direction", "column"])
+            for (const k of ["align", "direction"])
                 if (options[k] && swap[options[k]])
                     options[k] = swap[options[k]];
             return Object.assign({}, el, {

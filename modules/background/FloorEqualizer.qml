@@ -22,18 +22,32 @@ import qs.modules.background.widgets
 Item {
     id: root
 
-    required property ShellScreen screen
+    // The screen it spans, for its default height. Optional: the lock screen's floor equalizer
+    // element sets the height itself (modules/lock/canvas)
+    property ShellScreen screen
+
+    // Its settings, from Config.background.floorEqualizer unless whoever creates it hands over its
+    // own, as the lock screen's equalizer element does from its options
+    property string positionSetting: Config.background.floorEqualizer.position ?? "floor"
+    property string styleSetting: Config.background.floorEqualizer.style ?? "bars"
+    property string colourSetting: Config.background.floorEqualizer.colour ?? "theme"
+    property string shapeSetting: Config.background.floorEqualizer.barShape ?? "rounded"
+    property int barsSetting: Config.background.floorEqualizer.bars ?? 0
+    property real amplitudeSetting: Config.background.floorEqualizer.amplitude ?? 1
+    property real smoothnessSetting: Config.background.floorEqualizer.smoothness ?? 1
+    property string responseSetting: Config.background.floorEqualizer.response ?? "linear"
+    property bool autoHideSetting: Config.background.floorEqualizer.autoHide ?? true
 
     // Cava's band count, shared with every other visualiser
     readonly property int sourceCount: Math.max(1, GlobalConfig.services.visualiserBars)
     // How many it is drawn with: its own setting if it has one, resampled from cava's bands
     readonly property int barCount: {
-        const own = Config.background.floorEqualizer.bars ?? 0;
+        const own = root.barsSetting;
         return own > 0 ? Math.max(8, Math.min(240, own)) : root.sourceCount;
     }
-    readonly property bool square: (Config.background.floorEqualizer.barShape ?? "rounded") === "square"
+    readonly property bool square: root.shapeSetting === "square"
     readonly property string colourMode: {
-        const c = Config.background.floorEqualizer.colour ?? "theme";
+        const c = root.colourSetting;
         return c === "gradient" || c === "chroma" ? c : "theme";
     }
     // Where the hue wheel starts for chroma, turned a little every reading so the colours drift
@@ -41,28 +55,28 @@ Item {
     property real hueShift: 0
     // Kept deliberately low so it reads as an accent along the bottom edge rather than a panel,
     // then scaled by the amplitude set in Nexus > Panels
-    readonly property real amplitude: Math.max(0.5, Math.min(3, Config.background.floorEqualizer.amplitude ?? 1))
+    readonly property real amplitude: Math.max(0.5, Math.min(3, root.amplitudeSetting))
     // How slowly the levels are eased towards each reading, set in Nexus > Panels: 1 is the
     // original feel, 0 snaps straight to every reading
-    readonly property real smoothness: Math.max(0, Math.min(2, Config.background.floorEqualizer.smoothness ?? 1))
+    readonly property real smoothness: Math.max(0, Math.min(2, root.smoothnessSetting))
     // How a level (0-1) maps to height, set in Nexus > Panels. The frequency side is already
     // logarithmic (cava spreads the bands over 50 Hz - 10 kHz on a log scale), so this is only
     // the loudness response
-    readonly property string response: Config.background.floorEqualizer.response ?? "linear"
-    readonly property real maxBarHeight: Math.round(Math.max(56, screen.height * 0.08) * root.amplitude)
+    readonly property string response: root.responseSetting
+    property real maxBarHeight: Math.round(Math.max(56, (root.screen?.height ?? 1080) * 0.08) * root.amplitude)
     property var levels: []
 
     // NOTE(fork): whether anything has made a sound lately. Read off the levels themselves rather
     // than a media player's state, so any audio counts (a video in the browser, a game) and not
     // only music. Starts false so it fades in on the first sound rather than flashing up idle
     property bool hearing: false
-    readonly property bool autoHide: Config.background.floorEqualizer.autoHide ?? true
+    readonly property bool autoHide: root.autoHideSetting
     // A quiet room still reads a hair above zero, so anything at or under this counts as silence
     readonly property real silenceLevel: 0.02
 
-    readonly property bool ceiling: (Config.background.floorEqualizer.position ?? "floor") === "ceiling"
+    readonly property bool ceiling: root.positionSetting === "ceiling"
     readonly property string style: {
-        const s = Config.background.floorEqualizer.style ?? "bars";
+        const s = root.styleSetting;
         return s === "wave" || s === "line" ? s : "bars";
     }
 

@@ -364,20 +364,6 @@ PageBase {
             }
         }
 
-        // Side widgets
-        SectionHeader {
-            text: Tr.tr("Widgets")
-        }
-
-        NavRow {
-            first: true
-            last: true
-            icon: "widgets"
-            text: Tr.tr("Widgets")
-            subtext: Tr.tr("Reorder, resize and show or hide what the widget column elements show")
-            onClicked: root.nState.openSubPage(17)
-        }
-
         // Dino game
         SectionHeader {
             text: Tr.tr("Notifications")

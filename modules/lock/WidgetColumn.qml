@@ -6,16 +6,15 @@ import Caelestia.Config
 import qs.components
 import qs.services
 
-// One side column: whichever widgets are enabled and assigned to `side`, in the order the
-// settings editor (Nexus > Lock screen > Widgets) put them in. The flexible widgets (weather,
-// media, notifications) claim a share of the column's height proportional to their weight
-// among the other flexible widgets in it; the fixed ones (fetch, resources, battery) keep
-// their original natural content height from before the customisation system, and the
-// flexible widgets only share out whatever height is left over - see Config.lock.widgets
-// (modules/nexus/pages/panels/LockWidgetsPanel.qml writes it).
+// A stack of lock screen widgets, for the widget column element (modules/lock/canvas): the ones
+// it names in `widgetIds`, in that order, or for a layout saved before elements chose their own,
+// the ones assigned to `side` in Config.lock.widgets. The flexible widgets (weather, media,
+// notifications) claim a share of the column's height proportional to their weight among the
+// other flexible widgets in it; the fixed ones (fetch, resources, battery) keep their natural
+// content height, and the flexible widgets only share out whatever height is left over.
 //
-// Pulled out of Content.qml so the settings page's live preview (LockScreenPreview.qml) can
-// reuse the exact same rendering/share math instead of a second, divergent copy of it.
+// The settings page's live preview (LockScreenPreview.qml) draws the same canvas, so this is the
+// one copy of the rendering and the share math.
 ColumnLayout {
     id: col
 
@@ -34,7 +33,13 @@ ColumnLayout {
         const entries = Config.lock.widgets.values;
         for (const e of entries)
             void [e.enabled, e.column, e.weight];
-        const all = entries.filter(e => e.enabled && (col.side === "all" || e.column === col.side) && col.knownIds.includes(e.id));
+        // NOTE(fork): a widget column element names its widgets itself (its "widgets" option);
+        // a weight saved for one in the old widgets list still counts, otherwise its default
+        const all = Array.isArray(col.widgetIds) ? col.widgetIds.filter(id => col.knownIds.includes(id)).map(id => ({
+                    id: id,
+                    enabled: true,
+                    weight: entries.find(e => e.id === id)?.weight ?? col.defaultWeights[id] ?? 1
+                })) : entries.filter(e => e.enabled && (col.side === "all" || e.column === col.side) && col.knownIds.includes(e.id));
         if (col.fitHeight < 0)
             return all;
 
@@ -52,6 +57,16 @@ ColumnLayout {
         }
         return out;
     }
+
+    // The widgets to show, in order, by id; null falls back to the ones assigned to `side` in
+    // Config.lock.widgets, as layouts saved before widget columns chose their own still expect
+    property var widgetIds: null
+    // How much of the room each weighted widget gets relative to the others, when none is saved
+    readonly property var defaultWeights: ({
+            weather: 1,
+            media: 1.3,
+            notifs: 1.6
+        })
 
     // NOTE(fork): the free-standing layouts (modules/lock/layouts) set this to the height they can
     // spare, and widgets that won't fit whole are dropped from the end of the list. Below zero

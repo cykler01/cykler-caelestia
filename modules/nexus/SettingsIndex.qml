@@ -1412,15 +1412,6 @@ QtObject {
 
         {
             page: "panels",
-            path: [14, 17],
-            title: Tr.tr("Widgets"),
-            label: Tr.tr("Lock screen widgets"),
-            subtext: Tr.tr("Reorder, resize and show or hide what's on the lock screen"),
-            keywords: "lockscreen cards columns"
-        },
-
-        {
-            page: "panels",
             path: [18],
             title: Tr.tr("Widgets"),
             section: Tr.tr("Cards"),

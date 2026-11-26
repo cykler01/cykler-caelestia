@@ -1,9 +1,10 @@
 import QtQuick
 import qs.modules.lock
+import qs.modules.lock.canvas
 
-// A column of the lock screen widgets (weather, media, notifications, ...), the ones assigned to
-// the chosen column in Nexus > Lock screen > Widgets, or all of them. It fills the box it's given,
-// sharing the room out by each widget's weight, and drops the last widgets that won't fit whole
+// A stack of the lock screen widgets (weather, media, notifications, ...), the ones picked in its
+// options, in that order. It fills the box it's given, sharing the room out by each widget's
+// weight, and drops the last widgets that won't fit whole
 Item {
     id: root
 
@@ -14,6 +15,7 @@ Item {
     WidgetColumn {
         anchors.fill: parent
         side: root.opts.column ?? "left"
+        widgetIds: ElementCatalog.widgetsFor(root.opts)
         rootHeight: height
         fitHeight: height
         minFlexHeight: 125 * root.s

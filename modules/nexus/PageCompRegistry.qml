@@ -123,9 +123,11 @@ QtObject {
                     SessionPanel {}
                 }
 
-                // Lock screen widgets sub-page
+                // NOTE(fork): was the lock screen widgets sub-page, retired now that which widgets
+                // a widget column shows is an option of the element itself (modules/lockeditor).
+                // Kept as an empty slot so the sub-pages after it keep their numbers
                 Component {
-                    LockWidgetsPanel {}
+                    Item {}
                 }
 
                 // Desktop widget cards sub-page

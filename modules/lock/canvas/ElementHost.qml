@@ -94,7 +94,9 @@ Item {
                 widgets: widgetsKind,
                 session: sessionKind,
                 panel: panelKind,
-                divider: dividerKind
+                divider: dividerKind,
+                equalizer: equalizerKind,
+                bottomText: bottomTextKind
             })[host.element.id] ?? null
     }
 
@@ -117,6 +119,14 @@ Item {
         property: "lock"
         value: host.lock
         when: loader.status === Loader.Ready
+    }
+
+    // Only the equalizer has a use for it: it stays up through silence while being edited
+    Binding {
+        target: loader.item
+        property: "editing"
+        value: host.editing
+        when: loader.status === Loader.Ready && host.element.id === "equalizer"
     }
 
     // In the editor only: what an element with nothing to show is
@@ -255,5 +265,17 @@ Item {
         id: dividerKind
 
         DividerElement {}
+    }
+
+    Component {
+        id: equalizerKind
+
+        EqualizerElement {}
+    }
+
+    Component {
+        id: bottomTextKind
+
+        BottomTextElement {}
     }
 }
