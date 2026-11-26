@@ -13,6 +13,10 @@ Singleton {
     // anything that has to know (the notch's island, say) does not have to reach into the lock
     property bool sessionLocked
 
+    // NOTE(fork): whether the lock screen layout editor (modules/lockeditor) is open over the
+    // focused screen. Nexus > Lock screen > Edit layout opens it; it closes itself
+    property bool lockEditorOpen
+
     // NOTE(fork): asks modules/lock/Lock.qml to lock the session, the same as the lock shortcut
     // (Super+L) does - for buttons in the shell's own menus (the session menu, the quick toggles)
     signal lockRequested

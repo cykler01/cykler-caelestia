@@ -148,19 +148,31 @@ ColumnLayout {
     // lock screen's own edge
     clip: true
 
+    // Measures every widget now in the column, a moment after any of them changes size
+    Timer {
+        id: measureTimer
+
+        interval: 0
+        onTriggered: {
+            for (let i = 0; i < measureRepeater.count; i++)
+                col.measure(measureRepeater.itemAt(i));
+        }
+    }
+
     Repeater {
+        id: measureRepeater
+
         model: col.items
 
         // Deferred: measuring straight away writes `measured` while `items` (which reads it) is
-        // still handing out the delegates it just made, which Qt reports as a binding loop
+        // still handing out the delegates it just made, which Qt reports as a binding loop. A
+        // timer of the column's own rather than Qt.callLater, so a column torn down before it
+        // fires (a preview closed, an element removed) takes the pending measure with it
+        // instead of leaving it to run against a context that's gone
         onItemAdded: (index, item) => {
-            // One closure per delegate: callLater folds repeat calls of the same function into
-            // the last one, which with a shared function would only ever measure one widget
-            const measureThis = () => col.measure(item);
-            const later = () => Qt.callLater(measureThis);
-            later();
-            item.implicitHeightChanged.connect(later);
-            item.visibleChanged.connect(later);
+            measureTimer.restart();
+            item.implicitHeightChanged.connect(measureTimer.restart);
+            item.visibleChanged.connect(measureTimer.restart);
         }
 
         DelegateChooser {

@@ -18,6 +18,9 @@ GridLayout {
     property bool stacked: true
     // Which edge the stacked digits line up against: Qt.AlignLeft, Qt.AlignRight or Qt.AlignHCenter
     property int alignment: Qt.AlignLeft
+    // The minutes and colon in the accent colour; off, everything is one colour
+    property bool accent: true
+    readonly property color minuteColour: accent ? Colours.palette.m3primary : Colours.palette.m3onSurface
 
     readonly property font digitFont: Tokens.font.headline.builders.large.scale(root.fontScale).weight(Font.DemiBold).width(30).build()
 
@@ -38,7 +41,7 @@ GridLayout {
         visible: !root.stacked
         Layout.alignment: Qt.AlignVCenter
         text: ":"
-        color: Colours.palette.m3primary
+        color: root.minuteColour
         font: root.digitFont
     }
 
@@ -51,7 +54,7 @@ GridLayout {
 
         Tight {
             text: Time.minuteStr
-            color: Colours.palette.m3primary
+            color: root.minuteColour
             font: root.digitFont
         }
 
@@ -66,7 +69,7 @@ GridLayout {
                 x: root.stacked ? 0 : hours.implicitHeight * 0.08
             }
             text: Time.amPmStr
-            color: Qt.alpha(Colours.palette.m3primary, 0.6)
+            color: Qt.alpha(root.minuteColour, 0.6)
             font: Tokens.font.headline.builders.large.scale(root.fontScale / 4).weight(Font.Medium).build()
         }
     }

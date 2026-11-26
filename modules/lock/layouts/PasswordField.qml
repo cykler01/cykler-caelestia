@@ -20,7 +20,10 @@ FocusScope {
     // Room the field may grow to once there's something typed in it
     property real fieldWidth: 320 * uiScale
 
-    implicitWidth: loader.implicitWidth
+    // Asks for no width of its own: every caller stretches it across the room it has. Passing
+    // the field's natural width up instead fed straight back into the layout sizing it, and a
+    // fraction of a pixel's overflow was enough for the layout to squeeze it down to nothing
+    implicitWidth: 0
     implicitHeight: loader.implicitHeight
 
     Loader {

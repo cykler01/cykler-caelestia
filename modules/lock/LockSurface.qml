@@ -8,7 +8,7 @@ import Caelestia.Multimedia
 import Caelestia.State
 import qs.components
 import qs.services
-import qs.modules.lock.layouts
+import qs.modules.lock.canvas
 
 WlSessionLockSurface {
     id: root
@@ -16,13 +16,7 @@ WlSessionLockSurface {
     required property WlSessionLock lock
     required property Pam pam
 
-    readonly property bool unlocking: unlockAnim.running || altUnlockAnim.running
-    // NOTE(fork): which arrangement of the lock UI to show (Config.lock.layout). The classic card
-    // morphs out of the lock icon; the others have no card, so the icon spins in as usual and its
-    // tile then blooms and fades while the layout fades in over it. Read through lockContent since
-    // only contentItem is given a screen (see the note on GlobalConfig below)
-    readonly property string layoutId: LayoutRegistry.resolve(lockContent.Config.lock.layout ?? "card")
-    readonly property bool cardLayout: layoutId === "card"
+    readonly property bool unlocking: altUnlockAnim.running
     // The dino game is up in this screen's notifications dock, which takes the keys from the
     // password field for as long as it lasts (see modules/lock/NotifDock.qml)
     property bool dinoPlaying: false
@@ -195,34 +189,15 @@ WlSessionLockSurface {
                 fontStyle: Tokens.font.icon.builders.extraLarge.scale(4).weight(Font.Bold).build()
                 rotation: 180
             }
-
-            // A Loader so the classic card and the other layouts are never both alive: each has a
-            // password field that insists on keyboard focus, and two would fight over it
-            Loader {
-                id: content
-
-                anchors.centerIn: parent
-                width: (root.screen?.height ?? 0) * Tokens.sizes.lock.heightMult * Tokens.sizes.lock.ratio - Tokens.padding.extraLargeIncreased
-                height: (root.screen?.height ?? 0) * Tokens.sizes.lock.heightMult - Tokens.padding.extraLargeIncreased
-
-                active: root.cardLayout
-                focus: root.cardLayout
-                opacity: 0
-                scale: 0
-
-                sourceComponent: Content {
-                    lock: root
-                }
-            }
         }
 
-        // NOTE(fork): the free-standing layouts (LayoutRegistry), which span the whole screen instead of
-        // sitting in the card above. Faded with the idle hide the same way the card is
+        // NOTE(fork): the lock screen's elements (modules/lock/canvas), arranged in Nexus > Lock
+        // screen > Edit layout. Faded with the idle hide
         Item {
             id: altLayer
 
             anchors.fill: parent
-            visible: Config.lock.enabled && !root.cardLayout
+            visible: Config.lock.enabled
             opacity: root.idleHidden ? 0 : 1
 
             Behavior on opacity {
@@ -233,22 +208,13 @@ WlSessionLockSurface {
                 id: altContent
 
                 anchors.fill: parent
-                active: !root.cardLayout
-                focus: !root.cardLayout
+                focus: true
                 opacity: 0
                 scale: 0.94
 
-                sourceComponent: ({
-                        split: splitLayout,
-                        sidebar: sidebarLayout,
-                        minimal: minimalLayout,
-                        stage: stageLayout,
-                        curtain: curtainLayout,
-                        watch: watchLayout,
-                        band: bandLayout,
-                        console: consoleLayout,
-                        fuzzy: fuzzyLayout
-                    })[root.layoutId] ?? null
+                sourceComponent: LockCanvas {
+                    lock: root
+                }
             }
         }
     }
@@ -258,10 +224,7 @@ WlSessionLockSurface {
             root.dinoPlaying = false;
             root.idleHidden = false;
             idleTimer.stop();
-            if (root.cardLayout)
-                unlockAnim.start();
-            else
-                altUnlockAnim.start();
+            altUnlockAnim.start();
         }
 
         // The surface outlives any one lock, so the countdown is armed here rather than only
@@ -281,62 +244,6 @@ WlSessionLockSurface {
         }
 
         target: GlobalConfig.lock
-    }
-
-    SequentialAnimation {
-        id: unlockAnim
-
-        ParallelAnimation {
-            Anim {
-                target: lockContent
-                properties: "implicitWidth,implicitHeight"
-                to: lockContent.size
-            }
-            Anim {
-                target: lockBg
-                property: "radius"
-                to: lockContent.radius
-            }
-            Anim {
-                target: content
-                property: "scale"
-                to: 0
-            }
-            Anim {
-                target: content
-                property: "opacity"
-                to: 0
-                type: Anim.StandardSmall
-            }
-            Anim {
-                target: lockIcon
-                property: "opacity"
-                to: 1
-                type: Anim.StandardLarge
-            }
-            Anim {
-                target: background
-                property: "opacity"
-                to: 0
-                type: Anim.StandardLarge
-            }
-            SequentialAnimation {
-                PauseAnimation {
-                    duration: Tokens.anim.durations.small
-                }
-                Anim {
-                    type: Anim.Standard
-                    target: lockContent
-                    property: "opacity"
-                    to: 0
-                }
-            }
-        }
-        PropertyAction {
-            target: root.lock
-            property: "locked"
-            value: false
-        }
     }
 
     SequentialAnimation {
@@ -368,8 +275,8 @@ WlSessionLockSurface {
         }
     }
 
-    // The second half of the intro for the layouts without a card: the icon finishes its turn
-    // and its tile blooms and fades as the layout comes in
+    // The second half of the intro: the icon finishes its turn and its tile blooms and fades as
+    // the lock screen comes in
     ParallelAnimation {
         id: altInAnim
 
@@ -420,50 +327,6 @@ WlSessionLockSurface {
         }
     }
 
-    // The second half of the intro for the classic card: the icon opens up into it
-    ParallelAnimation {
-        id: cardInAnim
-
-        Anim {
-            target: lockIcon
-            property: "rotation"
-            to: 360
-            easing: Tokens.anim.standardDecel
-        }
-        Anim {
-            type: Anim.DefaultEffects
-            target: lockIcon
-            property: "opacity"
-            to: 0
-        }
-        Anim {
-            type: Anim.DefaultEffects
-            target: content
-            property: "opacity"
-            to: 1
-        }
-        Anim {
-            target: content
-            property: "scale"
-            to: 1
-        }
-        Anim {
-            target: lockBg
-            property: "radius"
-            to: lockContent.Tokens.rounding.extraLarge * 1.5
-        }
-        Anim {
-            target: lockContent
-            property: "implicitWidth"
-            to: (root.screen?.height ?? 0) * lockContent.Tokens.sizes.lock.heightMult * lockContent.Tokens.sizes.lock.ratio
-        }
-        Anim {
-            target: lockContent
-            property: "implicitHeight"
-            to: (root.screen?.height ?? 0) * lockContent.Tokens.sizes.lock.heightMult
-        }
-    }
-
     ParallelAnimation {
         id: initAnim
 
@@ -492,7 +355,7 @@ WlSessionLockSurface {
                 }
             }
             ScriptAction {
-                script: root.cardLayout ? cardInAnim.start() : altInAnim.start()
+                script: altInAnim.start()
             }
         }
     }
@@ -520,78 +383,6 @@ WlSessionLockSurface {
         Visual {
             source: Config.lock.wallpaper
             playing: PersistentState.wallpaperPlaying
-        }
-    }
-
-    Component {
-        id: splitLayout
-
-        SplitLayout {
-            lock: root
-        }
-    }
-
-    Component {
-        id: sidebarLayout
-
-        SidebarLayout {
-            lock: root
-        }
-    }
-
-    Component {
-        id: minimalLayout
-
-        MinimalLayout {
-            lock: root
-        }
-    }
-
-    Component {
-        id: stageLayout
-
-        StageLayout {
-            lock: root
-        }
-    }
-
-    Component {
-        id: curtainLayout
-
-        CurtainLayout {
-            lock: root
-        }
-    }
-
-    Component {
-        id: watchLayout
-
-        WatchLayout {
-            lock: root
-        }
-    }
-
-    Component {
-        id: bandLayout
-
-        BandLayout {
-            lock: root
-        }
-    }
-
-    Component {
-        id: consoleLayout
-
-        ConsoleLayout {
-            lock: root
-        }
-    }
-
-    Component {
-        id: fuzzyLayout
-
-        FuzzyLayout {
-            lock: root
         }
     }
 }

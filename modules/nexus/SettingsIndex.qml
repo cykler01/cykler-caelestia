@@ -1291,9 +1291,9 @@ QtObject {
             page: "panels",
             path: [14],
             title: Tr.tr("Lock screen"),
-            section: Tr.tr("Clock"),
-            label: Tr.tr("Analogue clock"),
-            subtext: Tr.tr("Show an analogue dial instead of the digital readout")
+            section: Tr.tr("Layout"),
+            label: Tr.tr("Edit layout"),
+            subtext: Tr.tr("Opens the lock screen full size over this screen to arrange it")
         },
         {
             page: "panels",

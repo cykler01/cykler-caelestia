@@ -18,7 +18,7 @@ ColumnLayout {
 
     required property var lock
     // The dino game is up in place of the empty dock, and the dock's own store for its best run
-    readonly property bool dinoShown: root.lock.dinoPlaying && Config.lock.dinoGame
+    readonly property bool dinoShown: (root.lock?.dinoPlaying ?? false) && Config.lock.dinoGame
     readonly property Props props: Props {}
 
     anchors.fill: parent
@@ -193,7 +193,10 @@ ColumnLayout {
             hoverEnabled: true
             cursorShape: Qt.PointingHandCursor
 
-            onClicked: root.lock.dinoPlaying = true
+            onClicked: {
+                if (root.lock)
+                    root.lock.dinoPlaying = true;
+            }
         }
 
         StyledRect {

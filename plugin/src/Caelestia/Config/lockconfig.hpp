@@ -24,28 +24,57 @@ class LockWidgetEntry : public settings::ObjectNode {
 };
 CONFIG_LIST_TYPE(LockWidgetEntry, LockWidgetList)
 
+// NOTE(fork): one thing on the lock screen (modules/lock/canvas). The screen is nothing but a list
+// of these, arranged in Nexus > Lock screen > Edit layout; only the password field is required. What
+// each kind is and which options it takes are listed in modules/lock/canvas/ElementCatalog.qml
+class LockElement : public settings::ObjectNode {
+    CONFIG_NODE(LockElement, settings::ObjectNode)
+
+    // Which kind of element: "password", "clock", "date", "avatar", "panel", "widgets", ...
+    CONFIG_PROPERTY(QString, id, {})
+    CONFIG_PROPERTY(bool, enabled, true)
+    // Where its anchor point sits, as a fraction of the screen's width and height
+    CONFIG_PROPERTY(qreal, x, 0.5)
+    CONFIG_PROPERTY(qreal, y, 0.5)
+    // Which point of the element that is: "tl", "t", "tr", "l", "c", "r", "bl", "b" or "br". So an
+    // element pinned by its right edge stays on the right of a wider screen
+    CONFIG_PROPERTY(QString, anchor, u"c"_s)
+    // Size as a fraction of the screen, for the kinds that fill a box (panels, widget columns).
+    // 0 leaves the element at its natural size
+    CONFIG_PROPERTY(qreal, w, 0)
+    CONFIG_PROPERTY(qreal, h, 0)
+    // Multiplier on the element's natural size
+    CONFIG_PROPERTY(qreal, scale, 1.0)
+    CONFIG_PROPERTY(qreal, opacity, 1.0)
+    // Quarter turns: 0, 90 or -90
+    CONFIG_PROPERTY(int, rotation, 0)
+    // When it shows: "always", "rest" (until a key or click starts the sign-in) or "active" (once
+    // it has). Elements on rest and active together make a curtain that lifts on the first key
+    CONFIG_PROPERTY(QString, showOn, u"always"_s)
+    // Options of the element's own kind (clock face, text, colour, ...)
+    CONFIG_PROPERTY(QVariantMap, options, {})
+};
+CONFIG_LIST_TYPE(LockElement, LockElementList)
+
 class LockConfig : public settings::ObjectNode {
     CONFIG_NODE(LockConfig, settings::ObjectNode)
 
     CONFIG_PROPERTY(bool, enabled, true)
-    // NOTE(fork): how the lock screen is arranged (modules/lock/LockSurface.qml):
-    // "card" - the original centre card with a widget column either side of it
-    // "split" - clock and weather on one side of the screen, the login card with its widgets on the other
-    // "sidebar" - one full-height panel along an edge holding the clock, login and every widget
-    // "minimal" - a large clock in the middle with the login under it, and no widgets
-    // "stage" - date and clock across the top, the login at the bottom (after macOS)
-    // "curtain" - a clock in the bottom corner that lifts on a key or click to show the login (after Windows/GNOME)
-    // "watch" - a large analogue dial with complications under it (after smartwatch faces)
-    // "band" - one band across the middle holding the clock and login (after the LightDM Unity greeter)
-    // "console" - a terminal window with a fetch and a password prompt (after a text console login)
-    // "fuzzy" - the time in words, poster-sized (after KDE's fuzzy clock)
-    // modules/lock/layouts/LayoutRegistry.qml lists them; anything else falls back to "card"
+    // NOTE(fork): what's on the lock screen and where (modules/lock/canvas). Empty until the layout
+    // is first edited, and until then the screen is built from the preset that layout names below
+    CONFIG_LIST(LockElementList, elements, DEFAULT_ARG({}))
+    // The lock screen layouts from before elements, kept only so a config still naming one opens
+    // on the same look: "card", "split", "sidebar", "curtain", "band", "console", "shelf", "profile",
+    // "bento", "minimal", "stage", "watch", "fuzzy", "glance", "vertical", "flip" or "dotmatrix"
+    // (modules/lock/canvas/LockPresets.qml)
     CONFIG_PROPERTY(QString, layout, u"card"_s)
-    // Which edge the login card / panel sits against in the split, sidebar and band layouts ("left" or "right")
+    // Which side the split, sidebar and band layouts above had their login on ("left" or "right"),
+    // likewise kept only for that
     CONFIG_PROPERTY(QString, panelSide, u"right"_s)
-    // Status pills along the top edge in the split, sidebar and minimal layouts
+    // No longer read: whether there are status pills is whether there's a status element. Kept so
+    // configs that still set it load without complaint
     CONFIG_PROPERTY(bool, statusChips, true)
-    // Which pills show and in what order, outermost first (modules/lock/layouts/StatusChips.qml).
+    // Which pills the status element shows and in what order, outermost first (modules/lock/layouts/StatusChips.qml).
     // ids: battery, network, bluetooth, volume, mic, vpn, keyboard, notifs, media, power, uptime -
     // everything past bluetooth is opt-in from the settings page's add button
     CONFIG_LIST(EntryList, statusEntries,
@@ -78,7 +107,7 @@ class LockConfig : public settings::ObjectNode {
     // The same dino game, played in the notification dock from its empty state
     // (modules/lock/NotifDock.qml)
     CONFIG_PROPERTY(bool, dinoGame, false)
-    // Analogue dial instead of the digital readout in the centre column (modules/lock/Center.qml)
+    // Whether the classic card had an analogue dial, kept only to carry over into its preset
     CONFIG_PROPERTY(bool, analogueClock, false)
     // MaterialShape name (M3Shapes) the profile picture is clipped to - resolved against the
     // enum in modules/lock/center/ProfilePic.qml

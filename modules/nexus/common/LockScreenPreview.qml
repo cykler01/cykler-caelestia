@@ -1,53 +1,34 @@
 pragma ComponentBehavior: Bound
 
 import QtQuick
-import QtQuick.Layouts
 import Caelestia.Config
-import Caelestia.I18n
 import qs.components
 import qs.services
-import qs.modules.lock as Lock
-import qs.modules.lock.center as LockCenter
-import qs.modules.lock.layouts as LockLayouts
+import qs.modules.lock.canvas
 
-// A live, read-only miniature of the actual lock screen - the real widgets (weather, fetch,
-// media, ...), rendered with WidgetColumn.qml (the exact same component Content.qml itself uses),
-// scaled down to fit the settings page. Not an abstract mock-up of what the lock screen might
-// look like - this *is* the real thing, just smaller, so it updates live as entries are
-// reordered/resized/hidden below it.
+// A live, read-only miniature of the actual lock screen: the same canvas the lock draws
+// (modules/lock/canvas/LockCanvas.qml) with the saved elements, laid out at the real monitor's
+// size and scaled down to fit the settings page, so it updates live as things are changed. The
+// password field is a dummy here, since the real one would grab the keyboard and drive PAM.
 //
 // Deliberately non-interactive: an invisible MouseArea on top eats every click so nothing in
-// here can accidentally fire a real action (session buttons, media transport, notification
-// swipes) while someone's just trying to preview a layout.
+// here can accidentally fire a real action (session buttons, media transport) while someone's
+// just looking at it
 Item {
     id: root
 
     readonly property real framePadding: Tokens.padding.large
 
-    // The real monitor's height, same as LockSurface.qml uses to size Content - without this the
-    // preview's proportions (and therefore which widgets show their extra detail/forecast/etc)
-    // wouldn't match what actually ends up on the real lock screen. Falls back to 1080 the same
-    // way the desktop widgets do for their own miniature of the screen, for the rare case
-    // there's no screen yet
+    // The real monitor's size, so the elements land where they will on the lock screen and the
+    // widgets make the same decisions about what fits. 1080p until there's a screen to ask
     property real screenHeight: 1080
     property real screenWidth: 1920
 
-    // NOTE(fork): the free-standing layouts (Config.lock.layout, see LayoutRegistry) span the whole
-    // screen rather than a card, so for those the real layout is drawn at the screen's full size
-    // and scaled down instead - with lock null, which swaps the password field for a dummy
-    readonly property string layoutId: LockLayouts.LayoutRegistry.resolve(Config.lock.layout ?? "card")
-    readonly property bool cardLayout: root.layoutId === "card"
-    readonly property real screenFactor: (root.width - root.framePadding * 2) / Math.max(1, root.screenWidth)
-    readonly property real fullHeight: root.screenHeight * Tokens.sizes.lock.heightMult - Tokens.padding.extraLargeIncreased
-    readonly property real fullWidth: root.fullHeight * Tokens.sizes.lock.ratio - Tokens.padding.extraLargeIncreased
+    readonly property real factor: (root.width - root.framePadding * 2) / Math.max(1, root.screenWidth)
 
-    readonly property real factor: (root.width - root.framePadding * 2) / Math.max(1, root.fullWidth)
-
-    implicitHeight: root.cardLayout ? root.fullHeight * root.factor + root.framePadding * 2 : root.screenHeight * root.screenFactor + root.framePadding * 2
+    implicitHeight: root.screenHeight * root.factor + root.framePadding * 2
 
     StyledRect {
-        id: frame
-
         anchors.fill: parent
         radius: Tokens.rounding.extraLarge
         color: Colours.palette.m3shadow
@@ -55,168 +36,26 @@ Item {
         border.color: Qt.alpha(Colours.palette.m3outlineVariant, 0.4)
         clip: true
 
-        Loader {
+        // The wallpaper, dimmed the way the lock dims it
+        Image {
+            x: root.framePadding
+            y: root.framePadding
+            width: root.screenWidth * root.factor
+            height: root.screenHeight * root.factor
+            source: (Config.lock.wallpaper ?? "") !== "" ? Config.lock.wallpaper : Wallpapers.current
+            fillMode: Image.PreserveAspectCrop
+            asynchronous: true
+            sourceSize: Qt.size(width, height)
+            opacity: 0.6
+        }
+
+        LockCanvas {
             x: root.framePadding
             y: root.framePadding
             width: root.screenWidth
             height: root.screenHeight
-            scale: root.screenFactor
-            transformOrigin: Item.TopLeft
-            active: !root.cardLayout
-            visible: active
-
-            sourceComponent: ({
-                    split: splitPreview,
-                    sidebar: sidebarPreview,
-                    minimal: minimalPreview,
-                    stage: stagePreview,
-                    curtain: curtainPreview,
-                    watch: watchPreview,
-                    band: bandPreview,
-                    console: consolePreview,
-                    fuzzy: fuzzyPreview
-                })[root.layoutId] ?? null
-        }
-
-        Component {
-            id: splitPreview
-
-            LockLayouts.SplitLayout {
-                lock: null
-            }
-        }
-
-        Component {
-            id: sidebarPreview
-
-            LockLayouts.SidebarLayout {
-                lock: null
-            }
-        }
-
-        Component {
-            id: minimalPreview
-
-            LockLayouts.MinimalLayout {
-                lock: null
-            }
-        }
-
-        Component {
-            id: stagePreview
-
-            LockLayouts.StageLayout {
-                lock: null
-            }
-        }
-
-        Component {
-            id: curtainPreview
-
-            LockLayouts.CurtainLayout {
-                lock: null
-            }
-        }
-
-        Component {
-            id: watchPreview
-
-            LockLayouts.WatchLayout {
-                lock: null
-            }
-        }
-
-        Component {
-            id: bandPreview
-
-            LockLayouts.BandLayout {
-                lock: null
-            }
-        }
-
-        Component {
-            id: consolePreview
-
-            LockLayouts.ConsoleLayout {
-                lock: null
-            }
-        }
-
-        Component {
-            id: fuzzyPreview
-
-            LockLayouts.FuzzyLayout {
-                lock: null
-            }
-        }
-
-        RowLayout {
-            id: content
-
-            visible: root.cardLayout
-            x: root.framePadding
-            y: root.framePadding
-            width: root.fullWidth
-            height: root.fullHeight
             scale: root.factor
             transformOrigin: Item.TopLeft
-
-            spacing: Tokens.spacing.largeIncreased * 2
-
-            Lock.WidgetColumn {
-                side: "left"
-                rootHeight: content.height
-                lock: null
-            }
-
-            ColumnLayout {
-                // Matches Center.qml's own width exactly (same token, same centerScale formula)
-                // - without reserving the same real width here, the two widget columns beside it
-                // would end up wider than they really are, throwing off font/logo/colour-count
-                // decisions that key off each widget's actual pixel width
-                Layout.preferredWidth: Tokens.sizes.lock.centerWidth * Math.min(1, root.screenHeight / 1440)
-                Layout.fillWidth: false
-                Layout.fillHeight: true
-                Layout.alignment: Qt.AlignVCenter
-                spacing: Tokens.spacing.extraSmall
-
-                // The real centre placeholder in digital mode, but the actual analogue dial
-                // (dimmed like the placeholder, still non-interactive) in analogue mode - so the
-                // preview reflects what the lock screen will actually show for either setting
-                Loader {
-                    asynchronous: true
-                    active: Config.lock.analogueClock
-
-                    sourceComponent: LockCenter.AnalogueClock {
-                        centerScale: Math.min(1, root.screenHeight / 1440)
-                        opacity: 0.35
-                    }
-                }
-
-                MaterialIcon {
-                    Layout.alignment: Qt.AlignHCenter
-                    text: "lock_clock"
-                    color: Qt.alpha(Colours.palette.m3onSurface, 0.35)
-                    fontStyle: Tokens.font.icon.large
-                    visible: !Config.lock.analogueClock
-                }
-
-                StyledText {
-                    Layout.alignment: Qt.AlignHCenter
-                    Layout.maximumWidth: 64
-                    text: Tr.tr("Clock stays here")
-                    color: Qt.alpha(Colours.palette.m3onSurface, 0.35)
-                    font: Tokens.font.label.small
-                    horizontalAlignment: Text.AlignHCenter
-                    wrapMode: Text.WordWrap
-                }
-            }
-
-            Lock.WidgetColumn {
-                side: "right"
-                rootHeight: content.height
-                lock: null
-            }
         }
     }
 

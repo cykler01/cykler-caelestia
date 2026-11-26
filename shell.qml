@@ -15,6 +15,7 @@ import "modules/polkit"
 import "modules/todopopout"
 import "modules/notepadpopout"
 import "modules/lock"
+import "modules/lockeditor"
 import QtQuick
 import Quickshell
 import Caelestia
@@ -79,6 +80,8 @@ ShellRoot {
     Lock {
         id: lock
     }
+    // NOTE(fork): the lock screen layout editor, opened from Nexus
+    LockEditor {}
 
     // Daemons
     Shortcuts {}

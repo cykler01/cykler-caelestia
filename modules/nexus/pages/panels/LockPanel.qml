@@ -8,7 +8,6 @@ import qs.components
 import qs.components.controls
 import qs.services
 import qs.utils
-import qs.modules.lock.layouts
 import qs.modules.nexus.common
 import qs.modules.nexus.pages.assets
 
@@ -37,18 +36,6 @@ PageBase {
             uptime: Tr.tr("Uptime")
         })
 
-    readonly property list<MenuItem> sideItems: [
-        MenuItem {
-            text: Tr.tr("Left")
-        },
-        MenuItem {
-            text: Tr.tr("Right")
-        }
-    ]
-    readonly property string layoutId: LayoutRegistry.resolve(Config.lock.layout ?? "card")
-    readonly property bool sidedLayout: LayoutRegistry.isSided(layoutId)
-    readonly property bool cardLayout: layoutId === "card"
-
     title: Tr.tr("Lock screen")
     isSubPage: true
 
@@ -58,43 +45,63 @@ PageBase {
         width: root.cappedWidth
         spacing: Tokens.spacing.extraSmall / 2
 
-        // NOTE(fork): which arrangement the lock screen uses (modules/lock/LockSurface.qml)
+        // NOTE(fork): what's on the lock screen and where (Config.lock.elements), arranged in the
+        // full-screen editor (modules/lockeditor) rather than here
         SectionHeader {
             first: true
             text: Tr.tr("Layout")
         }
 
-        LockLayoutPicker {
+        ConnectedRect {
             first: true
-            last: root.cardLayout
+            // SEARCH: layout arrange move elements editor preset clock position widgets
+            searchLabel: Tr.tr("Edit layout")
+            Layout.fillWidth: true
+            implicitHeight: layoutColumn.implicitHeight + Tokens.padding.large * 2
+
+            ColumnLayout {
+                id: layoutColumn
+
+                anchors.left: parent.left
+                anchors.right: parent.right
+                anchors.top: parent.top
+                anchors.margins: Tokens.padding.large
+                spacing: Tokens.spacing.medium
+
+                LockScreenPreview {
+                    Layout.fillWidth: true
+                    screenHeight: root.nState.screen?.height ?? 1080
+                    screenWidth: root.nState.screen?.width ?? 1920
+                }
+
+                StyledText {
+                    Layout.fillWidth: true
+                    text: Tr.tr("Everything on the lock screen is an element you can move, resize, restyle or remove, apart from the password field. Start from one of the presets or build your own.")
+                    color: Colours.palette.m3onSurfaceVariant
+                    font: Tokens.font.body.small
+                    wrapMode: Text.WordWrap
+                }
+            }
         }
 
-        SelectRow {
-            visible: root.sidedLayout
-            // SEARCH: left right edge mirror flip
-            label: Tr.tr("Login side")
-            subtext: root.layoutId === "sidebar" ? Tr.tr("Which edge the panel sits against") : root.layoutId === "band" ? Tr.tr("Which end of the band the login sits at, with the clock at the other") : Tr.tr("Which side the login card sits on, with the clock opposite")
-            menuItems: root.sideItems
-            active: root.sideItems[(Config.lock.panelSide ?? "right") === "left" ? 0 : 1]
-            onSelected: item => GlobalConfig.lock.panelSide = root.sideItems.indexOf(item) === 0 ? "left" : "right"
-        }
-
-        ToggleRow {
-            visible: !root.cardLayout
+        NavRow {
             last: true
-            // SEARCH: battery wifi bluetooth chips pills status
+            icon: "edit"
+            text: Tr.tr("Edit layout")
+            subtext: Tr.tr("Opens the lock screen full size over this screen to arrange it")
+            onClicked: ShellState.lockEditorOpen = true
+        }
+
+        // The pills the status element shows
+        SectionHeader {
             text: Tr.tr("Status pills")
-            subtext: Tr.tr("Small pills along the top of the screen, picked below")
-            checked: Config.lock.statusChips ?? true
-            onToggled: GlobalConfig.lock.statusChips = checked
         }
 
         StyledText {
             Layout.fillWidth: true
             Layout.topMargin: Tokens.spacing.small
             Layout.bottomMargin: Tokens.spacing.small
-            visible: !root.cardLayout && (Config.lock.statusChips ?? true)
-            text: Tr.tr("Which pills show, in order from the screen's edge inwards. Switch one off to hide it, or add more below. A pill with nothing to report (no battery, nothing playing) hides itself.")
+            text: Tr.tr("What the Status pills element shows, in order from its outer end inwards. Switch one off to hide it, or add more below. A pill with nothing to report (no battery, nothing playing) hides itself.")
             color: Colours.palette.m3outline
             font: Tokens.font.label.small
             wrapMode: Text.WordWrap
@@ -111,7 +118,6 @@ PageBase {
 
             z: 1
             first: true
-            visible: !root.cardLayout && (Config.lock.statusChips ?? true)
             values: GlobalConfig.lock.statusEntries.values
             onItemMoved: (from, to) => GlobalConfig.lock.statusEntries.move(from, to)
             onItemRemoved: index => GlobalConfig.lock.statusEntries.remove(index)
@@ -119,7 +125,6 @@ PageBase {
         }
 
         DialogSelectButton {
-            visible: !root.cardLayout && (Config.lock.statusChips ?? true)
             rootParent: root.flickable
             icon: "add"
             label: Tr.tr("Add pill")
@@ -141,22 +146,6 @@ PageBase {
                     enabled: true
                 });
             }
-        }
-
-        // Clock
-        SectionHeader {
-            visible: root.cardLayout
-            text: Tr.tr("Clock")
-        }
-
-        ToggleRow {
-            visible: root.cardLayout
-            first: true
-            last: true
-            text: Tr.tr("Analogue clock")
-            subtext: Tr.tr("Show an analogue dial instead of the digital readout")
-            checked: GlobalConfig.lock.analogueClock
-            onToggled: GlobalConfig.lock.analogueClock = checked
         }
 
         // Background
@@ -385,7 +374,7 @@ PageBase {
             last: true
             icon: "widgets"
             text: Tr.tr("Widgets")
-            subtext: LayoutRegistry.hasWidgets(root.layoutId) ? Tr.tr("Reorder, resize and show or hide what's on the side columns") : Tr.tr("The chosen layout shows no widgets")
+            subtext: Tr.tr("Reorder, resize and show or hide what the widget column elements show")
             onClicked: root.nState.openSubPage(17)
         }
 

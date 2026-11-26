@@ -135,7 +135,7 @@ RowLayout {
         };
     }
 
-    visible: (Config.lock.statusChips ?? true) && root.entries.length > 0
+    visible: root.entries.length > 0
     spacing: Tokens.spacing.small * root.uiScale
 
     Repeater {
