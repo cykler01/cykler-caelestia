@@ -87,7 +87,9 @@ jobs:
         uses: hendrikmuhs/ccache-action@v1.2
         with:
           key: build-cpp-${{ matrix.name }}
-          install: no
+          # Don't depend on ccache being baked into the CI image: it is only there when the image
+          # was built after ccache was added to the Dockerfile, and this fork's image is older
+          install: binary
           save: ${{ github.event_name == 'push' }}
 
       - name: CMake build
