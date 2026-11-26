@@ -20,6 +20,9 @@ FocusScope {
 
     readonly property real fieldWidth: (root.opts.width ?? 340) * root.s
 
+    // A focus scope only passes the keyboard down if it asks for it itself, so without this the
+    // field inside never had it until it was clicked
+    focus: true
     implicitWidth: row.implicitWidth
     implicitHeight: row.implicitHeight
 

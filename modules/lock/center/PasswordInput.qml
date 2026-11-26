@@ -31,6 +31,12 @@ StyledRect {
         if (!activeFocus && !root.lock.dinoPlaying)
             forceActiveFocus();
     }
+    // NOTE(fork): taken outright rather than only won back once lost. The field sits several focus
+    // scopes down in the lock canvas, and a click was needed before typing reached it
+    Component.onCompleted: Qt.callLater(() => {
+        if (!root.lock.dinoPlaying)
+            root.forceActiveFocus();
+    })
 
     Keys.onPressed: event => {
         if (root.lock.unlocking)
@@ -51,6 +57,17 @@ StyledRect {
 
     Behavior on implicitWidth {
         Anim {}
+    }
+
+    // Asked again on every lock and after the intro (LockSurface.qml), since the surface and this
+    // field outlive any one lock
+    Connections {
+        function onFocusPasswordRequested(): void {
+            if (!root.lock.dinoPlaying)
+                root.forceActiveFocus();
+        }
+
+        target: root.lock
     }
 
     StateLayer {

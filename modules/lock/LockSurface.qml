@@ -29,6 +29,10 @@ WlSessionLockSurface {
 
     // GlobalConfig rather than Config for the two settings below: only contentItem is given a
     // screen, so reading Config from out here lands on the defaults and the countdown never starts
+    // Asks the password field to take the keyboard: on every lock, since the surface outlives
+    // any one of them, and once the intro is done (modules/lock/center/PasswordInput.qml)
+    signal focusPasswordRequested
+
     function noteActivity(): void {
         root.idleHidden = false;
 
@@ -230,8 +234,10 @@ WlSessionLockSurface {
         // The surface outlives any one lock, so the countdown is armed here rather than only
         // in Component.onCompleted, which can run before the config has been read
         function onLockedChanged(): void {
-            if (root.lock.locked)
+            if (root.lock.locked) {
                 root.noteActivity();
+                Qt.callLater(root.focusPasswordRequested);
+            }
         }
 
         target: root.lock
@@ -279,6 +285,8 @@ WlSessionLockSurface {
     // the lock screen comes in
     ParallelAnimation {
         id: altInAnim
+
+        onFinished: root.focusPasswordRequested()
 
         Anim {
             target: lockIcon
