@@ -49,7 +49,7 @@ has pulled in and built on.
 
 | Feature | What it does | Where | Docs |
 |---|---|---|---|
-| **Lock screen customisation** | Reorders, resizes, adds and removes the cards in the lock screen's side columns; also selects the profile picture shape, analogue clock and revealed session controls | *Nexus → Lock screen* | [▶](https://cykler.dev/caelestia/demos/lock-screen) |
+| **Lock screen customisation** | Four layouts - the classic centre card, or split, sidebar and minimal, with the login on either edge - picked from a preview of each, plus a lock screen wallpaper of its own, a blur strength, and status pills along the top edge chosen from battery, network, bluetooth, volume, mic, vpn, keyboard, notifications, media, power and uptime. Everything but the background fades away after a chosen idle delay, and the cards in the side columns are reordered, resized, added and removed, with the profile picture shape, analogue clock and revealed session controls all set here | *Nexus → Lock screen* | [▶](https://cykler.dev/caelestia/demos/lock-screen) |
 | **Battery & power management** | Automatic Hyprland power saving (animations, blur, gaps, shadows, refresh rate) per plug state and power profile, battery level thresholds, critical battery shell shutdown, and a battery pane in Settings | *Nexus → Power & battery* | [▶](https://cykler.dev/caelestia/demos/battery) |
 | **Keep awake** | One tri-state control for the idle inhibitor: off, prevent sleep, or also prevent lock | *Utilities card* | [▶](https://cykler.dev/caelestia/demos/idle) |
 | **Countdown timer** | A utilities quick toggle with a bar ring and a details popout: set a duration, pause/resume, cancel and see when it ends | *Utilities → Timer* | [▶](https://cykler.dev/caelestia/demos/timer) |
@@ -81,30 +81,39 @@ has pulled in and built on.
 | **Layout editor** | A miniature screen where every part of the shell is a tile you drag into place - bar, launcher, dashboard, notch, sidebar, OSD, session menu, popups, toasts and the desktop items - with separate Shell and Desktop layers | *Nexus → Layout*  | [▶](https://cykler.dev/caelestia/demos/layout) |
 | **Taskbar on any edge** | The bar moves to left, right, top or bottom with its own horizontal components, cuts its middle away on an empty workspace so the wallpaper shows through, and can mirror the right-edge panels when it is on the right | *Nexus → Layout*  | [▶](https://cykler.dev/caelestia/demos/bar) |
 | **Session menu customisation** | Chooses which actions the session menu offers, and which the lock screen's session controls show, each as its own ordered on/off list | *Nexus → Panels → Session menu / Lock screen* | [▶](https://cykler.dev/caelestia/demos/session-menu) |
-| **Desktop widgets & app shortcuts** | Widget cards (calendar, clock, weather, focus timer, resources, network, now playing, lyrics, battery, Bluetooth battery, fetch, visualiser, sticky note, pictures, GitHub, stocks, portfolio, progress and to-do), each picked from a grid of live previews and given one of its styles: an ordered grid you drag to rearrange, per-card on/off, live previews, card opacity and blur, and the settings the cards read (stocks tickers and holdings, progress milestones, the pictures folder, the GitHub name), plus application shortcuts | *Nexus → Panels → Desktop* | [▶](https://cykler.dev/caelestia/demos/desktop) |
+| **Desktop widgets & app shortcuts** | Widget cards (calendar, events, day progress, clock, weather, daylight, at a glance, focus timer, timers and alarms, resources, temperatures, network, now playing, lyrics, battery, Bluetooth battery, phone, Steam games, fetch, visualiser, colour scheme, web search, sticky note, pictures, GitHub, stocks, portfolio, progress, to-do, quick toggles and Claude limits), each picked from a grid of live previews and given one of its styles: an ordered grid you drag to rearrange, per-card on/off, live previews, card opacity and blur, and the settings the cards read (stocks tickers and holdings, progress milestones, the pictures folder, the GitHub name), plus application shortcuts | *Nexus → Panels → Desktop* | [▶](https://cykler.dev/caelestia/demos/desktop) |
 | **Updates page** | Checks this fork's repo for new commits and pulls, rebuilds, installs through `pkexec`, and stops or restarts the shell from inside the session | *Nexus → Updates* | [▶](https://cykler.dev/caelestia/demos/updates) |
 | **Phone integration** | Pairs with an Android phone over KDE Connect: drop files on a device to send them, browse and download its storage, and mirror its screen with `scrcpy` | *Utilities card* | [▶](https://cykler.dev/caelestia/demos/phone-integration) |
 | **Polkit agent** | Asks for the password to do something privileged in the shell's own prompt instead of the GNOME dialog | *Whole session* | [▶](https://cykler.dev/caelestia/demos/polkit) |
 | **Graphical installer** | Does the whole install from a window - what to build, which add-ons to include, and the theme to log into - asking exactly what `install.sh` would, and keeps going in the background if the window is closed | `./install.sh --gui` | — |
 | **SDDM login theme** | A login screen in the shell's own colours, wearing whichever account's wallpaper and palette is picked, with the wi-fi it is on and the charge left in the battery, a power menu and optional fingerprint login | `./install.sh --with login-screen` | — |
-| **Scheduling priority** | The stock ananicy rulesets classify `qs` as a background service and give it nice 10, which is fair for a bar but not for a whole desktop shell - it costs wakeup latency and drops frames while scrolling. Writes a rule asking for nice -6 instead, the same as plasmashell gets, and renices the running shell so it lands without a restart | *Nexus → Plugins* | — |
 | **Download progress** | A ring in the bar that fills as a browser or Steam download runs, with the file name, percentage and speed on hover and in the notch; a transfer that cannot say how large it will be gets a turning arc instead | Bar / notch | [▶](https://cykler.dev/caelestia/demos/download-progress) |
 | **Workspace window previews** | Hovering a window's icon in the taskbar shows a live preview of that window and its title, so a workspace's windows can be told apart before switching to one | Taskbar workspace icons | [▶](https://cykler.dev/caelestia/demos/window-previews) |
 | **Weather location picker** | Sets a fixed weather location by searching for a place or dropping a pin on the map, instead of leaving it to the IP lookup | *Nexus → Weather location* | [▶](https://cykler.dev/caelestia/demos/weather-location) |
 | **Dashboard process list** | Every running process with its CPU and memory, sortable by either, and a way to end the selected one | *Dashboard → Performance* | [▶](https://cykler.dev/caelestia/demos/process-list) |
 | **Rearrangeable dashboard** | The home page's four places (two rows, two columns) hold whichever cards you put in them, in your order, dragged around in a live preview; the old fixed layout is the default | *Nexus → Panels → Dashboard* | [▶](https://cykler.dev/caelestia/demos/dashboard-layout) |
+| **Calendar events** | Reads GNOME Calendar through evolution-data-server, so local calendars, online accounts and the contacts' birthdays all come across, recurrences already expanded, only the calendars ticked in the app, each in the colour it has there, and a change in GNOME Calendar shows up without a refresh. Every event is sorted into regular (the routine, grey and kept off the lists), special one-offs (blue) or rare yearly ones (green), or a whole calendar given its kind. The dashboard's month grid marks the days with events and hovering a day lists them, a click opens GNOME Calendar, and the event and day progress cards sit on the desktop, the dashboard and the lock screen | *Nexus → Panels → Dashboard* | — |
 | **Stopwatch & alarms** | Beside the countdown: a stopwatch with laps and alarms at a time of day, all still keeping time and ringing while the sidebar is shut, with the ring by the bar's clock and the notch's bubbles carrying on where the panel leaves off | *Utilities → Timer* | [▶](https://cykler.dev/caelestia/demos/timer) |
 
 Smaller additions:
 
--   **Splash text** - a line of text at random along the bottom of the screen, read from
-    `assets/bottom-texts.txt` (watched, so adding a line is enough) and rotated while the session runs
+-   **Desktop text** - a line of text at random along the bottom of the screen, never the same one
+    twice in a row, edited in *Nexus → Shell assets → Desktop text*: switch it on or off, choose the
+    seconds between changes, add and remove lines, or bring the shell's own list back. Your lines are
+    written to their own copy, so the shipped `assets/bottom-texts.txt` is left alone
 -   **Window corner radius and window opacity** - how round the windows themselves are and how
     see-through, applied to open windows and written back to the Hyprland variables
     (*Nexus → Wallpaper & style*)
 -   **Animation speed** - one multiplier over every animation the shell plays
--   **Floor equalizer** - a spectrum spanning the bottom edge of the screen, from the same cava
-    capture as the other visualisers
+-   **Scheduling priority** - the stock ananicy rulesets treat `qs` as a background service and give it
+    nice 10, which costs wakeup latency and drops frames while scrolling, so it asks for nice -6 instead
+    and renices the running shell without a restart (*Nexus → Plugins*)
+-   **Floor and ceiling equalizer** - a large spectrum along the bottom edge or hanging from under the
+    top bar, from the same cava capture as the other visualisers: bars, a filled wave or just the
+    wave's outline, rounded pills or square blocks, its own bar count, and amplitude, smoothness and a
+    loudness response (linear, logarithmic, square root or exponential) to shape it. In the theme
+    colour, a gradient across the screen or a slowly turning rainbow, and faded out while nothing plays
+    (*Nexus → Panels*)
 -   **Settings search** - matches the individual toggles, sliders and pickers rather than only the
     page they are filed under, and shows which page and section each result came from
 -   **Trackpad scrolling** - touchpad scroll speed and direction, applied at runtime and kept
@@ -133,6 +142,9 @@ Smaller additions:
 
 Optional dependencies:
 
+-   [`evolution-data-server`](https://gitlab.gnome.org/GNOME/evolution-data-server) and `python-gobject` -
+    for the calendar events, which are read from the store GNOME Calendar keeps, so the dashboard and the
+    event cards show the same calendars and events the app does
 -   [`kdeconnect`](https://invent.kde.org/network/kdeconnect-kde) - for the phone share card, which needs a
     systemd user session because the shell runs `kdeconnectd` as its own `caelestia-kdeconnect` unit
 -   [`sshfs`](https://github.com/libfuse/sshfs) - for browsing and downloading files from a phone in the
