@@ -105,6 +105,26 @@ if [[ -n $configured ]]; then
     echo "==> $configured"
 fi
 
+# --- Dependencies the shell links --------------------------------------------
+# Rebuilding this checkout does not touch the AUR libcava the plugin links. A
+# library it links changing soname (sndio 1.11 moved libsndio.so.7 to .so.9)
+# leaves it unloadable, so the new build installs fine and then the shell will
+# not start. Checked on every run so an update can fix that instead of walking
+# into it. See scripts/deps-check.sh.
+# shellcheck source=scripts/deps-check.sh
+source "$REPO_ROOT/scripts/deps-check.sh"
+if caelestia_libcava_stale; then
+    echo
+    echo "==> libcava is installed but no longer loads: it asks for"
+    caelestia_libcava_missing | sed 's/^/        /'
+    echo "    which this system does not have, because something it links changed"
+    echo "    soname since it was built. The shell will not start until it is rebuilt."
+    if confirm "Rebuild libcava now (clean AUR build)?"; then
+        caelestia_rebuild_libcava ||
+            echo "==> Rebuild did not finish. Run 'yay -S --rebuild --answerclean All libcava' by hand."
+    fi
+fi
+
 echo
 if confirm "Rebuild and reinstall now (sudo cmake --install build)?"; then
     cmake --build build

@@ -290,6 +290,24 @@ done
 # --- Post-install checks ---
 pacman -Qq quickshell-git &>/dev/null || echo "WARNING: quickshell-git is not installed; the stable quickshell can leave the shell blank."
 
+# The services plugin is the first thing shell.qml loads, so a library it links
+# going missing takes the whole config down with it, at startup, before anything
+# can report why. libcava is the usual one - AUR-only, and stale whenever a
+# library it links takes a soname bump (sndio 1.11 dropped libsndio.so.7) since
+# pacman tracks the package, not the soname. Only install-deps.sh can rebuild it;
+# this catches the case where dependencies were skipped. See scripts/deps-check.sh.
+plugin=/usr/lib/qt6/qml/Caelestia/Services/libcaelestia-servicesplugin.so
+if [[ -e $plugin ]]; then
+    missing=$(LC_ALL=C ldd "$plugin" 2>/dev/null | awk '$2 == "=>" && $3 == "not" && $4 == "found" { print $1 }' || true)
+    if [[ -n $missing ]]; then
+        echo "WARNING: the shell's services plugin cannot load; it asks for:"
+        printf '%s\n' "$missing" | sed 's/^/         /'
+        echo "         libcava is the usual cause, an AUR package left behind by a soname bump."
+        echo "         The shell will not start until it is rebuilt:"
+        echo "           yay -S --rebuild --answerclean All libcava"
+    fi
+fi
+
 # polkit allows one authentication agent per session, so whichever registers first is the one that
 # gets asked. With another agent autostarting, the shell's own prompt - the one that drops out of
 # the notch - never gets a look in, and it fails quietly: the password dialog still appears, it is

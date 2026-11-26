@@ -21,6 +21,8 @@ cd "$REPO_ROOT"
 
 # shellcheck source=scripts/build-env.sh
 source "$REPO_ROOT/scripts/build-env.sh"
+# shellcheck source=scripts/deps-check.sh
+source "$REPO_ROOT/scripts/deps-check.sh"
 
 PULL=false
 UPSTREAM=false
@@ -177,6 +179,21 @@ if $PULL; then
         else
             note "already up to date with $UPSTREAM_REMOTE/main"
         fi
+    fi
+fi
+
+# --- dependencies the build links ---
+# The plugin links the AUR libcava. Rebuilding this checkout does not rebuild it,
+# and if a library libcava links has changed soname since (sndio 1.11 did) it no
+# longer loads - so the build installs and the shell still will not start. See
+# scripts/deps-check.sh.
+if caelestia_libcava_stale; then
+    echo
+    warn "libcava is installed but no longer loads: it asks for"
+    caelestia_libcava_missing | sed 's/^/    /' >&2
+    note "something it links changed soname after it was built; the shell will not start until it is rebuilt"
+    if confirm "rebuild libcava now (clean AUR build)?"; then
+        caelestia_rebuild_libcava || warn "libcava rebuild did not finish; run 'yay -S --rebuild --answerclean All libcava'"
     fi
 fi
 

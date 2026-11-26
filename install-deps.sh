@@ -34,6 +34,7 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 LIST_FEATURES="${LIST_FEATURES:-false}"
+SCRIPT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
 
 
 # --- Required: not offered, because nothing works without them ---------------
@@ -196,6 +197,35 @@ if confirm "Install the required AUR packages?"; then
 else
     echo "==> Skipped AUR packages. You'll need to install these manually:"
     printf '    %s\n' "${AUR_PKGS[@]}"
+fi
+
+# --- Check that libcava still loads ------------------------------------------
+# --needed leaves an installed libcava alone, and pacman only knows the package
+# it depends on, not the sonames inside it: a library taking a soname bump (sndio
+# 1.11 dropped libsndio.so.7) leaves the installed libcava unloadable and pacman
+# says nothing. The shell links it, so catching that here is the difference
+# between a working install and one that will not start. See scripts/deps-check.sh.
+if [[ -f $SCRIPT_DIR/scripts/deps-check.sh ]]; then
+    # shellcheck source=scripts/deps-check.sh
+    source "$SCRIPT_DIR/scripts/deps-check.sh"
+    if caelestia_libcava_stale; then
+        echo
+        echo "==> The installed libcava is out of date: it asks for libraries this"
+        echo "    system no longer has:"
+        caelestia_libcava_missing | sed 's/^/        /'
+        echo
+        echo "    Something it links changed soname after libcava was built (sndio"
+        echo "    1.11 dropping libsndio.so.7 is the usual one). Pacman sees the"
+        echo "    dependency as satisfied, and the shell will not start until it is"
+        echo "    rebuilt against what is installed now."
+        if confirm "Rebuild libcava now?"; then
+            caelestia_rebuild_libcava ||
+                echo "==> Rebuild did not finish. Run 'yay -S --rebuild --answerclean All libcava' by hand."
+        else
+            echo "==> Skipped. Before starting the shell, run:"
+            echo "    yay -S --rebuild --answerclean All libcava"
+        fi
+    fi
 fi
 
 echo

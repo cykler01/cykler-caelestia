@@ -135,6 +135,17 @@ install)
         exit 3
     fi
 
+    # libcava is AUR-only, so a soname bump behind its back leaves it unloadable
+    # and the plugin with it. Nothing here installs AUR packages, so warn before
+    # the shell restarts into a config that cannot load. See scripts/deps-check.sh.
+    if [[ -f "$repo/scripts/deps-check.sh" ]]; then
+        # shellcheck source=scripts/deps-check.sh
+        source "$repo/scripts/deps-check.sh"
+        if caelestia_libcava_stale; then
+            echo "WARN:libcava no longer loads ($(caelestia_libcava_missing | paste -sd' ' -)); the shell will not start until it is rebuilt: yay -S --rebuild --answerclean All libcava"
+        fi
+    fi
+
     echo "STEP:building"
     # Checked on every run, not just when build/ is missing. A build directory
     # left over from a plain `cmake -B build` is configured for /usr/local, and
