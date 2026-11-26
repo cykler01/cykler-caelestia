@@ -217,17 +217,9 @@ Item {
                     anchors.horizontalCenter: parent.horizontalCenter
                     spacing: 0
 
-                    // The hours and minutes are what the notch centres on. The am/pm hangs off to
-                    // the right, and an empty space as wide as it on the left balances the row, so
-                    // the time sits dead centre with the date under it
                     RowLayout {
                         Layout.alignment: Qt.AlignHCenter
                         spacing: Tokens.spacing.extraSmall
-
-                        Item {
-                            visible: Units.twelveHourClock
-                            Layout.preferredWidth: amPm.implicitWidth
-                        }
 
                         StyledText {
                             text: `${Time.hourStr}:${Time.minuteStr}`
@@ -236,8 +228,6 @@ Item {
                         }
 
                         StyledText {
-                            id: amPm
-
                             visible: Units.twelveHourClock
                             text: Time.amPmStr.toLowerCase()
                             color: Colours.palette.m3primary
