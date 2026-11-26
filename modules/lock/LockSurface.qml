@@ -21,8 +21,8 @@ WlSessionLockSurface {
     // morphs out of the lock icon; the others have no card, so the icon spins in as usual and its
     // tile then blooms and fades while the layout fades in over it. Read through lockContent since
     // only contentItem is given a screen (see the note on GlobalConfig below)
-    readonly property string layoutId: lockContent.Config.lock.layout ?? "card"
-    readonly property bool cardLayout: !["split", "sidebar", "minimal"].includes(layoutId)
+    readonly property string layoutId: LayoutRegistry.resolve(lockContent.Config.lock.layout ?? "card")
+    readonly property bool cardLayout: layoutId === "card"
     // The dino game is up in this screen's notifications dock, which takes the keys from the
     // password field for as long as it lasts (see modules/lock/NotifDock.qml)
     property bool dinoPlaying: false
@@ -216,7 +216,7 @@ WlSessionLockSurface {
             }
         }
 
-        // NOTE(fork): the split, sidebar and minimal layouts, which span the whole screen instead of
+        // NOTE(fork): the free-standing layouts (LayoutRegistry), which span the whole screen instead of
         // sitting in the card above. Faded with the idle hide the same way the card is
         Item {
             id: altLayer
@@ -238,13 +238,17 @@ WlSessionLockSurface {
                 opacity: 0
                 scale: 0.94
 
-                sourceComponent: {
-                    if (root.layoutId === "split")
-                        return splitLayout;
-                    if (root.layoutId === "sidebar")
-                        return sidebarLayout;
-                    return minimalLayout;
-                }
+                sourceComponent: ({
+                        split: splitLayout,
+                        sidebar: sidebarLayout,
+                        minimal: minimalLayout,
+                        stage: stageLayout,
+                        curtain: curtainLayout,
+                        watch: watchLayout,
+                        band: bandLayout,
+                        console: consoleLayout,
+                        fuzzy: fuzzyLayout
+                    })[root.layoutId] ?? null
             }
         }
     }
@@ -539,6 +543,54 @@ WlSessionLockSurface {
         id: minimalLayout
 
         MinimalLayout {
+            lock: root
+        }
+    }
+
+    Component {
+        id: stageLayout
+
+        StageLayout {
+            lock: root
+        }
+    }
+
+    Component {
+        id: curtainLayout
+
+        CurtainLayout {
+            lock: root
+        }
+    }
+
+    Component {
+        id: watchLayout
+
+        WatchLayout {
+            lock: root
+        }
+    }
+
+    Component {
+        id: bandLayout
+
+        BandLayout {
+            lock: root
+        }
+    }
+
+    Component {
+        id: consoleLayout
+
+        ConsoleLayout {
+            lock: root
+        }
+    }
+
+    Component {
+        id: fuzzyLayout
+
+        FuzzyLayout {
             lock: root
         }
     }

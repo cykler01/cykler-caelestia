@@ -3,7 +3,6 @@ pragma ComponentBehavior: Bound
 import QtQuick
 import QtQuick.Layouts
 import Caelestia.Config
-import Caelestia.I18n
 import qs.components
 import qs.services
 import qs.utils
@@ -97,11 +96,13 @@ StyledRect {
                     elide: Text.ElideRight
                 }
 
-                Loader {
+                PasswordField {
                     Layout.fillWidth: true
                     // A FocusScope: without focus here the field inside can never hold the keyboard
                     focus: true
-                    sourceComponent: root.lock ? realInput : dummyInput
+                    lock: root.lock
+                    uiScale: root.uiScale
+                    fieldWidth: column.width
                 }
             }
         }
@@ -118,52 +119,6 @@ StyledRect {
 
             sourceComponent: StateMessage {
                 pam: root.lock.pam
-            }
-        }
-    }
-
-    Component {
-        id: realInput
-
-        PasswordInput {
-            centerScale: Math.max(0.8, root.uiScale)
-            centerWidth: column.width / 0.8
-            lock: root.lock
-        }
-    }
-
-    Component {
-        id: dummyInput
-
-        StyledRect {
-            implicitHeight: 48 * root.uiScale
-            radius: Tokens.rounding.full
-            color: Colours.tPalette.m3surfaceContainerHigh
-
-            RowLayout {
-                anchors.fill: parent
-                anchors.leftMargin: Tokens.padding.large * root.uiScale
-                anchors.rightMargin: Tokens.padding.large * root.uiScale
-                spacing: Tokens.spacing.medium * root.uiScale
-
-                MaterialIcon {
-                    text: "lock"
-                    color: Colours.palette.m3onSurfaceVariant
-                    fontStyle: Tokens.font.icon.builders.medium.scale(root.uiScale).build()
-                }
-
-                StyledText {
-                    Layout.fillWidth: true
-                    text: Tr.tr("Password")
-                    color: Colours.palette.m3outline
-                    font: Tokens.font.body.builders.medium.scale(root.uiScale).build()
-                }
-
-                MaterialIcon {
-                    text: "arrow_forward"
-                    color: Colours.palette.m3onSurfaceVariant
-                    fontStyle: Tokens.font.icon.builders.medium.scale(root.uiScale).build()
-                }
             }
         }
     }

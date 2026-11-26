@@ -32,11 +32,11 @@ Item {
     property real screenHeight: 1080
     property real screenWidth: 1920
 
-    // NOTE(fork): the split, sidebar and minimal layouts (Config.lock.layout) span the whole
+    // NOTE(fork): the free-standing layouts (Config.lock.layout, see LayoutRegistry) span the whole
     // screen rather than a card, so for those the real layout is drawn at the screen's full size
     // and scaled down instead - with lock null, which swaps the password field for a dummy
-    readonly property string layoutId: Config.lock.layout ?? "card"
-    readonly property bool cardLayout: !["split", "sidebar", "minimal"].includes(root.layoutId)
+    readonly property string layoutId: LockLayouts.LayoutRegistry.resolve(Config.lock.layout ?? "card")
+    readonly property bool cardLayout: root.layoutId === "card"
     readonly property real screenFactor: (root.width - root.framePadding * 2) / Math.max(1, root.screenWidth)
     readonly property real fullHeight: root.screenHeight * Tokens.sizes.lock.heightMult - Tokens.padding.extraLargeIncreased
     readonly property real fullWidth: root.fullHeight * Tokens.sizes.lock.ratio - Tokens.padding.extraLargeIncreased
@@ -65,7 +65,17 @@ Item {
             active: !root.cardLayout
             visible: active
 
-            sourceComponent: root.layoutId === "split" ? splitPreview : root.layoutId === "sidebar" ? sidebarPreview : minimalPreview
+            sourceComponent: ({
+                    split: splitPreview,
+                    sidebar: sidebarPreview,
+                    minimal: minimalPreview,
+                    stage: stagePreview,
+                    curtain: curtainPreview,
+                    watch: watchPreview,
+                    band: bandPreview,
+                    console: consolePreview,
+                    fuzzy: fuzzyPreview
+                })[root.layoutId] ?? null
         }
 
         Component {
@@ -88,6 +98,54 @@ Item {
             id: minimalPreview
 
             LockLayouts.MinimalLayout {
+                lock: null
+            }
+        }
+
+        Component {
+            id: stagePreview
+
+            LockLayouts.StageLayout {
+                lock: null
+            }
+        }
+
+        Component {
+            id: curtainPreview
+
+            LockLayouts.CurtainLayout {
+                lock: null
+            }
+        }
+
+        Component {
+            id: watchPreview
+
+            LockLayouts.WatchLayout {
+                lock: null
+            }
+        }
+
+        Component {
+            id: bandPreview
+
+            LockLayouts.BandLayout {
+                lock: null
+            }
+        }
+
+        Component {
+            id: consolePreview
+
+            LockLayouts.ConsoleLayout {
+                lock: null
+            }
+        }
+
+        Component {
+            id: fuzzyPreview
+
+            LockLayouts.FuzzyLayout {
                 lock: null
             }
         }

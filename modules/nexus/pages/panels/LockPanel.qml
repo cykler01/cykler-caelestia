@@ -8,6 +8,7 @@ import qs.components
 import qs.components.controls
 import qs.services
 import qs.utils
+import qs.modules.lock.layouts
 import qs.modules.nexus.common
 import qs.modules.nexus.pages.assets
 
@@ -44,9 +45,9 @@ PageBase {
             text: Tr.tr("Right")
         }
     ]
-    readonly property string layoutId: Config.lock.layout ?? "card"
-    readonly property bool sidedLayout: layoutId === "split" || layoutId === "sidebar"
-    readonly property bool cardLayout: !sidedLayout && layoutId !== "minimal"
+    readonly property string layoutId: LayoutRegistry.resolve(Config.lock.layout ?? "card")
+    readonly property bool sidedLayout: LayoutRegistry.isSided(layoutId)
+    readonly property bool cardLayout: layoutId === "card"
 
     title: Tr.tr("Lock screen")
     isSubPage: true
@@ -72,7 +73,7 @@ PageBase {
             visible: root.sidedLayout
             // SEARCH: left right edge mirror flip
             label: Tr.tr("Login side")
-            subtext: root.layoutId === "sidebar" ? Tr.tr("Which edge the panel sits against") : Tr.tr("Which side the login card sits on, with the clock opposite")
+            subtext: root.layoutId === "sidebar" ? Tr.tr("Which edge the panel sits against") : root.layoutId === "band" ? Tr.tr("Which end of the band the login sits at, with the clock at the other") : Tr.tr("Which side the login card sits on, with the clock opposite")
             menuItems: root.sideItems
             active: root.sideItems[(Config.lock.panelSide ?? "right") === "left" ? 0 : 1]
             onSelected: item => GlobalConfig.lock.panelSide = root.sideItems.indexOf(item) === 0 ? "left" : "right"
@@ -384,7 +385,7 @@ PageBase {
             last: true
             icon: "widgets"
             text: Tr.tr("Widgets")
-            subtext: root.layoutId === "minimal" ? Tr.tr("The minimal layout shows no widgets") : Tr.tr("Reorder, resize and show or hide what's on the side columns")
+            subtext: LayoutRegistry.hasWidgets(root.layoutId) ? Tr.tr("Reorder, resize and show or hide what's on the side columns") : Tr.tr("The chosen layout shows no widgets")
             onClicked: root.nState.openSubPage(17)
         }
 

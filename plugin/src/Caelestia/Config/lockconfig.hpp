@@ -33,8 +33,15 @@ class LockConfig : public settings::ObjectNode {
     // "split" - clock and weather on one side of the screen, the login card with its widgets on the other
     // "sidebar" - one full-height panel along an edge holding the clock, login and every widget
     // "minimal" - a large clock in the middle with the login under it, and no widgets
+    // "stage" - date and clock across the top, the login at the bottom (after macOS)
+    // "curtain" - a clock in the bottom corner that lifts on a key or click to show the login (after Windows/GNOME)
+    // "watch" - a large analogue dial with complications under it (after smartwatch faces)
+    // "band" - one band across the middle holding the clock and login (after the LightDM Unity greeter)
+    // "console" - a terminal window with a fetch and a password prompt (after a text console login)
+    // "fuzzy" - the time in words, poster-sized (after KDE's fuzzy clock)
+    // modules/lock/layouts/LayoutRegistry.qml lists them; anything else falls back to "card"
     CONFIG_PROPERTY(QString, layout, u"card"_s)
-    // Which edge the login card / panel sits against in the split and sidebar layouts ("left" or "right")
+    // Which edge the login card / panel sits against in the split, sidebar and band layouts ("left" or "right")
     CONFIG_PROPERTY(QString, panelSide, u"right"_s)
     // Status pills along the top edge in the split, sidebar and minimal layouts
     CONFIG_PROPERTY(bool, statusChips, true)
