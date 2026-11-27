@@ -156,7 +156,7 @@ MouseArea {
                         required property int index
                         required property MenuItem modelData
                         readonly property bool active: modelData === root?.active
-                        readonly property int itemPadding: root.compact ? Tokens.padding.small : Tokens.padding.medium
+                        readonly property int itemPadding: root?.compact ? Tokens.padding.small : Tokens.padding.medium
 
                         Layout.fillWidth: true
                         implicitWidth: menuOptionRow.implicitWidth + itemPadding * 2
