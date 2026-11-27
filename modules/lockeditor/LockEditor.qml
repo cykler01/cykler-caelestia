@@ -2,6 +2,7 @@ pragma ComponentBehavior: Bound
 
 import QtQuick
 import Quickshell
+import Quickshell.Io
 import Quickshell.Wayland
 import qs.components.containers
 import qs.services
@@ -11,6 +12,23 @@ import qs.services
 // things about, pull a corner to resize, add, restyle and remove them (EditorSurface.qml). Opened
 // from Nexus > Lock screen > Edit layout through ShellState.lockEditorOpen
 Scope {
+    // `qs ipc call lockEditor open`, for a keybind or a script
+    IpcHandler {
+        target: "lockEditor"
+
+        function open(): void {
+            ShellState.lockEditorOpen = true;
+        }
+
+        function close(): void {
+            ShellState.lockEditorOpen = false;
+        }
+
+        function toggle(): void {
+            ShellState.lockEditorOpen = !ShellState.lockEditorOpen;
+        }
+    }
+
     LazyLoader {
         active: ShellState.lockEditorOpen
 

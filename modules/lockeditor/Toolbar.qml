@@ -63,19 +63,22 @@ StyledRect {
 
         EditorButton {
             icon: "flip"
+            text: Tr.tr("Mirror")
             tone: "plain"
             onActivated: root.editor.mirror()
         }
 
         EditorButton {
             icon: "grid_4x4"
+            text: Tr.tr("Snap")
             tone: "plain"
             checked: root.editor.snap
             onActivated: root.editor.snap = !root.editor.snap
         }
 
         EditorButton {
-            icon: "tune"
+            icon: "view_sidebar"
+            text: Tr.tr("Panel")
             tone: "plain"
             checked: root.editor.inspectorShown
             onActivated: root.editor.inspectorShown = !root.editor.inspectorShown

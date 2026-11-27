@@ -29,6 +29,8 @@ Item {
     // The editor's drag or resize in progress, so a drag moves one element rather than rewriting
     // the whole list on every pointer move
     property int liveIndex: -1
+    // Several elements dragged together all take the same offset
+    property var liveGroup: []
     property point liveOffset: Qt.point(0, 0)
     property real liveScale: 1
     property size liveBox: Qt.size(0, 0)
@@ -99,7 +101,7 @@ Item {
             uiScale: root.uiScale
             editing: root.editing
             shown: root.shownFor(element.showOn)
-            liveOffset: root.liveIndex === index ? root.liveOffset : Qt.point(0, 0)
+            liveOffset: root.liveIndex === index || root.liveGroup.includes(index) ? root.liveOffset : Qt.point(0, 0)
             liveScale: root.liveIndex === index ? root.liveScale : 1
             liveBox: root.liveIndex === index ? root.liveBox : Qt.size(0, 0)
         }

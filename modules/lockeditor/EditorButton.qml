@@ -16,8 +16,9 @@ StyledRect {
     property bool disabled: false
 
     readonly property color fill: {
+        // Switched on is the tonal fill, so a toggle never outshouts the one primary button (Save)
         if (root.checked)
-            return Colours.palette.m3primary;
+            return Colours.palette.m3secondaryContainer;
         switch (root.tone) {
         case "primary":
             return Colours.palette.m3primary;
@@ -30,7 +31,9 @@ StyledRect {
         }
     }
     readonly property color onFill: {
-        if (root.checked || root.tone === "primary")
+        if (root.checked)
+            return Colours.palette.m3onSecondaryContainer;
+        if (root.tone === "primary")
             return Colours.palette.m3onPrimary;
         if (root.tone === "error")
             return Colours.palette.m3onError;

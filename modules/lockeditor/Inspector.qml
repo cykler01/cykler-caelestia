@@ -60,7 +60,15 @@ StyledRect {
                 Layout.fillWidth: true
                 spacing: Tokens.spacing.medium
 
+                // Back to the list of elements
+                IconBtn {
+                    visible: !!root.element || root.editor.multiple
+                    icon: "arrow_back"
+                    onActivated: root.editor.clearPick()
+                }
+
                 MaterialIcon {
+                    visible: !root.element && !root.editor.multiple
                     text: root.kind?.icon ?? "layers"
                     color: Colours.palette.m3primary
                     fontStyle: Tokens.font.icon.medium
@@ -68,7 +76,8 @@ StyledRect {
 
                 StyledText {
                     Layout.fillWidth: true
-                    text: root.kind?.name ?? Tr.tr("Elements")
+                    // TRANSLATORS: %1 = how many elements are picked
+                    text: root.editor.multiple ? Tr.tr("%1 picked").arg(root.editor.selection.length) : root.kind?.name ?? Tr.tr("Elements")
                     color: Colours.palette.m3onSurface
                     font: Tokens.font.title.large
                     elide: Text.ElideRight
@@ -90,7 +99,274 @@ StyledRect {
                 wrapMode: Text.WordWrap
             }
 
+            // ---- With several picked ----
+
+            StyledText {
+                Layout.fillWidth: true
+                visible: root.editor.multiple
+                text: root.editor.selectionGrouped ? Tr.tr("A group: clicking any of it picks all of it, and it moves as one. Double-click one to change it on its own.") : Tr.tr("They move together while picked. Group them to keep them together.")
+                color: Colours.palette.m3onSurfaceVariant
+                font: Tokens.font.body.small
+                wrapMode: Text.WordWrap
+            }
+
+            GridLayout {
+                Layout.fillWidth: true
+                visible: root.editor.multiple
+                columns: 2
+                rowSpacing: Tokens.spacing.small
+                columnSpacing: Tokens.spacing.small
+
+                EditorButton {
+                    Layout.fillWidth: true
+                    Layout.columnSpan: 2
+                    icon: root.editor.selectionGrouped ? "ungroup" : "group_work"
+                    text: root.editor.selectionGrouped ? Tr.tr("Ungroup") : Tr.tr("Group")
+                    tone: root.editor.selectionGrouped ? "tonal" : "primary"
+                    onActivated: {
+                        if (root.editor.selectionGrouped)
+                            root.editor.ungroupSelection();
+                        else
+                            root.editor.groupSelection();
+                    }
+                }
+
+                EditorButton {
+                    Layout.fillWidth: true
+                    icon: "content_copy"
+                    text: Tr.tr("Duplicate")
+                    onActivated: root.editor.duplicateSelection()
+                }
+
+                EditorButton {
+                    Layout.fillWidth: true
+                    icon: "delete"
+                    text: Tr.tr("Remove")
+                    tone: "error"
+                    onActivated: root.editor.removeSelection()
+                }
+            }
+
+            Heading {
+                visible: root.editor.multiple
+                text: Tr.tr("Mirror")
+            }
+
+            RowLayout {
+                Layout.fillWidth: true
+                visible: root.editor.multiple
+                spacing: Tokens.spacing.small
+
+                EditorButton {
+                    Layout.fillWidth: true
+                    icon: "flip"
+                    text: Tr.tr("Other side")
+                    onActivated: root.editor.mirrorSelection(false)
+                }
+
+                EditorButton {
+                    Layout.fillWidth: true
+                    icon: "swap_horiz"
+                    text: Tr.tr("In place")
+                    onActivated: root.editor.mirrorSelection(true)
+                }
+            }
+
+            Heading {
+                visible: root.editor.multiple
+                text: Tr.tr("Line up")
+            }
+
+            // Along the sides and middles of the box round them all, then spaced out evenly
+            Flow {
+                Layout.fillWidth: true
+                visible: root.editor.multiple
+                spacing: Tokens.spacing.small
+
+                Repeater {
+                    model: [
+                        {
+                            icon: "align_horizontal_left",
+                            how: "left"
+                        },
+                        {
+                            icon: "align_horizontal_center",
+                            how: "hcentre"
+                        },
+                        {
+                            icon: "align_horizontal_right",
+                            how: "right"
+                        },
+                        {
+                            icon: "align_vertical_top",
+                            how: "top"
+                        },
+                        {
+                            icon: "align_vertical_center",
+                            how: "vcentre"
+                        },
+                        {
+                            icon: "align_vertical_bottom",
+                            how: "bottom"
+                        },
+                        {
+                            icon: "horizontal_distribute",
+                            how: "across"
+                        },
+                        {
+                            icon: "vertical_distribute",
+                            how: "down"
+                        }
+                    ]
+
+                    EditorButton {
+                        id: alignButton
+
+                        required property var modelData
+                        readonly property bool spreads: modelData.how === "across" || modelData.how === "down"
+
+                        icon: modelData.icon
+                        // Spacing out needs a first, a last and something between
+                        disabled: alignButton.spreads && root.editor.selection.length < 3
+                        onActivated: {
+                            if (alignButton.spreads)
+                                root.editor.distributeSelection(alignButton.modelData.how === "across");
+                            else
+                                root.editor.alignSelection(alignButton.modelData.how);
+                        }
+                    }
+                }
+            }
+
+            Heading {
+                visible: root.editor.multiple
+                text: Tr.tr("Picked")
+            }
+
+            // Each of them, top layer first, to change one on its own
+            Repeater {
+                model: root.editor.multiple ? root.editor.selection.slice().sort((a, b) => b - a) : []
+
+                StyledRect {
+                    id: pickedRow
+
+                    required property int modelData
+                    readonly property var el: root.editor.elements[modelData]
+                    readonly property var rowKind: ElementCatalog.kind(el?.id ?? "")
+                    readonly property string detail: ElementCatalog.summary(el)
+
+                    Layout.fillWidth: true
+                    implicitHeight: 44
+                    radius: Tokens.rounding.medium
+                    color: Colours.palette.m3surfaceContainerHighest
+
+                    StateLayer {
+                        radius: pickedRow.radius
+                        onClicked: root.editor.pickOnly(pickedRow.modelData)
+                        onContainsMouseChanged: {
+                            if (containsMouse)
+                                root.editor.hovered = pickedRow.modelData;
+                            else if (root.editor.hovered === pickedRow.modelData)
+                                root.editor.hovered = -1;
+                        }
+                    }
+
+                    RowLayout {
+                        anchors.fill: parent
+                        anchors.leftMargin: Tokens.padding.medium
+                        anchors.rightMargin: Tokens.padding.medium
+                        spacing: Tokens.spacing.medium
+
+                        MaterialIcon {
+                            text: pickedRow.rowKind?.icon ?? "help"
+                            color: Colours.palette.m3primary
+                            fontStyle: Tokens.font.icon.small
+                        }
+
+                        StyledText {
+                            Layout.fillWidth: true
+                            text: pickedRow.detail !== "" ? `${pickedRow.rowKind?.name ?? ""} · ${pickedRow.detail}` : pickedRow.rowKind?.name ?? ""
+                            color: Colours.palette.m3onSurface
+                            font: Tokens.font.body.medium
+                            elide: Text.ElideRight
+                        }
+                    }
+                }
+            }
+
             // ---- With an element selected ----
+
+            // One member of a group, picked on its own
+            RowLayout {
+                Layout.fillWidth: true
+                visible: !!root.element && (root.element.options?.group ?? "") !== ""
+                spacing: Tokens.spacing.small
+
+                EditorButton {
+                    Layout.fillWidth: true
+                    icon: "select_all"
+                    text: Tr.tr("Pick its group")
+                    onActivated: root.editor.pick(root.index, false)
+                }
+
+                EditorButton {
+                    Layout.fillWidth: true
+                    icon: "ungroup"
+                    text: Tr.tr("Take out")
+                    onActivated: root.editor.ungroupSelection()
+                }
+            }
+
+            // A panel, with whatever's sitting on it
+            EditorButton {
+                Layout.fillWidth: true
+                visible: root.element?.id === "panel" && (root.element.options?.group ?? "") === ""
+                icon: "group_work"
+                text: Tr.tr("Group with what's on it")
+                onActivated: root.editor.groupWithContents(root.index)
+            }
+
+            // What the floating strip used to have: copy, restack and remove
+            GridLayout {
+                Layout.fillWidth: true
+                visible: !!root.element
+                columns: 2
+                rowSpacing: Tokens.spacing.small
+                columnSpacing: Tokens.spacing.small
+
+                EditorButton {
+                    Layout.fillWidth: true
+                    icon: "content_copy"
+                    text: Tr.tr("Duplicate")
+                    disabled: root.element?.id === "password"
+                    onActivated: root.editor.duplicate(root.index)
+                }
+
+                EditorButton {
+                    Layout.fillWidth: true
+                    icon: "delete"
+                    text: Tr.tr("Remove")
+                    tone: "error"
+                    disabled: root.element?.id === "password"
+                    onActivated: root.editor.remove(root.index)
+                }
+
+                EditorButton {
+                    Layout.fillWidth: true
+                    icon: "flip_to_front"
+                    text: Tr.tr("Forward")
+                    disabled: root.index >= root.editor.elements.length - 1
+                    onActivated: root.editor.restack(root.index, 1)
+                }
+
+                EditorButton {
+                    Layout.fillWidth: true
+                    icon: "flip_to_back"
+                    text: Tr.tr("Backward")
+                    disabled: root.index <= 0
+                    onActivated: root.editor.restack(root.index, -1)
+                }
+            }
 
             Heading {
                 visible: !!root.element
@@ -116,10 +392,12 @@ StyledRect {
                             required property string modelData
                             readonly property bool current: (root.element?.anchor ?? "c") === modelData
 
-                            implicitWidth: 22
-                            implicitHeight: 22
-                            radius: 6
-                            color: current ? Colours.palette.m3primary : Colours.tPalette.m3surfaceContainerHighest
+                            implicitWidth: 24
+                            implicitHeight: 24
+                            radius: 7
+                            color: current ? Colours.palette.m3primary : "transparent"
+                            border.width: current ? 0 : 1.5
+                            border.color: Colours.palette.m3outline
 
                             StateLayer {
                                 radius: point.radius
@@ -350,20 +628,20 @@ StyledRect {
 
             StyledText {
                 Layout.fillWidth: true
-                visible: !root.element
-                text: Tr.tr("Click an element on the screen to change it, drag it to move it, and pull its corner to resize it. Everything but the password field can be removed.")
+                visible: !root.element && !root.editor.multiple
+                text: Tr.tr("Click an element on the screen, or in the list below, to change it. Drag it to move it and pull its round corner to resize it. While snapping is on it lines up with the screen's middle, its margins, the other elements and the grid as it comes near them.")
                 color: Colours.palette.m3onSurfaceVariant
                 font: Tokens.font.body.small
                 wrapMode: Text.WordWrap
             }
 
             Heading {
-                visible: !root.element
-                text: Tr.tr("On top first")
+                visible: !root.element && !root.editor.multiple
+                text: Tr.tr("Elements, top layer first")
             }
 
             Repeater {
-                model: root.element ? [] : root.editor.elements.map((e, i) => ({
+                model: root.element || root.editor.multiple ? [] : root.editor.elements.map((e, i) => ({
                             element: e,
                             index: i
                         })).reverse()
@@ -374,15 +652,24 @@ StyledRect {
                     required property var modelData
                     readonly property var layerKind: ElementCatalog.kind(modelData.element.id)
                     readonly property bool hidden: modelData.element.enabled === false
+                    readonly property string detail: ElementCatalog.summary(modelData.element)
 
                     Layout.fillWidth: true
-                    implicitHeight: 40
+                    implicitHeight: Math.max(48, layerText.implicitHeight + Tokens.padding.small * 2)
                     radius: Tokens.rounding.medium
-                    color: Colours.tPalette.m3surfaceContainerHigh
+                    color: Colours.palette.m3surfaceContainerHighest
 
+                    // Hovering a row outlines its element on the screen, so the list can be matched
+                    // to what's drawn
                     StateLayer {
                         radius: layer.radius
                         onClicked: root.editor.selected = layer.modelData.index
+                        onContainsMouseChanged: {
+                            if (containsMouse)
+                                root.editor.hovered = layer.modelData.index;
+                            else if (root.editor.hovered === layer.modelData.index)
+                                root.editor.hovered = -1;
+                        }
                     }
 
                     RowLayout {
@@ -393,18 +680,35 @@ StyledRect {
 
                         MaterialIcon {
                             text: layer.layerKind?.icon ?? "help"
-                            color: Colours.palette.m3onSurfaceVariant
+                            color: Colours.palette.m3primary
                             fontStyle: Tokens.font.icon.small
                             opacity: layer.hidden ? 0.4 : 1
                         }
 
-                        StyledText {
+                        ColumnLayout {
+                            id: layerText
+
                             Layout.fillWidth: true
-                            text: layer.layerKind?.name ?? layer.modelData.element.id
-                            color: Colours.palette.m3onSurface
-                            font: Tokens.font.body.medium
+                            spacing: 0
                             opacity: layer.hidden ? 0.4 : 1
-                            elide: Text.ElideRight
+
+                            StyledText {
+                                Layout.fillWidth: true
+                                text: layer.layerKind?.name ?? layer.modelData.element.id
+                                color: Colours.palette.m3onSurface
+                                font: Tokens.font.body.medium
+                                elide: Text.ElideRight
+                            }
+
+                            StyledText {
+                                Layout.fillWidth: true
+                                visible: text !== ""
+                                text: layer.hidden ? Tr.tr("Hidden") : layer.detail
+                                color: Colours.palette.m3onSurfaceVariant
+                                font: Tokens.font.label.medium
+                                elide: Text.ElideRight
+                                maximumLineCount: 1
+                            }
                         }
 
                         // Hidden rather than removed, to try the screen without it
@@ -420,14 +724,14 @@ StyledRect {
             }
 
             Heading {
-                visible: !root.element
+                visible: !root.element && !root.editor.multiple
                 text: Tr.tr("Keys")
             }
 
             StyledText {
                 Layout.fillWidth: true
-                visible: !root.element
-                text: Tr.tr("Arrows nudge the selected element, Shift+arrows by ten. Delete removes it, Ctrl+D copies it. Ctrl+Z and Ctrl+Shift+Z undo and redo, Ctrl+S saves, Esc steps back out.")
+                visible: !root.element && !root.editor.multiple
+                text: Tr.tr("Shift+click picks more than one, and so does dragging a box over empty space; Ctrl+A picks everything. Ctrl+G groups what's picked and Ctrl+Shift+G ungroups it. Arrows move it a grid step (ten pixels with snapping off) and Shift+arrows a single pixel, and holding Ctrl while dragging places it freely. Delete removes it and Ctrl+D copies it. Ctrl+Z and Ctrl+Shift+Z undo and redo, Ctrl+S saves, and Esc steps back out.")
                 color: Colours.palette.m3onSurfaceVariant
                 font: Tokens.font.label.medium
                 wrapMode: Text.WordWrap
@@ -500,18 +804,18 @@ StyledRect {
                     readonly property bool current: choice.value === modelData.value
 
                     implicitWidth: chipText.implicitWidth + Tokens.padding.medium * 2
-                    implicitHeight: 30
+                    implicitHeight: 32
                     radius: Tokens.rounding.full
-                    color: current ? Colours.palette.m3secondaryContainer : Colours.tPalette.m3surfaceContainerHigh
+                    color: current ? Colours.palette.m3primary : "transparent"
                     border.width: current ? 0 : 1
-                    border.color: Qt.alpha(Colours.palette.m3outline, 0.4)
+                    border.color: Colours.palette.m3outline
 
                     StyledText {
                         id: chipText
 
                         anchors.centerIn: parent
                         text: chip.modelData.label
-                        color: chip.current ? Colours.palette.m3onSecondaryContainer : Colours.palette.m3onSurfaceVariant
+                        color: chip.current ? Colours.palette.m3onPrimary : Colours.palette.m3onSurface
                         font: Tokens.font.label.large
                     }
 
@@ -561,11 +865,11 @@ StyledRect {
                     readonly property bool current: position >= 0
 
                     implicitWidth: pickRow.implicitWidth + Tokens.padding.medium * 2
-                    implicitHeight: 30
+                    implicitHeight: 32
                     radius: Tokens.rounding.full
-                    color: current ? Colours.palette.m3secondaryContainer : Colours.tPalette.m3surfaceContainerHigh
+                    color: current ? Colours.palette.m3primary : "transparent"
                     border.width: current ? 0 : 1
-                    border.color: Qt.alpha(Colours.palette.m3outline, 0.4)
+                    border.color: Colours.palette.m3outline
 
                     Row {
                         id: pickRow
@@ -576,13 +880,13 @@ StyledRect {
                         StyledText {
                             visible: pick.current
                             text: pick.position + 1
-                            color: Colours.palette.m3primary
+                            color: Colours.palette.m3onPrimary
                             font: Tokens.font.label.large
                         }
 
                         StyledText {
                             text: pick.modelData.label
-                            color: pick.current ? Colours.palette.m3onSecondaryContainer : Colours.palette.m3onSurfaceVariant
+                            color: pick.current ? Colours.palette.m3onPrimary : Colours.palette.m3onSurface
                             font: Tokens.font.label.large
                         }
                     }
