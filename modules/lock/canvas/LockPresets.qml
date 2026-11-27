@@ -132,6 +132,81 @@ Singleton {
             note: Tr.tr("The clock beside a block of desktop widgets")
         },
         {
+            id: "giant",
+            name: Tr.tr("Giant"),
+            note: Tr.tr("The time as big as it goes, along the bottom")
+        },
+        {
+            id: "aurora",
+            name: Tr.tr("Aurora"),
+            note: Tr.tr("A gradient strip with the clock, the login beside it")
+        },
+        {
+            id: "studio",
+            name: Tr.tr("Studio"),
+            note: Tr.tr("An analogue dial beside the day in big type")
+        },
+        {
+            id: "magazine",
+            name: Tr.tr("Magazine"),
+            note: Tr.tr("The date set like a magazine cover")
+        },
+        {
+            id: "menubar",
+            name: Tr.tr("Menu bar"),
+            note: Tr.tr("A thin bar across the top over a centred login")
+        },
+        {
+            id: "mission",
+            name: Tr.tr("Mission control"),
+            note: Tr.tr("A wall of desktop widgets under the clock")
+        },
+        {
+            id: "tty",
+            name: Tr.tr("TTY"),
+            note: Tr.tr("Plain text on the bare screen, like a text console")
+        },
+        {
+            id: "tilted",
+            name: Tr.tr("Tilted"),
+            note: Tr.tr("The clock and date set at an angle")
+        },
+        {
+            id: "island",
+            name: Tr.tr("Island"),
+            note: Tr.tr("Everything you need in one pill along the bottom")
+        },
+        {
+            id: "gauges",
+            name: Tr.tr("Gauges"),
+            note: Tr.tr("The clock over a row of readings")
+        },
+        {
+            id: "calendarwall",
+            name: Tr.tr("Calendar wall"),
+            note: Tr.tr("The month, large, beside the clock")
+        },
+        {
+            id: "halves",
+            name: Tr.tr("Halves"),
+            note: Tr.tr("The screen split in two, the time on one side")
+        },
+        {
+            id: "pulse",
+            name: Tr.tr("Pulse"),
+            note: Tr.tr("Split-flap clock over a full-width equalizer")
+        },
+        {
+            id: "spectrum",
+            name: Tr.tr("Spectrum"),
+            note: Tr.tr("Waves of sound from the top and bottom around LED dots")
+        },
+        {
+            id: "skyline",
+            name: Tr.tr("Skyline"),
+            note: Tr.tr("A huge clock standing on a skyline of bars")
+        },
+        {
             id: "blank",
             name: Tr.tr("Blank"),
             note: Tr.tr("Only the password field, to build from scratch")
@@ -749,6 +824,418 @@ Singleton {
                         style: "rings-all"
                     }
                 }), ...root.inlineLogin(0.08, 0.66, 300)];
+        case "giant":
+            return [e("status", root.mx, root.my, "tl", {
+                    scale: 0.9,
+                    options: {
+                        direction: "left"
+                    }
+                }), e("session", 1 - root.mx, root.my, "tr", {
+                    scale: 0.85
+                }), e("clock", 0.025, 0.66, "bl", {
+                    scale: 2.6,
+                    options: {
+                        align: "left"
+                    }
+                }), e("date", 0.035, 0.68, "tl", {
+                    scale: 1.3,
+                    options: {
+                        format: "dddd, d MMMM",
+                        size: "headline",
+                        colour: "variant",
+                        weight: "bold"
+                    }
+                }), ...root.inlineLogin(0.72, 0.87, 300)];
+        case "aurora":
+            return [e("panel", 0, 0, "tl", {
+                    w: 0.36,
+                    h: 1,
+                    options: {
+                        colour: "gradient",
+                        radius: 0,
+                        shadow: false
+                    }
+                }), e("clock", 0.18, 0.4, "c", {
+                    scale: 1.15,
+                    options: {
+                        face: "stacked",
+                        accent: false
+                    }
+                }), e("date", 0.18, 0.69, "t", {
+                    options: {
+                        format: "dddd • d MMM",
+                        size: "title",
+                        weight: "bold",
+                        uppercase: true,
+                        spacing: 4
+                    }
+                }), e("status", 1 - root.mx, root.my, "tr", {
+                    scale: 0.9
+                }), e("avatar", 0.68, 0.42, "c", {
+                    scale: 1.1
+                }), e("username", 0.68, 0.52, "t", {
+                    options: {
+                        size: "headline",
+                        weight: "bold"
+                    }
+                }), e("password", 0.68, 0.59, "t", {
+                    options: {
+                        width: 360
+                    }
+                }), e("session", 0.68, 0.69, "t", {
+                    scale: 0.85
+                })];
+        case "studio":
+            return [...root.corners(), e("clock", 0.33, 0.45, "c", {
+                    scale: 0.75,
+                    options: {
+                        face: "analogue"
+                    }
+                }), e("divider", 0.5, 0.45, "c", {
+                    w: 0.0012,
+                    h: 0.36
+                }), e("date", 0.54, 0.41, "bl", {
+                    options: {
+                        format: "dddd",
+                        size: "display",
+                        colour: "primary",
+                        weight: "bold"
+                    }
+                }), e("date", 0.54, 0.42, "tl", {
+                    options: {
+                        format: "d MMMM yyyy",
+                        size: "headline",
+                        weight: "medium"
+                    }
+                }), ...root.inlineLogin(0.54, 0.57, 320)];
+        case "magazine":
+            return [e("date", 0.035, 0.5, "l", {
+                    scale: 4.2,
+                    options: {
+                        format: "d",
+                        size: "display",
+                        colour: "primary",
+                        weight: "bold"
+                    }
+                }), e("date", 0.965, 0.5, "c", {
+                    rotation: 90,
+                    options: {
+                        format: "MMMM",
+                        size: "headline",
+                        weight: "bold",
+                        uppercase: true,
+                        spacing: 12
+                    }
+                }), e("status", 0.42, root.my, "tl", {
+                    scale: 0.9,
+                    options: {
+                        direction: "left"
+                    }
+                }), e("date", 0.42, 0.3, "bl", {
+                    options: {
+                        format: "dddd",
+                        size: "display",
+                        weight: "bold"
+                    }
+                }), e("clock", 0.42, 0.32, "tl", {
+                    scale: 0.6,
+                    options: {
+                        align: "left"
+                    }
+                }), e("weather", 0.42, 0.55, "tl", {
+                    options: {
+                        style: "large"
+                    }
+                }), ...root.inlineLogin(0.42, 0.84, 320)];
+        case "menubar":
+            return [e("panel", 0, 0, "tl", {
+                    w: 1,
+                    h: 0.045,
+                    options: {
+                        colour: "surface",
+                        radius: 0,
+                        shadow: false
+                    }
+                }), e("date", 0.012, 0.0225, "l", {
+                    options: {
+                        format: "ddd d MMM",
+                        size: "body",
+                        weight: "bold"
+                    }
+                }), e("date", 0.5, 0.0225, "c", {
+                    options: {
+                        format: "time",
+                        size: "body",
+                        weight: "bold"
+                    }
+                }), e("status", 0.99, 0.0225, "r", {
+                    scale: 0.7
+                }), e("avatar", 0.5, 0.42, "c", {
+                    scale: 1.4
+                }), e("username", 0.5, 0.53, "t", {
+                    options: {
+                        size: "headline",
+                        weight: "bold"
+                    }
+                }), e("password", 0.5, 0.6, "t", {
+                    options: {
+                        width: 340
+                    }
+                }), e("session", 0.5, 1 - root.my, "b", {
+                    scale: 0.85
+                })];
+        case "mission":
+            return [e("status", 1 - root.mx, root.my, "tr", {
+                    scale: 0.9
+                }), e("clock", 0.08, 0.24, "bl", {
+                    scale: 0.75,
+                    options: {
+                        align: "left"
+                    }
+                }), e("widget:clock", 0.08, 0.27, "tl", {
+                    options: {
+                        style: "world"
+                    }
+                }), e("widget:weather", 0.22, 0.27, "tl", {
+                    options: {
+                        style: "hourly"
+                    }
+                }), e("widget:resources", 0.395, 0.27, "tl", {
+                    options: {
+                        style: "bars-all"
+                    }
+                }), e("widget:calendar", 0.08, 0.47, "tl", {
+                    options: {
+                        style: "week"
+                    }
+                }), e("widget:day", 0.22, 0.47, "tl", {
+                    options: {
+                        style: "timeline"
+                    }
+                }), e("widget:events", 0.395, 0.47, "tl", {
+                    options: {
+                        style: "upcoming"
+                    }
+                }), ...root.inlineLogin(0.68, 0.5, 340)];
+        case "tty":
+            return [e("terminal", 0.04, 0.06, "tl"), e("password", 0.04, 0.6, "tl", {
+                    options: {
+                        width: 640,
+                        label: Tr.tr("Password:")
+                    }
+                }), e("date", 0.04, 1 - root.my, "bl", {
+                    options: {
+                        pattern: "ddd MMM d hh:mm:ss yyyy",
+                        size: "body",
+                        colour: "variant",
+                        weight: "regular",
+                        mono: true
+                    }
+                }), e("status", 1 - root.mx, 1 - root.my, "br", {
+                    scale: 0.85
+                })];
+        case "tilted":
+            return [...root.corners(), e("clock", 0.5, 0.4, "c", {
+                    scale: 1.7,
+                    rotation: -8
+                }), e("date", 0.53, 0.6, "c", {
+                    rotation: -8,
+                    options: {
+                        format: "dddd • d MMM",
+                        size: "headline",
+                        colour: "primary",
+                        weight: "bold",
+                        uppercase: true,
+                        spacing: 6
+                    }
+                }), ...root.inlineLogin(0.405, 0.82, 300)];
+        case "island":
+            return [e("weather", root.mx, root.my, "tl", {
+                    scale: 0.9
+                }), e("status", 1 - root.mx, root.my, "tr", {
+                    scale: 0.9
+                }), e("clock", 0.5, 0.4, "c", {
+                    scale: 1.2,
+                    options: {
+                        face: "words",
+                        align: "center"
+                    }
+                }), e("panel", 0.5, 0.88, "c", {
+                    w: 0.56,
+                    h: 0.1,
+                    options: {
+                        colour: "container",
+                        radius: 80
+                    }
+                }), e("avatar", 0.245, 0.88, "c", {
+                    scale: 0.45
+                }), e("date", 0.275, 0.88, "l", {
+                    options: {
+                        format: "time",
+                        size: "headline",
+                        weight: "bold"
+                    }
+                }), e("date", 0.36, 0.88, "l", {
+                    options: {
+                        format: "ddd d MMM",
+                        size: "title",
+                        colour: "variant"
+                    }
+                }), e("password", 0.765, 0.88, "r", {
+                    options: {
+                        width: 340
+                    }
+                })];
+        case "gauges":
+            {
+                const gauge = (x, metric) => [e("panel", x, 0.5, "tl", {
+                            w: 0.11,
+                            h: 0.16,
+                            options: {
+                                colour: "container",
+                                radius: 28,
+                                shadow: false
+                            }
+                        }), e("stat", x + 0.008, 0.515, "tl", {
+                            options: {
+                                metric: metric
+                            }
+                        })];
+                return [e("status", 1 - root.mx, root.my, "tr", {
+                        scale: 0.9
+                    }), e("session", 1 - root.mx, 1 - root.my, "br"), e("clock", 0.5, 0.17, "t", {
+                        scale: 0.8
+                    }), e("date", 0.5, 0.39, "t", {
+                        options: {
+                            format: "dddd, d MMMM",
+                            size: "title",
+                            weight: "bold"
+                        }
+                    }), ...gauge(0.325, "battery"), ...gauge(0.445, "weather"), ...gauge(0.565, "day"), ...root.inlineLogin(0.405, 0.8, 300)];
+            }
+        case "calendarwall":
+            return [e("status", 1 - root.mx, root.my, "tr", {
+                    scale: 0.9
+                }), e("session", 1 - root.mx, 1 - root.my, "br"), e("calendar", 0.07, 0.5, "l", {
+                    scale: 2
+                }), e("clock", 0.74, 0.36, "c", {
+                    options: {
+                        face: "stacked"
+                    }
+                }), e("date", 0.74, 0.58, "t", {
+                    scale: 1.1,
+                    options: {
+                        size: "title",
+                        weight: "bold"
+                    }
+                }), ...root.inlineLogin(0.645, 0.74, 300)];
+        case "halves":
+            return [e("panel", 0.5, 0, "tl", {
+                    w: 0.5,
+                    h: 1,
+                    options: {
+                        colour: "surface",
+                        radius: 0,
+                        shadow: false
+                    }
+                }), e("clock", 0.25, 0.43, "c", {
+                    scale: 1.3,
+                    options: {
+                        face: "stacked"
+                    }
+                }), e("date", 0.25, 0.76, "t", {
+                    options: {
+                        format: "dddd, d MMMM",
+                        size: "title",
+                        colour: "variant",
+                        weight: "bold"
+                    }
+                }), e("weather", 0.56, root.my, "tl", {
+                    scale: 0.9
+                }), e("status", 1 - root.mx, root.my, "tr", {
+                    scale: 0.9
+                }), e("greeting", 0.75, 0.4, "c", {
+                    scale: 1.3
+                }), ...root.inlineLogin(0.655, 0.52, 320), e("session", 0.75, 1 - root.my, "b", {
+                    scale: 0.85
+                })];
+        case "pulse":
+            // The equalizer first, so it's drawn behind everything else
+            return [e("equalizer", 0.5, 1, "b", {
+                    w: 1,
+                    h: 0.38,
+                    opacity: 0.85,
+                    options: {
+                        colour: "chroma",
+                        bars: 64
+                    }
+                }), ...root.corners().slice(0, 2), e("clock", 0.5, 0.33, "c", {
+                    scale: 1.15,
+                    options: {
+                        face: "flip",
+                        accent: false
+                    }
+                }), e("date", 0.5, 0.52, "t", {
+                    scale: 1.1,
+                    options: {
+                        size: "title",
+                        weight: "bold"
+                    }
+                }), ...root.inlineLogin(0.405, 0.61, 300)];
+        case "spectrum":
+            return [e("equalizer", 0.5, 0, "t", {
+                    w: 1,
+                    h: 0.3,
+                    opacity: 0.8,
+                    options: {
+                        style: "wave",
+                        colour: "gradient",
+                        grow: "down"
+                    }
+                }), e("equalizer", 0.5, 1, "b", {
+                    w: 1,
+                    h: 0.3,
+                    opacity: 0.8,
+                    options: {
+                        style: "wave",
+                        colour: "gradient"
+                    }
+                }), e("clock", 0.5, 0.43, "c", {
+                    options: {
+                        face: "dots"
+                    }
+                }), e("date", 0.5, 0.56, "t", {
+                    scale: 1.3,
+                    options: {
+                        format: "ddd d MMM",
+                        mono: true,
+                        uppercase: true,
+                        weight: "bold",
+                        spacing: 6,
+                        size: "body"
+                    }
+                }), ...root.inlineLogin(0.405, 0.65, 300)];
+        case "skyline":
+            return [e("equalizer", 0.5, 1, "b", {
+                    w: 1,
+                    h: 0.55,
+                    opacity: 0.55,
+                    options: {
+                        shape: "square",
+                        bars: 96,
+                        response: "sqrt"
+                    }
+                }), e("status", 1 - root.mx, root.my, "tr", {
+                    scale: 0.9
+                }), e("date", root.mx, root.my, "tl", {
+                    options: {
+                        format: "dddd, d MMMM",
+                        size: "headline",
+                        weight: "bold"
+                    }
+                }), e("clock", 0.5, 0.42, "c", {
+                    scale: 2.2
+                }), ...root.inlineLogin(0.405, 0.12, 300)];
         case "blank":
             return [e("password", 0.5, 0.5, "c")];
         default:
