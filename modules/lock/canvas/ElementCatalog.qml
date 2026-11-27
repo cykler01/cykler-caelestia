@@ -228,9 +228,75 @@ Singleton {
             name: Tr.tr("Greeting"),
             icon: "waving_hand",
             group: "signin",
-            description: Tr.tr("Good morning and the like, as set under Greeting"),
-            options: [],
-            defaults: {}
+            description: Tr.tr("Good morning, good evening and the like, with your name"),
+            options: [
+                {
+                    key: "style",
+                    label: Tr.tr("Style"),
+                    type: "select",
+                    items: [
+                        {
+                            value: "text",
+                            label: Tr.tr("Text")
+                        },
+                        {
+                            value: "pill",
+                            label: Tr.tr("Pill, worded in Nexus")
+                        }
+                    ]
+                },
+                {
+                    key: "wording",
+                    label: Tr.tr("Wording: {greeting} is good morning and the like, {name} the name"),
+                    type: "text"
+                },
+                {
+                    key: "name",
+                    label: Tr.tr("Name"),
+                    type: "select",
+                    items: [
+                        {
+                            value: "first",
+                            label: Tr.tr("First name")
+                        },
+                        {
+                            value: "full",
+                            label: Tr.tr("Full name")
+                        },
+                        {
+                            value: "login",
+                            label: Tr.tr("Username")
+                        }
+                    ]
+                },
+                {
+                    key: "nickname",
+                    label: Tr.tr("Nickname, used instead when set"),
+                    type: "text"
+                },
+                {
+                    key: "accentName",
+                    label: Tr.tr("Name in the accent colour"),
+                    type: "toggle"
+                },
+                {
+                    key: "icon",
+                    label: Tr.tr("Time of day icon"),
+                    type: "toggle"
+                },
+                ...root.textOptions
+            ],
+            // The pill by default, so layouts saved before the text style existed keep their look;
+            // new ones start as text (create below)
+            defaults: Object.assign({}, root.textDefaults, {
+                style: "pill",
+                wording: "{greeting}, {name}",
+                name: "first",
+                nickname: "",
+                accentName: true,
+                icon: false,
+                size: "headline"
+            })
         },
         {
             id: "clock",
@@ -323,6 +389,10 @@ Singleton {
                         {
                             value: "MMMM yyyy",
                             label: Tr.tr("November 2026")
+                        },
+                        {
+                            value: "MMM yyyy",
+                            label: Tr.tr("Nov 2026")
                         },
                         {
                             value: "d",
@@ -926,8 +996,38 @@ Singleton {
             showOn: "always",
             options: id === "widgets" ? {
                 widgets: ["weather", "media"]
+            } : id === "greeting" ? {
+                style: "text"
             } : {}
         };
+    }
+
+    // A few words telling apart elements of the same kind in the editor's list: what a date or
+    // text says, which reading a tile shows, which widgets a column holds
+    function summary(el: var): string {
+        if (!el)
+            return "";
+        const o = root.optionsFor(el.id, el.options);
+        switch (el.id) {
+        case "date":
+            {
+                const pattern = (o.pattern ?? "") !== "" ? o.pattern : o.format === "time" ? "hh:mm" : o.format;
+                return Time.format(pattern ?? "dddd, d MMMM");
+            }
+        case "text":
+            return o.text ?? "";
+        case "greeting":
+            return o.style === "pill" ? Tr.tr("Pill") : o.wording;
+        case "widgets":
+            return root.widgetsFor(o).join(", ");
+        case "panel":
+            return `${Math.round((el.w ?? 0) * 100)}% × ${Math.round((el.h ?? 0) * 100)}%`;
+        }
+        // Otherwise the first choice the kind offers, by its label
+        const first = (root.kind(el.id)?.options ?? []).find(opt => opt.type === "select");
+        if (!first)
+            return "";
+        return first.items.find(i => i.value === o[first.key])?.label ?? "";
     }
 
     // Which widgets a widget column shows: its own list, or for one saved before columns chose

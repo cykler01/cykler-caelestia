@@ -21,6 +21,8 @@ Singleton {
     // Uptime trimmed to its two largest components
     property string uptimeShort
     readonly property string user: Quickshell.env("USER")
+    // NOTE(fork): the account's full name (the first part of its GECOS field), or "" without one
+    property string realName
     readonly property string wm: Quickshell.env("XDG_CURRENT_DESKTOP") || Quickshell.env("XDG_SESSION_DESKTOP")
     readonly property string shell: Quickshell.env("SHELL").split("/").pop()
 
@@ -85,6 +87,15 @@ Singleton {
     FileView {
         path: "/proc/sys/kernel/osrelease"
         onLoaded: root.kernel = text().trim()
+    }
+
+    FileView {
+        path: "/etc/passwd"
+        printErrors: false
+        onLoaded: {
+            const line = text().split("\n").find(l => l.startsWith(`${root.user}:`)) ?? "";
+            root.realName = (line.split(":")[4] ?? "").split(",")[0].trim();
+        }
     }
 
     FileView {
