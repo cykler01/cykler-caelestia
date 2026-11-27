@@ -576,8 +576,10 @@ Singleton {
                             size: "title"
                         }
                     }), e("date", 0.592, 0.329, "tl", {
+                        // NOTE(fork): the month shortened ("Sep 2026"), as the longest full one ran out of
+                        // the tile beside a two-digit day
                         options: {
-                            format: "MMMM yyyy",
+                            format: "MMM yyyy",
                             size: "title",
                             colour: "variant",
                             weight: "regular"

@@ -71,8 +71,10 @@ ColumnLayout {
         font: Tokens.font.headline.builders.medium.scale(root.s).weight(Font.DemiBold).build()
     }
 
+    // Narrow enough for the tiles the presets give it; a long forecast is cut short rather than
+    // spilling out of its tile
     StyledText {
-        Layout.maximumWidth: 200 * root.s
+        Layout.maximumWidth: 140 * root.s
         text: root.reading.label
         color: Colours.palette.m3onSurfaceVariant
         font: Tokens.font.label.builders.large.scale(root.s).build()
