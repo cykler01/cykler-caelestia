@@ -243,15 +243,25 @@ if [[ -n $stray ]]; then
 fi
 
 # --- restart ---
+# caelestia-cli 1.1.2 dropped the -r/--restart flag, so restarting there is
+# 'shell -k' followed by 'shell -d'. Try -r first so older CLIs still work.
 if $RESTART; then
     if cli=$(real_cli); then
         step "restarting the shell"
-        "$cli" shell -r -d
+        if ! "$cli" shell -r -d >/dev/null 2>&1; then
+            "$cli" shell -k >/dev/null 2>&1 || warn "the shell was not running"
+            # qs refuses to start while the old instance is still shutting down
+            for _ in {1..30}; do
+                pgrep -f '^qs -c caelestia' >/dev/null 2>&1 || break
+                sleep 0.1
+            done
+            "$cli" shell -d
+        fi
     else
         warn "could not find the caelestia CLI; restart the shell yourself"
     fi
 else
-    note "not restarting; run 'caelestia shell -r -d' to pick up the new build"
+    note "not restarting; run 'caelestia shell -k && caelestia shell -d' to pick up the new build"
 fi
 
 bold "done"
