@@ -129,6 +129,15 @@ Item {
         when: loader.status === Loader.Ready && (host.element.id ?? "").startsWith("widget:")
     }
 
+    // Only the desktop widgets have a use for it: they are drawn at their own size rather than
+    // stretched to the screen's scale (DesktopWidgetElement.qml)
+    Binding {
+        target: loader.item
+        property: "uiScale"
+        value: host.uiScale
+        when: loader.status === Loader.Ready && (host.element.id ?? "").startsWith("widget:")
+    }
+
     // Only the equalizer has a use for it: it stays up through silence while being edited
     Binding {
         target: loader.item
