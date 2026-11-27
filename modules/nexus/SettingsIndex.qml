@@ -169,6 +169,15 @@ QtObject {
             subtext: Tr.tr("How often the line changes (s)"),
             keywords: "timer rotate rotation speed frequency delay how long"
         },
+        {
+            page: "assets",
+            path: [1],
+            title: Tr.tr("Desktop text"),
+            section: Tr.tr("Display"),
+            label: Tr.tr("Animation between messages"),
+            subtext: Tr.tr("Transition used when rotating to the next message"),
+            keywords: "fade slide typewriter scramble pop transition effect"
+        },
 
         {
             page: "panels",
@@ -2664,6 +2673,41 @@ QtObject {
             title: Tr.tr("Updates"),
             section: Tr.tr("Update dates"),
             label: Tr.tr("Most recent update")
+        },
+        {
+            page: "updates",
+            path: [],
+            title: Tr.tr("Updates"),
+            section: Tr.tr("System & Ecosystem"),
+            label: Tr.tr("Update All"),
+            subtext: Tr.tr("CachyOS packages, Hyprland ecosystem & Caelestia CLI"),
+            keywords: "pacman paru yay system upgrade all"
+        },
+        {
+            page: "updates",
+            path: [],
+            title: Tr.tr("Updates"),
+            section: Tr.tr("System & Ecosystem"),
+            label: Tr.tr("CachyOS & AUR Packages"),
+            subtext: Tr.tr("System kernel & packages up to date"),
+            keywords: "pacman paru yay kernel packages"
+        },
+        {
+            page: "updates",
+            path: [],
+            title: Tr.tr("Updates"),
+            section: Tr.tr("System & Ecosystem"),
+            label: Tr.tr("Hyprland Ecosystem"),
+            subtext: Tr.tr("Compositor & portals up to date"),
+            keywords: "hyprland aquamarine portals compositor"
+        },
+        {
+            page: "updates",
+            path: [],
+            title: Tr.tr("Updates"),
+            section: Tr.tr("System & Ecosystem"),
+            label: Tr.tr("Caelestia Packages & CLI"),
+            keywords: "caelestia-cli dotfiles packages"
         },
         {
             page: "updates",
