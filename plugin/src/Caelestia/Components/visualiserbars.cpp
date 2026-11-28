@@ -94,9 +94,11 @@ void VisualiserBars::paint(QPainter* painter) {
     if (m_singleRow) {
         drawGroup(painter, 0, w, false);
     } else {
-        // Either side of a centre gap, mirrored against each other
-        drawGroup(painter, 0, w * 0.4, true);
-        drawGroup(painter, w * 0.6, w * 0.4, false);
+        // Either side of a centre gap, mirrored against each other. The gap is a fraction of the
+        // width, split evenly between the two groups.
+        const qreal sideWidth = w * (1.0 - m_centerGap) / 2.0;
+        drawGroup(painter, 0, sideWidth, true);
+        drawGroup(painter, w - sideWidth, sideWidth, false);
     }
 }
 
@@ -168,9 +170,8 @@ QVector<double> VisualiserBars::values() const {
 void VisualiserBars::setValues(const QVector<double>& values) {
     m_targetValues = values;
 
-    if (m_displayValues.size() != values.size()) {
+    if (m_displayValues.size() != values.size())
         m_displayValues.resize(values.size(), 0.0);
-    }
 
     if (m_settled) {
         m_settled = false;
@@ -215,6 +216,7 @@ QColor VisualiserBars::primaryColor() const {
 void VisualiserBars::setPrimaryColor(const QColor& color) {
     if (m_primaryColor == color)
         return;
+
     m_primaryColor = color;
     emit primaryColorChanged();
     update();
@@ -227,6 +229,7 @@ QColor VisualiserBars::secondaryColor() const {
 void VisualiserBars::setSecondaryColor(const QColor& color) {
     if (m_secondaryColor == color)
         return;
+
     m_secondaryColor = color;
     emit secondaryColorChanged();
     update();
@@ -237,8 +240,9 @@ qreal VisualiserBars::rounding() const {
 }
 
 void VisualiserBars::setRounding(qreal rounding) {
-    if (qFuzzyCompare(m_rounding, rounding))
+    if (qFuzzyCompare(m_rounding + 1.0, rounding + 1.0))
         return;
+
     m_rounding = rounding;
     emit roundingChanged();
     update();
@@ -249,10 +253,24 @@ qreal VisualiserBars::spacing() const {
 }
 
 void VisualiserBars::setSpacing(qreal spacing) {
-    if (qFuzzyCompare(m_spacing, spacing))
+    if (qFuzzyCompare(m_spacing + 1.0, spacing + 1.0))
         return;
+
     m_spacing = spacing;
     emit spacingChanged();
+    update();
+}
+
+qreal VisualiserBars::centerGap() const {
+    return m_centerGap;
+}
+
+void VisualiserBars::setCenterGap(qreal centerGap) {
+    if (qFuzzyCompare(m_centerGap + 1.0, centerGap + 1.0))
+        return;
+
+    m_centerGap = centerGap;
+    emit centerGapChanged();
     update();
 }
 
@@ -263,6 +281,7 @@ int VisualiserBars::animationDuration() const {
 void VisualiserBars::setAnimationDuration(int duration) {
     if (m_animationDuration == duration)
         return;
+
     m_animationDuration = duration;
     emit animationDurationChanged();
 }
