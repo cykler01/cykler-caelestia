@@ -67,7 +67,7 @@ REQ_AUR=(
 # Keep in step with the installer window, which builds its switches from
 # --list-features and hands the chosen ids back on --features.
 FEATURES=(
-    "screenshots|Screenshots|The area picker, annotating a shot and copying it|grim slurp wl-clipboard swappy|"
+    "screenshots|Screenshots|The area picker, annotating a shot and copying it|grim slurp wl-clipboard satty|"
     "ocr|Screen OCR|Reads the text out of any part of the screen|tesseract|"
     "picker|Colour picker|Picks a colour from anywhere on screen|hyprpicker|"
     "brightness|Brightness|The backlight, and external monitors over DDC|brightnessctl ddcutil|"

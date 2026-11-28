@@ -56,7 +56,7 @@ StyledWindow {
         root.capturePath = "";
     }
 
-    // Hand the capture to the editor, which keeps the file to save its edits into.
+    // Hand the capture to the editor, which takes over its temporary file.
     function edit(): void {
         const path = root.capturePath;
         if (!path)
@@ -65,7 +65,12 @@ StyledWindow {
         timer.stop();
         root.visible = false;
         root.capturePath = "";
-        Quickshell.execDetached(["swappy", "-f", path]);
+        // Parented to a plain object rather than this window, so it outlives the
+        // next capture taking the preview over.
+        editorComp.createObject(editorParent, {
+            capturePath: path,
+            screen: root.screen
+        });
     }
 
     // Write a copy of the capture to the desktop, leaving the original for the editor.
@@ -99,6 +104,16 @@ StyledWindow {
 
     Region {
         id: empty
+    }
+
+    QtObject {
+        id: editorParent
+    }
+
+    Component {
+        id: editorComp
+
+        ScreenshotEditor {}
     }
 
     Timer {
