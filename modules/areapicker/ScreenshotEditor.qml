@@ -9,6 +9,7 @@ import Caelestia.Config
 import Caelestia.I18n
 import qs.components
 import qs.components.controls
+import qs.components.effects
 import qs.components.filedialog
 import qs.services
 import qs.utils
@@ -87,7 +88,8 @@ FloatingWindow {
     property bool editingText
     property point textPos
 
-    property bool panelVisible: true
+    // The paint panel starts put away, as swappy's did; Ctrl+B brings it out.
+    property bool panelVisible: false
     // Single key shortcuts stand down while something is being typed.
     readonly property bool typing: textEditor.activeFocus || panel.typing
 
@@ -372,8 +374,7 @@ FloatingWindow {
         const maxW = (screen?.width ?? 1920) * 0.75;
         const maxH = (screen?.height ?? 1080) * 0.75 - toolbar.implicitHeight;
         const s = imageWidth > 0 && imageHeight > 0 ? Math.min(1, maxW / imageWidth, maxH / imageHeight) : 1;
-        const panelWidth = panelVisible ? panel.implicitWidth + contentItem.Tokens.padding.large : 0;
-        return Math.max(toolbar.implicitWidth, Math.round(imageWidth * s) + panelWidth) + contentItem.Tokens.padding.large * 2;
+        return Math.max(toolbar.implicitWidth, Math.round(imageWidth * s)) + contentItem.Tokens.padding.large * 2;
     }
     implicitHeight: {
         const maxW = (screen?.width ?? 1920) * 0.75;
@@ -732,7 +733,7 @@ FloatingWindow {
                 case "blur":
                     return Tr.tr("Drag over what should be hidden");
                 }
-                return Tr.tr("Paste or drop images to add them");
+                return "";
             }
             color: Colours.palette.m3onSurfaceVariant
             font: Tokens.font.label.medium
@@ -752,22 +753,11 @@ FloatingWindow {
         }
     }
 
-    PaintPanel {
-        id: panel
-
-        anchors.top: toolbar.bottom
-        anchors.left: parent.left
-        anchors.bottom: parent.bottom
-        anchors.margins: Tokens.padding.large
-        visible: root.panelVisible
-        editor: root
-    }
-
     Item {
         id: view
 
         anchors.top: toolbar.bottom
-        anchors.left: root.panelVisible ? panel.right : parent.left
+        anchors.left: parent.left
         anchors.right: parent.right
         anchors.bottom: parent.bottom
         anchors.topMargin: Tokens.padding.small
@@ -1214,6 +1204,35 @@ FloatingWindow {
                     }
                 }
             }
+        }
+    }
+
+    // Slides in from the window's left edge over the capture rather than pushing the
+    // capture aside, and slides back out past the edge when put away.
+    PaintPanel {
+        id: panel
+
+        anchors.top: toolbar.bottom
+        anchors.bottom: parent.bottom
+        anchors.topMargin: Tokens.padding.small
+        anchors.bottomMargin: Tokens.padding.large
+        x: root.panelVisible ? Tokens.padding.large : -width - Tokens.padding.large
+        // Kept off while fully out of sight, so it can't catch clicks or keyboard focus.
+        visible: x + width > 0
+        editor: root
+
+        Behavior on x {
+            Anim {
+                type: Anim.DefaultSpatial
+            }
+        }
+
+        // Lifts the panel off the capture it sits over.
+        Elevation {
+            z: -1
+            anchors.fill: parent
+            radius: parent.radius
+            level: 2
         }
     }
 }
