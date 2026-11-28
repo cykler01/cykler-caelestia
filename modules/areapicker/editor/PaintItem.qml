@@ -7,7 +7,8 @@ import QtQuick.Shapes
 // NOTE(fork): draws one annotation in the screenshot editor, in capture pixels.
 //
 // An annotation is a plain object so the editor can snapshot it for undo:
-//   kind      brush | text | rectangle | ellipse | arrow | blur
+//   kind      brush | text | rectangle | ellipse | arrow | blur, or cut for the
+//             outline the cut tool is drawing, which is never kept as an annotation
 //   colour    the colour it is drawn in, transparency included
 //   width     stroke width
 //   fill      whether a rectangle or ellipse is filled
@@ -23,6 +24,8 @@ Item {
     // What a blur samples: the capture and the images on it, never the annotations,
     // so a blur can't end up sampling itself.
     property Item blurSource
+    // Width of the cut tool's outline, in capture pixels, so it stays thin on screen.
+    property real lineWidth: 2
 
     readonly property string kind: paint?.kind ?? ""
     readonly property real boxLeft: Math.min(paint?.x1 ?? 0, paint?.x2 ?? 0)
@@ -49,6 +52,8 @@ Item {
                 return arrowComp;
             case "blur":
                 return blurComp;
+            case "cut":
+                return cutComp;
             }
             return null;
         }
@@ -191,6 +196,32 @@ Item {
                 PathLine {
                     x: root.paint.x2
                     y: root.paint.y2
+                }
+            }
+        }
+    }
+
+    // A dashed loop, closed back to where it started, so it is clear what will be kept.
+    Component {
+        id: cutComp
+
+        Shape {
+            preferredRendererType: Shape.CurveRenderer
+
+            ShapePath {
+                strokeColor: "white"
+                strokeWidth: root.lineWidth
+                strokeStyle: ShapePath.DashLine
+                dashPattern: [4, 3]
+                fillColor: Qt.alpha("white", 0.15)
+                joinStyle: ShapePath.RoundJoin
+
+                PathPolyline {
+                    path: {
+                        const pts = root.paint.points.map(p => Qt.point(p[0], p[1]));
+                        pts.push(pts[0]);
+                        return pts;
+                    }
                 }
             }
         }

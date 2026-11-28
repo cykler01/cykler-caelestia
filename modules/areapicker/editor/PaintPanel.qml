@@ -74,6 +74,10 @@ StyledRect {
                         {
                             tool: "blur",
                             icon: "blur_on"
+                        },
+                        {
+                            tool: "cut",
+                            icon: "content_cut"
                         }
                     ]
 

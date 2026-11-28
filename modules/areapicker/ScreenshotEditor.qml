@@ -1,7 +1,9 @@
 pragma ComponentBehavior: Bound
 
 import QtQuick
+import QtQuick.Effects
 import QtQuick.Layouts
+import QtQuick.Shapes
 import Quickshell
 import Quickshell.Io
 import Caelestia
@@ -109,7 +111,12 @@ FloatingWindow {
                 ox: o.ox,
                 oy: o.oy,
                 ow: o.ow,
-                oh: o.oh
+                oh: o.oh,
+                sx: o.sx,
+                sy: o.sy,
+                sw: o.sw,
+                sh: o.sh,
+                mask: o.mask
             });
         }
         return {
@@ -170,7 +177,15 @@ FloatingWindow {
             ox: 0,
             oy: 0,
             ow: 0,
-            oh: 0
+            oh: 0,
+            // The part of the image shown, as fractions of its full size.
+            sx: 0,
+            sy: 0,
+            sw: 1,
+            sh: 1,
+            // The outline it was cut out along, as JSON [u, v] pairs in fractions of its
+            // full size, or empty while it is uncut.
+            mask: ""
         });
         root.selected = overlayModel.count - 1;
     }
@@ -187,6 +202,65 @@ FloatingWindow {
             ow: w,
             oh: h
         });
+    }
+
+    // Cuts a pasted image out along an outline drawn around part of it, given in scene
+    // pixels. The image under where the outline started is cut, or failing that the
+    // topmost one it overlaps. Its box shrinks to fit the cut, and everything outside
+    // the outline is dropped, though only until the cut is undone.
+    function cutOut(points: var): bool {
+        if (points.length < 3)
+            return false;
+
+        const xs = points.map(p => p[0]);
+        const ys = points.map(p => p[1]);
+        const minX = Math.min(...xs), maxX = Math.max(...xs);
+        const minY = Math.min(...ys), maxY = Math.max(...ys);
+        if (maxX - minX < 2 || maxY - minY < 2)
+            return false;
+
+        const within = (o, x, y) => x >= o.ox && x <= o.ox + o.ow && y >= o.oy && y <= o.oy + o.oh;
+        let index = -1;
+        for (let i = overlayModel.count - 1; i >= 0 && index < 0; i--)
+            if (within(overlayModel.get(i), points[0][0], points[0][1]))
+                index = i;
+        for (let i = overlayModel.count - 1; i >= 0 && index < 0; i--) {
+            const o = overlayModel.get(i);
+            if (minX < o.ox + o.ow && maxX > o.ox && minY < o.oy + o.oh && maxY > o.oy)
+                index = i;
+        }
+        if (index < 0)
+            return false;
+
+        const o = overlayModel.get(index);
+        if (o.ow <= 0 || o.oh <= 0)
+            return false;
+
+        // Into fractions of the image's full size, which is what the outline is kept in.
+        const outline = points.map(p => [o.sx + (p[0] - o.ox) / o.ow * o.sw, o.sy + (p[1] - o.oy) / o.oh * o.sh]);
+        const us = outline.map(p => p[0]);
+        const vs = outline.map(p => p[1]);
+        const sx = Math.max(o.sx, Math.min(...us));
+        const sy = Math.max(o.sy, Math.min(...vs));
+        const sw = Math.min(o.sx + o.sw, Math.max(...us)) - sx;
+        const sh = Math.min(o.sy + o.sh, Math.max(...vs)) - sy;
+        if (sw <= 0 || sh <= 0)
+            return false;
+
+        root.pushUndo();
+        overlayModel.set(index, {
+            ox: o.ox + (sx - o.sx) / o.sw * o.ow,
+            oy: o.oy + (sy - o.sy) / o.sh * o.oh,
+            ow: sw / o.sw * o.ow,
+            oh: sh / o.sh * o.oh,
+            sx: sx,
+            sy: sy,
+            sw: sw,
+            sh: sh,
+            mask: JSON.stringify(outline)
+        });
+        root.select(index);
+        return true;
     }
 
     function removeSelected(): void {
@@ -557,6 +631,11 @@ FloatingWindow {
         enabled: !root.typing
         onActivated: root.setTool("blur")
     }
+    Shortcut {
+        sequence: "L"
+        enabled: !root.typing
+        onActivated: root.setTool("cut")
+    }
 
     // Colours, on the capitals
     Shortcut {
@@ -732,6 +811,8 @@ FloatingWindow {
                     return Tr.tr("Drag to draw, Ctrl to draw from the centre");
                 case "blur":
                     return Tr.tr("Drag over what should be hidden");
+                case "cut":
+                    return Tr.tr("Draw around the part of a pasted image to keep");
                 }
                 return "";
             }
@@ -843,30 +924,82 @@ FloatingWindow {
                                 required property real oy
                                 required property real ow
                                 required property real oh
+                                required property real sx
+                                required property real sy
+                                required property real sw
+                                required property real sh
+                                required property string mask
 
                                 readonly property bool isSelected: root.selected === index && !root.exporting
+                                // The cut outline in this item's own coordinates.
+                                readonly property list<point> outline: {
+                                    if (!mask)
+                                        return [];
+                                    return JSON.parse(mask).map(p => Qt.point((p[0] - sx) / sw * width, (p[1] - sy) / sh * height));
+                                }
 
                                 x: ox
                                 y: oy
                                 width: ow
                                 height: oh
 
-                                Image {
+                                // Only the part of the image that is kept: blown up so that part
+                                // fills this item, and clipped to the outline once it is cut.
+                                Item {
+                                    id: overlayContent
+
                                     anchors.fill: parent
-                                    source: overlay.src
-                                    asynchronous: true
-                                    smooth: true
-                                    mipmap: true
-                                    onStatusChanged: {
-                                        if (status === Image.Ready && overlay.ow <= 0)
-                                            root.place(overlay.index, implicitWidth, implicitHeight);
-                                        else if (status === Image.Error) {
-                                            Toaster.toast(Tr.tr("Failed to add image"), Tr.tr("The image could not be loaded"), "broken_image", Toast.Error);
-                                            const i = overlay.index;
-                                            Qt.callLater(() => {
-                                                overlayModel.remove(i);
-                                                root.selected = -1;
-                                            });
+                                    clip: true
+                                    layer.enabled: overlay.outline.length > 2
+                                    layer.smooth: true
+                                    layer.effect: MultiEffect {
+                                        maskEnabled: true
+                                        maskSource: outlineMask
+                                        // A soft step either side of the outline smooths its edge.
+                                        maskThresholdMin: 0.5
+                                        maskSpreadAtMin: 1
+                                    }
+
+                                    Image {
+                                        width: overlay.width / overlay.sw
+                                        height: overlay.height / overlay.sh
+                                        x: -overlay.sx * width
+                                        y: -overlay.sy * height
+                                        source: overlay.src
+                                        asynchronous: true
+                                        smooth: true
+                                        mipmap: true
+                                        onStatusChanged: {
+                                            if (status === Image.Ready && overlay.ow <= 0)
+                                                root.place(overlay.index, implicitWidth, implicitHeight);
+                                            else if (status === Image.Error) {
+                                                Toaster.toast(Tr.tr("Failed to add image"), Tr.tr("The image could not be loaded"), "broken_image", Toast.Error);
+                                                const i = overlay.index;
+                                                Qt.callLater(() => {
+                                                    overlayModel.remove(i);
+                                                    root.selected = -1;
+                                                });
+                                            }
+                                        }
+                                    }
+                                }
+
+                                // The outline as a solid shape, for overlayContent's mask.
+                                Shape {
+                                    id: outlineMask
+
+                                    anchors.fill: parent
+                                    visible: false
+                                    layer.enabled: overlay.outline.length > 2
+                                    preferredRendererType: Shape.CurveRenderer
+
+                                    ShapePath {
+                                        fillColor: "white"
+                                        strokeColor: "transparent"
+                                        strokeWidth: 0
+
+                                        PathPolyline {
+                                            path: overlay.outline
                                         }
                                     }
                                 }
@@ -991,6 +1124,7 @@ FloatingWindow {
                     PaintItem {
                         paint: root.draft
                         blurSource: underLayer
+                        lineWidth: scene.lineWidth
                     }
 
                     // Where the text tool types; it becomes an annotation once finished.
@@ -1045,7 +1179,7 @@ FloatingWindow {
                             const d = root.draft;
                             if (!d)
                                 return;
-                            if (d.kind === "brush") {
+                            if (d.kind === "brush" || d.kind === "cut") {
                                 // Skip points closer together than a screen pixel.
                                 const last = d.points[d.points.length - 1];
                                 if (Math.hypot(mouse.x - last[0], mouse.y - last[1]) < 1 / root.fit)
@@ -1071,6 +1205,11 @@ FloatingWindow {
                             const w = Math.abs(d.x2 - d.x1);
                             const h = Math.abs(d.y2 - d.y1);
                             // Shapes need some size to them; a brush click still leaves a dot.
+                            if (d.kind === "cut") {
+                                if (!root.cutOut(d.points))
+                                    Toaster.toast(Tr.tr("Nothing to cut"), Tr.tr("Draw around part of a pasted image to cut it out"), "content_cut", Toast.Warning);
+                                return;
+                            }
                             if (d.kind === "brush" || (d.kind === "arrow" ? Math.hypot(w, h) >= 1 : w >= 1 && h >= 1))
                                 root.addPaint(d);
                         }
