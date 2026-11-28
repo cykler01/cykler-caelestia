@@ -12,13 +12,20 @@ import qs.components.controls
 import qs.components.filedialog
 import qs.services
 import qs.utils
+import qs.modules.areapicker.editor
 
 // NOTE(fork): the shell's own screenshot editor, opened from the screenshot preview.
 //
-// Everything is laid out in the capture's own pixels: the scene is the full capture
-// with any pasted images on top of it, and the crop picks the part of the scene that
-// is shown and exported. Nothing is flattened until the result is saved or copied, so
-// pasted images can be moved, resized or removed and the crop changed at any time.
+// It draws with a brush, text, rectangles, ellipses, arrows and blur, in red, green,
+// blue or a custom colour, crops, and takes images pasted or dropped on top of the
+// capture.
+//
+// Everything is laid out in the capture's own pixels: the scene is the full capture,
+// the images on top of it, then the annotations, and the crop picks the part of the
+// scene that is shown and exported. Nothing is flattened until the result is saved or
+// copied, so pasted images can be moved, resized or removed and the crop changed at
+// any time. Annotations are drawn over the images, and a blur hides the capture and
+// images beneath it but not other annotations.
 //
 // The window owns the capture's temporary file, and any pasted from the clipboard,
 // and clears them all when it closes.
@@ -55,6 +62,35 @@ FloatingWindow {
     // Hides the selection and crop handles while the scene is being grabbed.
     property bool exporting
 
+    // The tool in use: select (moves pasted images), brush, text, rectangle, ellipse,
+    // arrow or blur. Starts on the brush.
+    property string tool: "brush"
+    // Which of the swatches is drawn with: red, green, blue or custom.
+    property string colourMode: "red"
+    property color customColour: Qt.rgba(192 / 255, 125 / 255, 17 / 255, 1)
+    property real strokeSize: 5
+    property real textSize: 20
+    property bool fill
+    // Whether what is drawn is see-through, and how much (a percentage).
+    property bool transparent
+    property real transparency: 50
+    readonly property color paintColour: {
+        const c = swatchColour(colourMode);
+        return transparent ? Qt.alpha(c, (100 - transparency) / 100) : c;
+    }
+
+    // The annotations, oldest first (see editor/PaintItem.qml for their shape), and
+    // the one being drawn, if any.
+    property var paints: []
+    property var draft: null
+    // Where the text being typed goes, while the text tool is typing.
+    property bool editingText
+    property point textPos
+
+    property bool panelVisible: true
+    // Single key shortcuts stand down while something is being typed.
+    readonly property bool typing: textEditor.activeFocus || panel.typing
+
     // Snapshots of the crop and the pasted images, for undo and redo.
     property var undoStack: []
     property var redoStack: []
@@ -76,13 +112,15 @@ FloatingWindow {
         }
         return {
             crop: Qt.rect(root.crop.x, root.crop.y, root.crop.width, root.crop.height),
-            overlays: overlays
+            overlays: overlays,
+            paints: root.paints
         };
     }
 
     function restore(state: var): void {
         root.selected = -1;
         root.crop = state.crop;
+        root.paints = state.paints;
         overlayModel.clear();
         for (const o of state.overlays)
             overlayModel.append(o);
@@ -95,6 +133,7 @@ FloatingWindow {
     }
 
     function undo(): void {
+        root.commitText();
         if (root.cropping || root.undoStack.length === 0)
             return;
         const stack = root.undoStack.slice();
@@ -105,6 +144,7 @@ FloatingWindow {
     }
 
     function redo(): void {
+        root.commitText();
         if (root.cropping || root.redoStack.length === 0)
             return;
         const stack = root.redoStack.slice();
@@ -120,6 +160,8 @@ FloatingWindow {
             return;
         if (root.cropping)
             root.applyCrop();
+        // A new image is there to be put in place, so pick up the tool that moves it.
+        root.setTool("select");
         root.pushUndo();
         overlayModel.append({
             src: Qt.resolvedUrl(path).toString(),
@@ -169,7 +211,79 @@ FloatingWindow {
         pasteProcess.running = true;
     }
 
+    function swatchColour(mode: string): color {
+        switch (mode) {
+        case "red":
+            return Qt.rgba(1, 0, 0, 1);
+        case "green":
+            return Qt.rgba(0, 1, 0, 1);
+        case "blue":
+            return Qt.rgba(0, 0, 1, 1);
+        }
+        return root.customColour;
+    }
+
+    function setTool(tool: string): void {
+        root.commitText();
+        if (root.cropping)
+            root.applyCrop();
+        if (tool !== "select")
+            root.selected = -1;
+        root.tool = tool;
+    }
+
+    // Steps the stroke size between 1 and 50, or the text size between 10 and 50.
+    function changeSize(step: int, text: bool): void {
+        if (text)
+            root.textSize = Math.max(10, Math.min(50, root.textSize + step));
+        else
+            root.strokeSize = Math.max(1, Math.min(50, root.strokeSize + step));
+    }
+
+    function clearPaints(): void {
+        root.commitText();
+        if (root.paints.length === 0)
+            return;
+        root.pushUndo();
+        root.paints = [];
+    }
+
+    function addPaint(paint: var): void {
+        root.pushUndo();
+        root.paints = root.paints.concat([paint]);
+    }
+
+    function startText(x: real, y: real): void {
+        root.commitText();
+        root.textPos = Qt.point(x, y);
+        textEditor.text = "";
+        root.editingText = true;
+        textEditor.forceActiveFocus();
+    }
+
+    // Turns the text being typed into an annotation; empty text is simply dropped.
+    function commitText(): void {
+        if (!root.editingText)
+            return;
+        const text = textEditor.text;
+        root.editingText = false;
+        textEditor.focus = false;
+        if (text.trim())
+            root.addPaint({
+                kind: "text",
+                colour: textEditor.color.toString(),
+                x1: root.textPos.x,
+                y1: root.textPos.y,
+                x2: root.textPos.x,
+                y2: root.textPos.y,
+                text: text,
+                fontSize: textEditor.font.pixelSize
+            });
+        textEditor.text = "";
+    }
+
     function startCrop(): void {
+        root.commitText();
         if (root.cropping)
             return;
         root.selected = -1;
@@ -198,6 +312,8 @@ FloatingWindow {
     // Flattens the kept part of the scene into a png at the capture's own resolution
     // and hands its path to the callback.
     function exportTo(path: string, done: var): void {
+        root.commitText();
+        root.draft = null;
         if (root.cropping)
             root.applyCrop();
         root.selected = -1;
@@ -238,18 +354,6 @@ FloatingWindow {
         });
     }
 
-    // Hands the flattened result to satty for drawing tools this editor doesn't have.
-    function openInSatty(): void {
-        root.exportTo(root.exportPath(), path => {
-            if (!path) {
-                Toaster.toast(Tr.tr("Failed to open screenshot"), "", "error", Toast.Error);
-                return;
-            }
-            Quickshell.execDetached(["satty", "--filename", path, "--output-filename", `${Paths.desktop}/Screenshot %Y-%m-%d %H.%M.%S.png`, "--copy-command", "wl-copy", "--early-exit"]);
-            root.visible = false;
-        });
-    }
-
     function cleanUp(): void {
         if (root.capturePath)
             CUtils.deleteFile(Qt.resolvedUrl(root.capturePath));
@@ -268,7 +372,8 @@ FloatingWindow {
         const maxW = (screen?.width ?? 1920) * 0.75;
         const maxH = (screen?.height ?? 1080) * 0.75 - toolbar.implicitHeight;
         const s = imageWidth > 0 && imageHeight > 0 ? Math.min(1, maxW / imageWidth, maxH / imageHeight) : 1;
-        return Math.max(toolbar.implicitWidth, Math.round(imageWidth * s)) + contentItem.Tokens.padding.large * 2;
+        const panelWidth = panelVisible ? panel.implicitWidth + contentItem.Tokens.padding.large : 0;
+        return Math.max(toolbar.implicitWidth, Math.round(imageWidth * s) + panelWidth) + contentItem.Tokens.padding.large * 2;
     }
     implicitHeight: {
         const maxW = (screen?.width ?? 1920) * 0.75;
@@ -353,12 +458,15 @@ FloatingWindow {
         onAccepted: path => root.addImage(path)
     }
 
+    // Keybindings. Single keys stand down while text is being typed; see `typing`.
     Shortcut {
         sequences: [StandardKey.Paste]
+        enabled: !root.typing
         onActivated: root.paste()
     }
     Shortcut {
         sequences: [StandardKey.Copy]
+        enabled: !root.typing
         onActivated: root.copy()
     }
     Shortcut {
@@ -367,19 +475,27 @@ FloatingWindow {
     }
     Shortcut {
         sequences: [StandardKey.Undo]
+        enabled: !root.typing
         onActivated: root.undo()
     }
     Shortcut {
         sequences: [StandardKey.Redo, "Ctrl+Y"]
+        enabled: !root.typing
         onActivated: root.redo()
     }
     Shortcut {
-        sequences: [StandardKey.Delete, "Backspace"]
-        onActivated: root.removeSelected()
+        sequence: "Ctrl+B"
+        onActivated: root.panelVisible = !root.panelVisible
     }
     Shortcut {
-        sequence: "C"
+        sequence: "Ctrl+R"
+        enabled: !root.typing
         onActivated: root.cropping ? root.applyCrop() : root.startCrop()
+    }
+    Shortcut {
+        sequences: [StandardKey.Delete, "Backspace"]
+        enabled: !root.typing
+        onActivated: root.removeSelected()
     }
     Shortcut {
         sequences: ["Return", "Enter"]
@@ -388,6 +504,7 @@ FloatingWindow {
     }
     Shortcut {
         sequence: "Escape"
+        enabled: !root.typing
         onActivated: {
             if (root.cropping)
                 root.cancelCrop();
@@ -398,8 +515,105 @@ FloatingWindow {
         }
     }
     Shortcut {
-        sequences: [StandardKey.Close]
+        sequences: ["Q", StandardKey.Close]
+        enabled: !root.typing
         onActivated: root.visible = false
+    }
+
+    // Tools
+    Shortcut {
+        sequence: "V"
+        enabled: !root.typing
+        onActivated: root.setTool("select")
+    }
+    Shortcut {
+        sequence: "B"
+        enabled: !root.typing
+        onActivated: root.setTool("brush")
+    }
+    Shortcut {
+        sequences: ["E", "T"]
+        enabled: !root.typing
+        onActivated: root.setTool("text")
+    }
+    Shortcut {
+        sequences: ["R", "S"]
+        enabled: !root.typing
+        onActivated: root.setTool("rectangle")
+    }
+    Shortcut {
+        sequences: ["C", "O"]
+        enabled: !root.typing
+        onActivated: root.setTool("ellipse")
+    }
+    Shortcut {
+        sequence: "A"
+        enabled: !root.typing
+        onActivated: root.setTool("arrow")
+    }
+    Shortcut {
+        sequence: "D"
+        enabled: !root.typing
+        onActivated: root.setTool("blur")
+    }
+
+    // Colours, on the capitals
+    Shortcut {
+        sequence: "Shift+R"
+        enabled: !root.typing
+        onActivated: root.colourMode = "red"
+    }
+    Shortcut {
+        sequence: "Shift+G"
+        enabled: !root.typing
+        onActivated: root.colourMode = "green"
+    }
+    Shortcut {
+        sequence: "Shift+B"
+        enabled: !root.typing
+        onActivated: root.colourMode = "blue"
+    }
+    Shortcut {
+        sequence: "Shift+C"
+        enabled: !root.typing
+        onActivated: root.colourMode = "custom"
+    }
+
+    // Sizes step the text size while the text tool is out, and the stroke otherwise.
+    Shortcut {
+        sequences: ["-", "Shift+_"]
+        enabled: !root.typing
+        onActivated: root.changeSize(-1, root.tool === "text")
+    }
+    Shortcut {
+        sequences: ["+", "Shift+=", "Shift++"]
+        enabled: !root.typing
+        onActivated: root.changeSize(1, root.tool === "text")
+    }
+    Shortcut {
+        sequence: "="
+        enabled: !root.typing
+        onActivated: {
+            if (root.tool === "text")
+                root.textSize = 20;
+            else
+                root.strokeSize = 5;
+        }
+    }
+    Shortcut {
+        sequence: "F"
+        enabled: !root.typing
+        onActivated: root.fill = !root.fill
+    }
+    Shortcut {
+        sequence: "Shift+T"
+        enabled: !root.typing
+        onActivated: root.transparent = !root.transparent
+    }
+    Shortcut {
+        sequences: ["X", "K"]
+        enabled: !root.typing
+        onActivated: root.clearPaints()
     }
 
     RowLayout {
@@ -410,6 +624,15 @@ FloatingWindow {
         anchors.right: parent.right
         anchors.margins: Tokens.padding.large
         spacing: Tokens.spacing.small
+
+        IconButton {
+            icon: "side_navigation"
+            type: IconButton.Tonal
+            isToggle: true
+            optimistic: false
+            checked: root.panelVisible
+            onClicked: root.panelVisible = !root.panelVisible
+        }
 
         IconButton {
             icon: "crop"
@@ -493,18 +716,27 @@ FloatingWindow {
         StyledText {
             Layout.fillWidth: true
             Layout.leftMargin: Tokens.padding.small
-            text: root.cropping ? Tr.tr("Drag to choose the area to keep, Enter to apply") : Tr.tr("Paste or drop images to add them")
+            text: {
+                if (root.cropping)
+                    return Tr.tr("Drag to choose the area to keep, Enter to apply");
+                if (root.editingText)
+                    return Tr.tr("Type, then Escape or click elsewhere to finish");
+                switch (root.tool) {
+                case "select":
+                    return Tr.tr("Drag images to move them, Shift to resize freely");
+                case "text":
+                    return Tr.tr("Click where the text should go");
+                case "rectangle":
+                case "ellipse":
+                    return Tr.tr("Drag to draw, Ctrl to draw from the centre");
+                case "blur":
+                    return Tr.tr("Drag over what should be hidden");
+                }
+                return Tr.tr("Paste or drop images to add them");
+            }
             color: Colours.palette.m3onSurfaceVariant
             font: Tokens.font.label.medium
             elide: Text.ElideRight
-        }
-
-        // Satty has the drawing tools: arrows, shapes, text, blur and so on.
-        IconTextButton {
-            icon: "draw"
-            text: Tr.tr("Annotate")
-            type: TextButton.Tonal
-            onClicked: root.openInSatty()
         }
 
         IconButton {
@@ -520,11 +752,22 @@ FloatingWindow {
         }
     }
 
+    PaintPanel {
+        id: panel
+
+        anchors.top: toolbar.bottom
+        anchors.left: parent.left
+        anchors.bottom: parent.bottom
+        anchors.margins: Tokens.padding.large
+        visible: root.panelVisible
+        editor: root
+    }
+
     Item {
         id: view
 
         anchors.top: toolbar.bottom
-        anchors.left: parent.left
+        anchors.left: root.panelVisible ? panel.right : parent.left
         anchors.right: parent.right
         anchors.bottom: parent.bottom
         anchors.topMargin: Tokens.padding.small
@@ -580,159 +823,266 @@ FloatingWindow {
                     width: root.imageWidth
                     height: root.imageHeight
 
-                    Image {
-                        id: baseImage
+                    // The capture and the images on it.
+                    Item {
+                        id: underLayer
 
                         anchors.fill: parent
-                        source: root.capturePath ? Qt.resolvedUrl(root.capturePath) : ""
-                        // Loaded up front so the window can open at the capture's size.
-                        asynchronous: false
-                        cache: false
-                        smooth: true
-                        mipmap: true
-                    }
 
-                    Repeater {
-                        model: overlayModel
+                        Image {
+                            id: baseImage
 
-                        delegate: Item {
-                            id: overlay
+                            anchors.fill: parent
+                            source: root.capturePath ? Qt.resolvedUrl(root.capturePath) : ""
+                            // Loaded up front so the window can open at the capture's size.
+                            asynchronous: false
+                            cache: false
+                            smooth: true
+                            mipmap: true
+                        }
 
-                            required property int index
-                            required property string src
-                            required property real ox
-                            required property real oy
-                            required property real ow
-                            required property real oh
+                        Repeater {
+                            model: overlayModel
 
-                            readonly property bool isSelected: root.selected === index && !root.exporting
+                            delegate: Item {
+                                id: overlay
 
-                            x: ox
-                            y: oy
-                            width: ow
-                            height: oh
+                                required property int index
+                                required property string src
+                                required property real ox
+                                required property real oy
+                                required property real ow
+                                required property real oh
 
-                            Image {
-                                anchors.fill: parent
-                                source: overlay.src
-                                asynchronous: true
-                                smooth: true
-                                mipmap: true
-                                onStatusChanged: {
-                                    if (status === Image.Ready && overlay.ow <= 0)
-                                        root.place(overlay.index, implicitWidth, implicitHeight);
-                                    else if (status === Image.Error) {
-                                        Toaster.toast(Tr.tr("Failed to add image"), Tr.tr("The image could not be loaded"), "broken_image", Toast.Error);
-                                        const i = overlay.index;
-                                        Qt.callLater(() => {
-                                            overlayModel.remove(i);
-                                            root.selected = -1;
-                                        });
-                                    }
-                                }
-                            }
+                                readonly property bool isSelected: root.selected === index && !root.exporting
 
-                            // Dragging the image moves it.
-                            MouseArea {
-                                property point start
-                                property rect startRect
-                                property var before
-                                property bool moved
+                                x: ox
+                                y: oy
+                                width: ow
+                                height: oh
 
-                                anchors.fill: parent
-                                enabled: !root.cropping
-                                cursorShape: pressed ? Qt.ClosedHandCursor : Qt.OpenHandCursor
-                                onPressed: mouse => { // qmllint disable signal-handler-parameters
-                                    before = root.snapshot();
-                                    moved = false;
-                                    start = mapToItem(scene, mouse.x, mouse.y);
-                                    startRect = Qt.rect(overlay.ox, overlay.oy, overlay.ow, overlay.oh);
-                                    root.select(overlay.index);
-                                }
-                                onPositionChanged: mouse => { // qmllint disable signal-handler-parameters
-                                    const p = mapToItem(scene, mouse.x, mouse.y);
-                                    moved = true;
-                                    overlayModel.set(root.selected, {
-                                        ox: startRect.x + p.x - start.x,
-                                        oy: startRect.y + p.y - start.y
-                                    });
-                                }
-                                onReleased: {
-                                    if (moved)
-                                        root.pushUndo(before);
-                                }
-                            }
-
-                            Rectangle {
-                                anchors.fill: parent
-                                visible: overlay.isSelected
-                                color: "transparent"
-                                border.width: scene.lineWidth
-                                border.color: Colours.palette.m3primary
-                            }
-
-                            // Corner handles resize the image, keeping its shape unless
-                            // shift is held.
-                            Repeater {
-                                model: [[-1, -1], [1, -1], [-1, 1], [1, 1]]
-
-                                delegate: Rectangle {
-                                    id: handle
-
-                                    required property var modelData
-
-                                    visible: overlay.isSelected
-                                    x: (modelData[0] < 0 ? 0 : overlay.width) - width / 2
-                                    y: (modelData[1] < 0 ? 0 : overlay.height) - height / 2
-                                    width: scene.handleSize
-                                    height: scene.handleSize
-                                    radius: width / 2
-                                    color: Colours.palette.m3primary
-                                    border.width: scene.lineWidth
-                                    border.color: Colours.palette.m3onPrimary
-
-                                    MouseArea {
-                                        property point start
-                                        property rect startRect
-                                        property var before
-                                        property bool moved
-
-                                        anchors.fill: parent
-                                        anchors.margins: -scene.handleSize / 2
-                                        cursorShape: handle.modelData[0] === handle.modelData[1] ? Qt.SizeFDiagCursor : Qt.SizeBDiagCursor
-                                        onPressed: mouse => { // qmllint disable signal-handler-parameters
-                                            before = root.snapshot();
-                                            moved = false;
-                                            start = mapToItem(scene, mouse.x, mouse.y);
-                                            startRect = Qt.rect(overlay.ox, overlay.oy, overlay.ow, overlay.oh);
-                                        }
-                                        onPositionChanged: mouse => { // qmllint disable signal-handler-parameters
-                                            const p = mapToItem(scene, mouse.x, mouse.y);
-                                            const sx = handle.modelData[0];
-                                            const sy = handle.modelData[1];
-                                            const minSize = scene.handleSize;
-                                            let w = Math.max(minSize, startRect.width + sx * (p.x - start.x));
-                                            let h = Math.max(minSize, startRect.height + sy * (p.y - start.y));
-                                            if (!(mouse.modifiers & Qt.ShiftModifier)) {
-                                                const s = Math.max(w / startRect.width, h / startRect.height);
-                                                w = startRect.width * s;
-                                                h = startRect.height * s;
-                                            }
-                                            moved = true;
-                                            overlayModel.set(overlay.index, {
-                                                ox: sx > 0 ? startRect.x : startRect.x + startRect.width - w,
-                                                oy: sy > 0 ? startRect.y : startRect.y + startRect.height - h,
-                                                ow: w,
-                                                oh: h
+                                Image {
+                                    anchors.fill: parent
+                                    source: overlay.src
+                                    asynchronous: true
+                                    smooth: true
+                                    mipmap: true
+                                    onStatusChanged: {
+                                        if (status === Image.Ready && overlay.ow <= 0)
+                                            root.place(overlay.index, implicitWidth, implicitHeight);
+                                        else if (status === Image.Error) {
+                                            Toaster.toast(Tr.tr("Failed to add image"), Tr.tr("The image could not be loaded"), "broken_image", Toast.Error);
+                                            const i = overlay.index;
+                                            Qt.callLater(() => {
+                                                overlayModel.remove(i);
+                                                root.selected = -1;
                                             });
                                         }
-                                        onReleased: {
-                                            if (moved)
-                                                root.pushUndo(before);
+                                    }
+                                }
+
+                                // Dragging the image moves it.
+                                MouseArea {
+                                    property point start
+                                    property rect startRect
+                                    property var before
+                                    property bool moved
+
+                                    anchors.fill: parent
+                                    enabled: root.tool === "select" && !root.cropping
+                                    cursorShape: pressed ? Qt.ClosedHandCursor : Qt.OpenHandCursor
+                                    onPressed: mouse => { // qmllint disable signal-handler-parameters
+                                        before = root.snapshot();
+                                        moved = false;
+                                        start = mapToItem(scene, mouse.x, mouse.y);
+                                        startRect = Qt.rect(overlay.ox, overlay.oy, overlay.ow, overlay.oh);
+                                        root.select(overlay.index);
+                                    }
+                                    onPositionChanged: mouse => { // qmllint disable signal-handler-parameters
+                                        const p = mapToItem(scene, mouse.x, mouse.y);
+                                        moved = true;
+                                        overlayModel.set(root.selected, {
+                                            ox: startRect.x + p.x - start.x,
+                                            oy: startRect.y + p.y - start.y
+                                        });
+                                    }
+                                    onReleased: {
+                                        if (moved)
+                                            root.pushUndo(before);
+                                    }
+                                }
+
+                                Rectangle {
+                                    anchors.fill: parent
+                                    visible: overlay.isSelected
+                                    color: "transparent"
+                                    border.width: scene.lineWidth
+                                    border.color: Colours.palette.m3primary
+                                }
+
+                                // Corner handles resize the image, keeping its shape unless
+                                // shift is held.
+                                Repeater {
+                                    model: [[-1, -1], [1, -1], [-1, 1], [1, 1]]
+
+                                    delegate: Rectangle {
+                                        id: handle
+
+                                        required property var modelData
+
+                                        visible: overlay.isSelected
+                                        x: (modelData[0] < 0 ? 0 : overlay.width) - width / 2
+                                        y: (modelData[1] < 0 ? 0 : overlay.height) - height / 2
+                                        width: scene.handleSize
+                                        height: scene.handleSize
+                                        radius: width / 2
+                                        color: Colours.palette.m3primary
+                                        border.width: scene.lineWidth
+                                        border.color: Colours.palette.m3onPrimary
+
+                                        MouseArea {
+                                            property point start
+                                            property rect startRect
+                                            property var before
+                                            property bool moved
+
+                                            anchors.fill: parent
+                                            anchors.margins: -scene.handleSize / 2
+                                            cursorShape: handle.modelData[0] === handle.modelData[1] ? Qt.SizeFDiagCursor : Qt.SizeBDiagCursor
+                                            onPressed: mouse => { // qmllint disable signal-handler-parameters
+                                                before = root.snapshot();
+                                                moved = false;
+                                                start = mapToItem(scene, mouse.x, mouse.y);
+                                                startRect = Qt.rect(overlay.ox, overlay.oy, overlay.ow, overlay.oh);
+                                            }
+                                            onPositionChanged: mouse => { // qmllint disable signal-handler-parameters
+                                                const p = mapToItem(scene, mouse.x, mouse.y);
+                                                const sx = handle.modelData[0];
+                                                const sy = handle.modelData[1];
+                                                const minSize = scene.handleSize;
+                                                let w = Math.max(minSize, startRect.width + sx * (p.x - start.x));
+                                                let h = Math.max(minSize, startRect.height + sy * (p.y - start.y));
+                                                if (!(mouse.modifiers & Qt.ShiftModifier)) {
+                                                    const s = Math.max(w / startRect.width, h / startRect.height);
+                                                    w = startRect.width * s;
+                                                    h = startRect.height * s;
+                                                }
+                                                moved = true;
+                                                overlayModel.set(overlay.index, {
+                                                    ox: sx > 0 ? startRect.x : startRect.x + startRect.width - w,
+                                                    oy: sy > 0 ? startRect.y : startRect.y + startRect.height - h,
+                                                    ow: w,
+                                                    oh: h
+                                                });
+                                            }
+                                            onReleased: {
+                                                if (moved)
+                                                    root.pushUndo(before);
+                                            }
                                         }
                                     }
                                 }
                             }
+                        }
+                    }
+
+                    // The annotations, then the one being drawn.
+                    Repeater {
+                        model: root.paints
+
+                        delegate: PaintItem {
+                            required property var modelData
+
+                            paint: modelData
+                            blurSource: underLayer
+                        }
+                    }
+
+                    PaintItem {
+                        paint: root.draft
+                        blurSource: underLayer
+                    }
+
+                    // Where the text tool types; it becomes an annotation once finished.
+                    TextEdit {
+                        id: textEditor
+
+                        x: root.textPos.x
+                        y: root.textPos.y
+                        visible: root.editingText
+                        enabled: root.editingText
+                        color: root.paintColour
+                        font.family: "sans-serif"
+                        font.pixelSize: root.textSize
+                        textFormat: TextEdit.PlainText
+                        selectByMouse: true
+                        cursorDelegate: Rectangle {
+                            width: scene.lineWidth
+                            color: textEditor.color
+                        }
+                        Keys.onEscapePressed: root.commitText()
+                    }
+
+                    // Draws with whichever tool is out, over everything but the crop.
+                    MouseArea {
+                        id: drawArea
+
+                        property point start
+
+                        anchors.fill: parent
+                        enabled: root.tool !== "select" && !root.cropping
+                        cursorShape: root.tool === "text" ? Qt.IBeamCursor : Qt.CrossCursor
+                        onPressed: mouse => { // qmllint disable signal-handler-parameters
+                            start = Qt.point(mouse.x, mouse.y);
+                            if (root.tool === "text") {
+                                root.startText(mouse.x, mouse.y);
+                                return;
+                            }
+                            root.commitText();
+                            root.draft = {
+                                kind: root.tool,
+                                colour: root.paintColour.toString(),
+                                width: root.strokeSize,
+                                fill: root.fill,
+                                x1: mouse.x,
+                                y1: mouse.y,
+                                x2: mouse.x,
+                                y2: mouse.y,
+                                points: [[mouse.x, mouse.y]]
+                            };
+                        }
+                        onPositionChanged: mouse => { // qmllint disable signal-handler-parameters
+                            const d = root.draft;
+                            if (!d)
+                                return;
+                            if (d.kind === "brush") {
+                                // Skip points closer together than a screen pixel.
+                                const last = d.points[d.points.length - 1];
+                                if (Math.hypot(mouse.x - last[0], mouse.y - last[1]) < 1 / root.fit)
+                                    return;
+                                d.points.push([mouse.x, mouse.y]);
+                                root.draft = Object.assign({}, d);
+                                return;
+                            }
+                            // Ctrl draws a rectangle or ellipse out from where the drag started.
+                            const centred = (mouse.modifiers & Qt.ControlModifier) && (d.kind === "rectangle" || d.kind === "ellipse");
+                            root.draft = Object.assign({}, d, {
+                                x1: centred ? start.x * 2 - mouse.x : start.x,
+                                y1: centred ? start.y * 2 - mouse.y : start.y,
+                                x2: mouse.x,
+                                y2: mouse.y
+                            });
+                        }
+                        onReleased: {
+                            const d = root.draft;
+                            root.draft = null;
+                            if (!d)
+                                return;
+                            const w = Math.abs(d.x2 - d.x1);
+                            const h = Math.abs(d.y2 - d.y1);
+                            // Shapes need some size to them; a brush click still leaves a dot.
+                            if (d.kind === "brush" || (d.kind === "arrow" ? Math.hypot(w, h) >= 1 : w >= 1 && h >= 1))
+                                root.addPaint(d);
                         }
                     }
 

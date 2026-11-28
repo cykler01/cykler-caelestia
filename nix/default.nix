@@ -9,7 +9,6 @@
   brightnessctl,
   networkmanager,
   lm_sensors,
-  satty,
   wl-clipboard,
   hyprpicker,
   libqalculate,
@@ -46,7 +45,6 @@
       brightnessctl
       networkmanager
       lm_sensors
-      satty
       wl-clipboard
       hyprpicker
       libqalculate
