@@ -17,6 +17,9 @@ Item {
     property string title
     property string icon
     property real plateOpacity: GlobalConfig.background.desktopWidgets.opacity
+    // At 0 the card is its bare content on the wallpaper: the plate, its tint and hairline, the blur
+    // behind it and the shadow under it all go away, and only what the widget draws itself is left
+    readonly property bool plateVisible: root.plateOpacity > 0
     // Blur, shadow and rounding follow the Power & battery settings as well as the widget's own
     property bool blur: wallpaper && GlobalConfig.background.desktopWidgets.blur && !GameMode.enabled && PowerSaving.blur
     property real radius: Tokens.rounding.extraLarge
@@ -51,7 +54,7 @@ Item {
     onParentChanged: updateOrigin()
     Component.onCompleted: updateOrigin()
 
-    layer.enabled: PowerSaving.shadows
+    layer.enabled: root.plateVisible && PowerSaving.shadows
     layer.effect: MultiEffect {
         shadowEnabled: true
         shadowColor: Colours.palette.m3shadow
@@ -62,7 +65,7 @@ Item {
 
     Loader {
         anchors.fill: parent
-        active: root.blur
+        active: root.blur && root.plateVisible
 
         sourceComponent: MultiEffect {
             source: ShaderEffectSource {
@@ -85,16 +88,21 @@ Item {
         radius: root.radius
         color: Colours.palette.m3surface
         opacity: root.plateOpacity
+        visible: root.plateVisible
         layer.enabled: root.blur
     }
 
-    // Soft tint + hairline so cards read against any wallpaper
+    // Soft tint + hairline so cards read against any wallpaper. Fades with the plate rather than
+    // staying on it, so a nearly transparent card is nearly nothing and a fully transparent one is
+    // nothing at all
     StyledRect {
         anchors.fill: parent
         radius: root.radius
         color: Qt.alpha(Colours.palette.m3primary, 0.04)
         border.width: 1
         border.color: Qt.alpha(Colours.palette.m3outlineVariant, 0.5)
+        opacity: root.plateOpacity
+        visible: root.plateVisible
     }
 
     // Declared before the content, so anything the card puts on top of it - a button, a note, a

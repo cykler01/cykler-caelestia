@@ -53,15 +53,19 @@ PageBase {
             onToggled: GlobalConfig.background.desktopWidgets.blur = checked
         }
 
-        StepperRow {
+        // Down to 0, which takes the card away entirely and leaves the widget's content on the
+        // wallpaper; the card's own chrome goes with it (see modules/background/DesktopCard.qml)
+        SliderRow {
             last: true
+            icon: "opacity"
+            // SEARCH: transparent see through invisible remove no background bare naked card
             label: Tr.tr("Card opacity")
-            subtext: Tr.tr("How opaque the card backgrounds are (%)")
-            value: Math.round(root.widgetsConfig.opacity * 100)
-            from: 10
-            to: 100
-            stepSize: 5
-            onMoved: v => GlobalConfig.background.desktopWidgets.opacity = Math.round(v) / 100
+            valueLabel: root.widgetsConfig.opacity <= 0 ? Tr.tr("Hidden") : `${Math.round(root.widgetsConfig.opacity * 100)}%`
+            value: root.widgetsConfig.opacity
+            from: 0
+            to: 1
+            stepSize: 0.05
+            onMoved: v => GlobalConfig.background.desktopWidgets.opacity = Math.round(v * 20) / 20
         }
 
         SectionHeader {

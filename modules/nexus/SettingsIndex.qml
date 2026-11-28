@@ -1449,7 +1449,7 @@ QtObject {
             title: Tr.tr("Widgets"),
             section: Tr.tr("Cards"),
             label: Tr.tr("Card opacity"),
-            subtext: Tr.tr("How opaque the card backgrounds are (%)")
+            keywords: "transparent see through invisible remove no background bare naked card"
         },
         {
             page: "panels",
